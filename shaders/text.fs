@@ -1,12 +1,12 @@
 #version 410 core
-in vec2 TexCoords;
-out vec4 color;
+in vec2 uv;
+uniform sampler2D uAtlas;
+uniform vec4 uColor;
+uniform bool uSolid;
+out vec4 fragmentColor;
 
-uniform sampler2D text;
-uniform vec4 textColor;
-
-void main()
-{
-  vec4 sampled = vec4(1.0, 1.0, 1.0, texture(text, TexCoords).r);
-  color = textColor * sampled;
+// Combines a glyph sample or solid fill with the overlay color.
+void main(){
+    float coverage = uSolid ? 1.0 : texture(uAtlas, uv).r;
+    fragmentColor = vec4(uColor.rgb, uColor.a * coverage);
 }

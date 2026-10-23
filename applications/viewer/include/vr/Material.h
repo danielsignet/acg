@@ -1,49 +1,65 @@
 #pragma once
-
-// Important: Import glad as first gl header
-#include <glad/glad.h>
-
-#define GLM_FORCE_RADIANS
+#include "Program.h"
 #include <glm/glm.hpp>
-#include <vector>
-#include <memory>
-#include <vr/Texture.h>
-#include <vr/Shader.h>
-namespace vr
-{
 
-  /// Simple class for storing material properties
-  class Material
-  {
-  private:
+namespace vr{
+class Material{
+public:
+    // Overrides the ambient contribution while preserving other material properties.
+    void setAmbient(const glm::vec3& v){
+        m_ambient = v;
+        m_hasAmbient = true;
+    }
 
-    glm::vec4 m_ambient, m_diffuse, m_specular;
+    // Overrides the diffuse contribution while preserving other material properties.
+    void setDiffuse(const glm::vec3& v){
+        m_diffuse = v;
+        m_hasDiffuse = true;
+    }
 
-    GLfloat m_shininess;
+    // Overrides the specular contribution while preserving other material properties.
+    void setSpecular(const glm::vec3& v){
+        m_specular = v;
+        m_hasSpecular = true;
+    }
 
-    typedef std::vector<std::shared_ptr<vr::Texture> > TextureVector;
-    TextureVector m_textures;
+    // Validates and overrides the specular highlight exponent.
+    void setShininess(float value);
 
-  public:
+    // Returns the ambient color contribution.
+    const glm::vec3& getAmbient() const{
+        return m_ambient;
+    }
 
-    Material();
+    // Returns the diffuse color contribution.
+    const glm::vec3& getDiffuse() const{
+        return m_diffuse;
+    }
 
-    glm::vec4 getAmbient() const;
-    glm::vec4 getSpecular() const;
-    glm::vec4 getDiffuse() const;
+    // Returns the specular highlight color.
+    const glm::vec3& getSpecular() const{
+        return m_specular;
+    }
 
-    void setAmbient(const glm::vec4& color);
-    void setSpecular(const glm::vec4& color);
-    void setDiffuse(const glm::vec4& color);
-    void setShininess(float s);
+    // Returns the specular highlight exponent.
+    float getShininess() const{
+        return m_shininess;
+    }
 
-    /// Set a \p texture to the specified \p unit
-    void setTexture(std::shared_ptr<vr::Texture> texture, unsigned int unit);
+    // Combines inherited values with explicitly supplied local overrides.
+    Material merged(const Material& local) const;
 
-    /// Apply the material to the choosen shader
-    void apply(std::shared_ptr<vr::Shader> shader);
-  };
+    // Uploads the material colors and shininess to the shader.
+    void apply(const Program& program) const;
 
-  typedef std::vector<std::shared_ptr<Material> > MaterialVector;
-
-}
+private:
+    glm::vec3 m_ambient{0.13f};
+    glm::vec3 m_diffuse{0.72f};
+    glm::vec3 m_specular{0.45f};
+    float m_shininess = 48.0f;
+    bool m_hasAmbient = false;
+    bool m_hasDiffuse = false;
+    bool m_hasSpecular = false;
+    bool m_hasShininess = false;
+};
+} // namespace vr

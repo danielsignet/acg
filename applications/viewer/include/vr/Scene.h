@@ -1,112 +1,63 @@
-
 #pragma once
-
-#include <memory>
-#include <vector>
-#include <sstream>
-#include "Node.h"
-#include "Light.h"
 #include "Camera.h"
-#include "vr/Shader.h"
+#include "Group.h"
+#include "Light.h"
+#include "Transform.h"
 
-namespace vr
-{
-
-  class Scene;
-
-  /**
-  Class that holds all mesh objects, lights and a camera
-  */
-  class Scene
-  {
-  public:
-
-    /**
-    Constructor
-    */
+namespace vr{
+class Scene{
+public:
+    // Creates one graph root and attaches its camera node.
     Scene();
 
-    /**
-    Initialize the vertex and fragment shader and a program.
-    \param vshader_filename
-    \param fshader_filename
-    \return true if successful.
-    */
-    bool initShaders(const std::string& vshader_filename, const std::string& fshader_filename);
+    // Returns the root owned by this scene or resource reader.
+    const std::shared_ptr<Group>& getRoot() const{
+        return m_root;
+    }
 
-    /**
-    Add a lightsource
-    \param light - A new light source<
-    */
-    void add(std::shared_ptr<Light>& light);
+    // Returns the scene camera shared with the rendering and update visitors.
+    const std::shared_ptr<Camera>& getCamera() const{
+        return m_camera;
+    }
 
-    /**
-    Get all light sources
-    \return A vector of lightsources
-    */
-    const LightVector& getLights();
+    // Registers a named transform and rejects ambiguous duplicate names.
+    void registerTransform(const std::shared_ptr<Transform>& node);
 
+    // Registers a named light and rejects ambiguous duplicate names.
+    void registerLight(const std::shared_ptr<Light>& node);
 
-    /**
-    Get the camera
-    \return The camera
-    */
-    std::shared_ptr<Camera> getCamera();
+    // Finds a registered transform by name, or returns an empty pointer.
+    std::shared_ptr<Transform> findTransform(const std::string& name) const;
 
-    ~Scene();
+    // Finds a registered light by name, or returns an empty pointer.
+    std::shared_ptr<Light> findLight(const std::string& name) const;
 
-    /**
-    Apply the camera
-    */
-    void applyCamera();
+    // Sets the position restored when the camera is reset.
+    void setInitialEye(const glm::vec3& eye){
+        m_initialEye = eye;
+    }
 
-    /**
-    Use the shader program
-    */
-    void useProgram();
+    // Sets the look-at target restored when the camera is reset.
+    void setInitialTarget(const glm::vec3& target){
+        m_initialTarget = target;
+    }
 
-    /**
-    Add a new node
-    \param node - A new node
-    */
-    void add(std::shared_ptr<Node>& node);
+    // Returns the initial camera position.
+    const glm::vec3& getInitialEye() const{
+        return m_initialEye;
+    }
 
-    /**
-    Reset all nodes transform to its initial value
-    */
-    void resetTransform();
+    // Returns the initial camera look-at target.
+    const glm::vec3& getInitialTarget() const{
+        return m_initialTarget;
+    }
 
-    /**
-    Get a all nodes
-    \return A vector containing all nodes
-    */
-    const NodeVector& getNodes();
-
-    /**
-    Get the i:th node
-    \param i - Index in vector<
-    \return A node
-    */
-    std::shared_ptr<Node> getNode(size_t i);
-
-    /**
-    Compute a bounding box for the whole scene
-    \return A bounding box for the whole scene
-    */
-    BoundingBox calculateBoundingBox();
-
-    /**
-    Render the whole scene
-    */
-    void render();
-
-  private:
-    NodeVector m_nodes;
-    LightVector m_lights;
-    GLint m_uniform_numberOfLights;
-
-    std::shared_ptr<vr::Shader> m_shader;
-
+private:
+    std::shared_ptr<Group> m_root;
     std::shared_ptr<Camera> m_camera;
-  };
-}
+    std::map<std::string, std::shared_ptr<Transform>> m_transforms;
+    std::map<std::string, std::shared_ptr<Light>> m_lights;
+    glm::vec3 m_initialEye{16, 11, 22};
+    glm::vec3 m_initialTarget{0, 1, 0};
+};
+} // namespace vr

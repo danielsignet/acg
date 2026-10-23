@@ -1,11 +1,11 @@
 #version 410 core
-layout(location = 0) in vec4 vertex; // <vec2 pos, vec2 tex>
-out vec2 TexCoords;
+layout(location = 0) in vec4 vertex;
+uniform vec2 uScreen;
+out vec2 uv;
 
-uniform mat4 projection;
-
-void main()
-{
-  gl_Position = projection * vec4(vertex.xy, 0.0, 1.0);
-  TexCoords = vertex.zw;
+// Maps overlay pixel coordinates into clip space.
+void main(){
+    uv = vertex.zw;
+    gl_Position =
+        vec4(vertex.x / uScreen.x * 2.0 - 1.0, 1.0 - vertex.y / uScreen.y * 2.0, 0.0, 1.0);
 }

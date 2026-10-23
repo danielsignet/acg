@@ -1,44 +1,68 @@
-# ACG
+# Scene graph viewer
 
-A C++/OpenGL graphics implementation with model loading, materials, lighting and
-XML scenes.
+An interactive C++17/OpenGL 4.1 viewer for scene graphs, lighting and shading.
+The default scene is `scenes/demo.xml`; use `--scene <file>` to load another scene.
 
-Requires CMake 3.x (3.21+) and an OpenGL 4.1 driver. GLFW, Assimp, zlib and FreeType
-are built from bundled sources. Run the commands below from the repository root.
+Requires CMake 3.21+ and an OpenGL 4.1 driver. Dependencies are bundled.
+Run the commands below from the repository root.
 
-## Windows
+## Build and run
 
-Visual Studio 2022 with C++ desktop tools and a Windows SDK. In PowerShell:
+### Windows
+
+Install Visual Studio 2022 with C++ desktop tools and a Windows SDK.
 
 ```powershell
 cmake --preset windows -S cmake/standalone
 cmake --build build/windows --config RelWithDebInfo --parallel 4
-$env:VR_PATH = (Get-Location).Path
-& .\build\windows\bin\RelWithDebInfo\viewer.exe scenes/monkey.xml
+& .\build\windows\bin\viewer.exe
 ```
 
-## Linux / WSL
+### Linux / WSL
 
-On Ubuntu, install the compiler and OpenGL/X11 development libraries:
+On Ubuntu/Debian:
 
 ```bash
-sudo apt install build-essential cmake libgl1-mesa-dev libxrandr-dev \
-  libxinerama-dev libxcursor-dev libxi-dev libxkbcommon-dev
+sudo apt install build-essential cmake libgl-dev libx11-dev \
+  libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 cmake --preset linux -S cmake/standalone
 cmake --build build/linux --parallel 4
-export VR_PATH="$PWD"
-./build/linux/bin/viewer scenes/monkey.xml
+./build/linux/bin/viewer
 ```
 
-WSL requires a graphical session, such as WSLg.
+WSL needs a graphical session such as WSLg. Resources are copied beside the executable.
 
-## Viewer
+## Controls
 
-Pass a model file or an XML scene to `viewer`. Examples are in `models/` and
-`scenes/`. `VR_PATH` points to the repository root for shaders, fonts and assets.
+- `WASD`: move; `Q/E`: down/up; `Shift`: move faster; right mouse button: look.
+- `Space`: reset the view; `R`: reload the scene; `Esc`: quit.
+- `P`: pause object animation; `L`: pause the light orbit; arrow keys: move the lights.
+- `V`: toggle the LOD camera tour; `T`: toggle toon shading.
+- `F2`: save a screenshot; `F3`: export the scene graph.
 
-- `WASD`: move; `E/Q`: up/down; left `Shift`: move faster.
-- Hold the left mouse button and drag to look around; scroll to change the field of view.
-- `R`: reload the scene; `Esc`: quit.
+Lighting, texture and culling controls are shown in the viewer.
 
-License: [MIT](LICENSE).
+## Graph visualization
+
+`F3` saves `verification/scenegraph.dot` beside the executable. Use `--dot <file>`
+to choose another output path. Shared nodes and all LOD branches are included.
+
+With Graphviz installed, run this from the directory containing the exported file:
+
+```sh
+dot -Tsvg scenegraph.dot -o scenegraph.svg
+```
+
+## Tests
+
+```powershell
+ctest --test-dir build/windows -C RelWithDebInfo --output-on-failure
+```
+
+On Linux, use `ctest --test-dir build/linux --output-on-failure`.
+The rendering test needs a graphical session.
+
+## License
+
+Based on Anders Backman/vrguru's VRLib under the [MIT license](LICENSE).
+Bundled dependencies and assets retain their original notices.

@@ -1,51 +1,50 @@
 #pragma once
-
+#include <filesystem>
 #include <glad/glad.h>
+#include <memory>
+#include <vector>
 
-#include <string>
+namespace vr{
+class Texture{
+public:
+    // Validates and stores RGBA pixels for lazy OpenGL upload.
+    Texture(int width, int height, std::vector<unsigned char> rgba, bool repeat = true);
 
+    // Releases the texture after its final owner is destroyed.
+    ~Texture();
 
-namespace vr
-{
+    // Prevents copying ownership or identity of this object.
+    Texture(const Texture&) = delete;
 
-	class Texture
-	{
-	public:
+    // Prevents copying ownership or identity of this object.
+    Texture& operator=(const Texture&) = delete;
 
-		/// <summary>
-		/// Constructor for an image
-		/// </summary>
-		/// <param name="image">path to an image on disk</param>
-		/// <param name="texType"></param>
-		/// <param name="slot">texture slot (default 0)</param>
-		/// <param name="format"></param>
-		/// <param name="pixelType"></param>
-		Texture();
-		bool create(const char* image, unsigned int slot=0, GLenum texType = GL_TEXTURE_2D, GLenum pixelType=GL_UNSIGNED_BYTE);
+    // Decodes an image file into an RGBA texture.
+    static std::shared_ptr<Texture> fromFile(const std::filesystem::path& path);
 
-		bool isValid();
+    // Decodes a compressed in-memory image into an RGBA texture.
+    static std::shared_ptr<Texture> fromMemory(const unsigned char* data, int length);
 
-		~Texture();
+    // Uploads pixels on first use and binds the requested texture layer.
+    void apply(unsigned layer) const;
 
-		/// Assigns a texture unit to a texture
-		void texUnit(GLuint program, const char* uniform, GLuint unit);
+    // Returns the image width in pixels.
+    int getWidth() const{
+        return m_width;
+    }
 
-		/// Binds a texture
-		void bind();
+    // Returns the image height in pixels.
+    int getHeight() const{
+        return m_height;
+    }
 
-		/// Unbinds a texture
-		void unbind();
-		
-		/// Deletes a texture
-		void cleanup();
-
-	private:
-		GLuint m_id;
-		GLenum m_type;
-		bool m_valid;
-		GLuint m_textureSlot;
-
-	};
-}
-
-
+private:
+    // Copies decoded image pixels before releasing the decoder allocation.
+    static std::shared_ptr<Texture> decode(unsigned char* data, int width, int height);
+    int m_width;
+    int m_height;
+    bool m_repeat;
+    std::vector<unsigned char> m_rgba;
+    mutable GLuint m_id = 0;
+};
+} // namespace vr

@@ -1,47 +1,58 @@
 #pragma once
+#include "Resources.h"
 
-#include <string>
-#include <glm/glm.hpp>
-#include <memory>
+namespace vr{
+class Text{
+public:
+    // Creates the shader, font atlas and buffers used for overlay drawing.
+    explicit Text(const std::filesystem::path& root);
 
-namespace vr
-{
-	/// Class that can render 2D text to the screen
-	class Text
-	{
-	public:
+    // Releases the font texture and overlay buffers.
+    ~Text();
 
-		Text(const std::string& text="", const glm::vec2& position = glm::vec2(0, 0), const glm::vec4& color = glm::vec4(1, 1, 0, 1), float scale = 1.0f);
-		
-		/// Set the text will be rendered
-		void setText(const std::string& text);
+    // Prevents copying ownership or identity of this object.
+    Text(const Text&) = delete;
 
-		/// \return the text string
-		const std::string& getText() const;
-		
-		/// Render the text given a window size
-		void render(int width, int height);
+    // Prevents copying ownership or identity of this object.
+    Text& operator=(const Text&) = delete;
 
-		/// Set the color of the text
-		void setColor(const glm::vec4& color);
+    // Configures the OpenGL state used by the text overlay.
+    void begin(int width, int height);
 
-		/// Set the text position in 2D.
-		void setPosition(const glm::vec2& position);
-		
-		/// Set the scale of the text
-		void setScale(float scale);
+    // Draws supported text glyphs at the requested screen position and size.
+    void draw(const std::string& text, float x, float y, float size, const glm::vec4& color);
 
-		~Text();
+    // Draws a solid overlay rectangle as two triangles.
+    void rectangle(float x, float y, float width, float height, const glm::vec4& color);
 
-	private:
+    // Restores depth writing and disables overlay blending.
+    void end();
 
-		static std::string getFontPath(const std::string& fontName = "arial.ttf");
+private:
+    // Rasterizes the supported font glyphs into a texture atlas.
+    std::vector<unsigned char> loadFont(const std::filesystem::path& root);
 
-		std::string m_text;
-		glm::vec4 m_color;
-		glm::vec2 m_position;
-		float m_scale;
-	};
+    // Uploads the glyph atlas and configures its sampling parameters.
+    void uploadAtlas(const std::vector<unsigned char>& atlas);
 
+    // Creates the vertex array and streaming buffer used for overlay drawing.
+    void createBuffers();
 
-}
+    struct Glyph{
+        glm::vec2 uv0;
+        glm::vec2 uv1;
+        glm::ivec2 size;
+        glm::ivec2 bearing;
+        float advance = 0;
+    };
+
+    std::array<Glyph, 128> m_glyphs;
+    std::shared_ptr<Program> m_program;
+    GLuint m_texture = 0;
+    GLuint m_vao = 0;
+    GLuint m_vbo = 0;
+
+    // Uploads and draws one batch of text or rectangle vertices.
+    void vertices(const std::vector<glm::vec4>& data, const glm::vec4& color, bool solid);
+};
+} // namespace vr

@@ -1,102 +1,86 @@
 #version 410 core
+in vec3 worldPosition, worldNormal;
+in vec2 texCoord;
+out vec4 fragmentColor;
 
-// From vertex shader
-in vec4 position;  // position of the vertex (and fragment) in eye space
-in vec3 normal ;  // surface normal vector in eye space
-in vec2 texCoord; // Texture coordinate
-
-// The end result of this shader
-out vec4 color;
-
-uniform mat4 m, v, p;
-uniform mat4 v_inv;
-uniform int numberOfLights;
-
-const int MAX_TEXTURES=2;
-
-// declaration of a Material structure
-struct Material
-{
-    vec4 ambient;
-    vec4 diffuse;
-    vec4 specular;
-
+struct Material{
+    vec3 ambient, diffuse, specular;
     float shininess;
-    bool activeTextures[MAX_TEXTURES];
-    sampler2D textures[MAX_TEXTURES];
 };
 
-// Definition of a light source structure
-struct LightSource
-{
-  bool enabled;
-  vec4 position;
-  vec4 diffuse;
-  vec4 specular;
+struct Light{
+    vec4 position;
+    vec3 ambient, diffuse, specular, attenuation;
+    bool enabled;
 };
 
-const int MaxNumberOfLights = 10;
+uniform Material uMaterial;
+uniform Light uLights[8];
+uniform int uLightCount;
+uniform vec3 uEye, uTint, uEmissive;
+uniform bool uLighting, uToon, uMultiTexture;
+uniform sampler2D uTextures[4];
+uniform bool uHasTexture[4];
+uniform float uTextureMix, uAlphaCutoff;
 
-// This is the uniforms that our program communicates with
-uniform LightSource lights[MaxNumberOfLights];
-
-// Some hard coded default ambient lighting
-vec4 scene_ambient = vec4(0.2, 0.2, 0.2, 1.0);
-
-// The front surface material
-uniform Material material;
-
-void main()
-{
-  vec3 normalDirection = normalize(normal);
-  vec3 viewDirection = normalize(vec3(v_inv * vec4(0.0, 0.0, 0.0, 1.0) - position));
-  vec3 lightDirection;
-  float attenuation;
-
-  // initialize total lighting with ambient lighting
-  vec3 totalLighting = vec3(scene_ambient) * vec3(material.ambient);
-
-
-  // for all light sources
-  for (int index = 0; index < numberOfLights; index++) 
-  {
-    LightSource light = lights[index];
-    if (0.0 == light.position.w) // directional light?
-    {
-      attenuation = 1.0; // no attenuation
-      lightDirection = normalize(vec3(light.position));
+// Shades the surface and discards fragments below the alpha threshold.
+void main(){
+    vec4 surface = vec4(uMaterial.diffuse * uTint, 1.0);
+    if (uHasTexture[0]){
+        surface *= texture(uTextures[0], texCoord);
     }
-    else // point light or spotlight (or other kind of light) 
-    {
-      vec3 positionToLightSource = vec3(light.position - position);
-      float distance = length(positionToLightSource);
-      lightDirection = normalize(positionToLightSource);
-      attenuation = 1.0;
+    if (surface.a < uAlphaCutoff){
+        discard;
     }
-
-    vec3 diffuseReflection = attenuation
-      * vec3(light.diffuse) * vec3(material.diffuse)
-      * max(0.0, dot(normalDirection, lightDirection));
-
-    vec3 specularReflection;
-    if (dot(normalDirection, lightDirection) < 0.0) // light source on the wrong side?
-    {
-      specularReflection = vec3(0.0, 0.0, 0.0); // no specular reflection
+    if (uMultiTexture){
+        for (int i = 1; i < 4; ++i){
+            if (uHasTexture[i]){
+                surface.rgb *= mix(vec3(1.0), texture(uTextures[i], texCoord).rgb, uTextureMix);
+            }
+        }
     }
-    else // light source on the right side
-    {
-      specularReflection = attenuation * vec3(light.specular) * vec3(material.specular)
-        * pow(max(0.0, dot(reflect(-lightDirection, normalDirection), viewDirection)), material.shininess);
+    vec3 n = normalize(worldNormal);
+    if (!gl_FrontFacing){
+        n = -n;
     }
-    totalLighting = totalLighting + diffuseReflection + specularReflection;
-  }
-
-  // How we could check for a diffuse texture map
-  if (material.activeTextures[0])
-  {
-    vec4 diffuseTex = texture2D(material.textures[0], texCoord);
-    totalLighting = totalLighting * diffuseTex.rgb;
-  }
-
-  color = vec4(totalLighting, 1.0);
+    vec3 viewDirection = normalize(uEye - worldPosition);
+    vec3 result = surface.rgb;
+    if (uLighting){
+        result = uMaterial.ambient * surface.rgb * 0.6;
+        for (int i = 0; i < uLightCount; ++i){
+            if (!uLights[i].enabled){
+                continue;
+            }
+            vec3 lightDirection;
+            float attenuation = 1.0;
+            if (uLights[i].position.w == 0.0){
+                lightDirection = normalize(uLights[i].position.xyz);
+            } else{
+                vec3 delta = uLights[i].position.xyz - worldPosition;
+                float d = length(delta);
+                lightDirection = delta / max(d, 0.0001);
+                attenuation = 1.0 / max(dot(uLights[i].attenuation, vec3(1.0, d, d * d)), 0.0001);
+            }
+            float diffuse = max(dot(n, lightDirection), 0.0);
+            float specular = 0.0;
+            if (diffuse > 0.0){
+                specular = pow(max(dot(viewDirection, reflect(-lightDirection, n)), 0.0),
+                               uMaterial.shininess);
+            }
+            if (uToon){
+                diffuse = floor(diffuse * 4.0) / 4.0;
+                specular = step(0.45, specular);
+            }
+            result +=
+                attenuation * (surface.rgb * (uLights[i].ambient + uLights[i].diffuse * diffuse) +
+                               uMaterial.specular * uLights[i].specular * specular);
+        }
+        if (uToon){
+            result *= smoothstep(0.05, 0.3, abs(dot(n, viewDirection)));
+        }
+    }
+    result += uEmissive;
+    vec3 mapped = pow(result / (result + vec3(0.65)), vec3(1.0 / 2.2));
+    float fog = 1.0 - exp(-0.00055 * dot(uEye - worldPosition, uEye - worldPosition));
+    fragmentColor = vec4(mix(mapped, vec3(0.035, 0.052, 0.078), clamp(fog, 0.0, 0.82)), 1.0);
 }

@@ -1,134 +1,73 @@
 #include <vr/Texture.h>
-
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include <stb_image.h>
+#include <stdexcept>
 
-#include <iostream>
-#include <vr/FileSystem.h>
-#include <vr/glErrorUtil.h>
-using namespace vr;
-
-
-bool Texture::create(const char* image, unsigned int slot, GLenum texType, GLenum pixelType) 
-{
-	if (m_valid)
-		cleanup();
-
-	std::string filepath = image;
-
-	bool exist = vr::FileSystem::exists(filepath);
-
-	std::string vrPath = vr::FileSystem::getEnv("VR_PATH");
-	if (vrPath.empty())
-		std::cerr << "The environment variable VR_PATH is not set. It should point to the directory where the vr library is (just above models)" << std::endl;
-
-	if (!exist && !vrPath.empty())
-	{
-		filepath = std::string(vrPath) + "/" + filepath;
-		exist = vr::FileSystem::exists(filepath);
-	}
-	if (!exist)
-	{
-		std::cerr << "Unable to locate image: " << image << std::endl;
-		return false;
-	}
-
-	m_textureSlot = slot;
-
-	// Assigns the type of the texture of the texture object
-	m_type = texType;
-
-	GLenum texFormat = GL_RGBA;
-
-	// Stores the width, height, and the number of color channels of the image
-	int widthImg, heightImg, numColCh;
-	// Flips the image so it appears right side up
-	stbi_set_flip_vertically_on_load(true);
-	// Reads the image from a file and stores it in bytes
-	unsigned char* bytes = stbi_load(filepath.c_str(), &widthImg, &heightImg, &numColCh, 0);
-	if (!bytes) {
-		std::cerr << "Error reading image: " << image << std::endl;
-		return false;
-	}
-
-	if (numColCh == 3)
-		texFormat = GL_RGB;
-
-	// Generates an OpenGL texture object
-	glGenTextures(1, &m_id);
-
-	// Assigns the texture to a Texture Unit
-	glActiveTexture(GL_TEXTURE0 + slot);
-	glBindTexture(texType, m_id);
-
-	CHECK_GL_ERROR_LINE_FILE();
-
-	// Configures the type of algorithm that is used to make the image smaller or bigger
-	glTexParameteri(texType, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(texType, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	// Configures the way the texture repeats (if it does at all)
-	glTexParameteri(texType, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(texType, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	// Assigns the image to the OpenGL Texture object
-	glTexImage2D(texType, 0, GL_RGBA, widthImg, heightImg, 0, texFormat, pixelType, bytes);
-	// Generates MipMaps
-	glGenerateMipmap(texType);
-
-	// Deletes the image data as it is already in the OpenGL Texture object
-	stbi_image_free(bytes);
-
-	// Unbinds the OpenGL Texture object so that it can't accidentally be modified
-	glBindTexture(texType, 0);
-
-	m_valid = true;
-	return true;
+namespace vr{
+// Copies decoded image pixels before releasing the decoder allocation.
+std::shared_ptr<Texture> Texture::decode(unsigned char* data, int width, int height){
+    if (!data){
+        throw std::runtime_error(std::string("Image decoding failed: ") + stbi_failure_reason());
+    }
+    std::vector<unsigned char> pixels(data, data + static_cast<std::size_t>(width) * height * 4);
+    stbi_image_free(data);
+    return std::make_shared<Texture>(width, height, std::move(pixels));
 }
 
-Texture::Texture() : m_id(0), m_type(0), m_valid(false), m_textureSlot(0)
-{
+// Validates and stores RGBA pixels for lazy OpenGL upload.
+Texture::Texture(int width, int height, std::vector<unsigned char> rgba, bool repeat)
+    : m_width(width), m_height(height), m_repeat(repeat), m_rgba(std::move(rgba)){
+    if (width <= 0 || height <= 0 ||
+        m_rgba.size() != static_cast<std::size_t>(width) * height * 4){
+        throw std::invalid_argument("Texture dimensions do not match RGBA data");
+    }
 }
 
-Texture::~Texture()
-{
-	cleanup();
+// Releases the texture after its final owner is destroyed.
+Texture::~Texture(){
+    if (m_id){
+        glDeleteTextures(1, &m_id);
+    }
 }
 
-bool Texture::isValid()
-{
-	return m_valid;
+// Decodes an image file into an RGBA texture.
+std::shared_ptr<Texture> Texture::fromFile(const std::filesystem::path& path){
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    stbi_set_flip_vertically_on_load(1);
+    auto* data = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
+    if (!data){
+        throw std::runtime_error("Cannot load texture " + path.string());
+    }
+    return decode(data, width, height);
 }
 
-void Texture::texUnit(GLuint program, const char* uniform, unsigned int unit)
-{
-	// Gets the location of the uniform
-	GLuint texUni = glGetUniformLocation(program, uniform);
-
-	// Sets the value of the uniform
-	glUniform1i(texUni, unit);
+// Decodes a compressed in-memory image into an RGBA texture.
+std::shared_ptr<Texture> Texture::fromMemory(const unsigned char* bytes, int length){
+    int width = 0;
+    int height = 0;
+    int channels = 0;
+    stbi_set_flip_vertically_on_load(1);
+    auto* data = stbi_load_from_memory(bytes, length, &width, &height, &channels, 4);
+    return decode(data, width, height);
 }
 
-void Texture::bind()
-{
-	glActiveTexture(GL_TEXTURE0 + m_textureSlot);
-
-	if (m_valid)
-		glBindTexture(m_type, m_id);
+// Uploads pixels on first use and binds the requested texture layer.
+void Texture::apply(unsigned layer) const{
+    glActiveTexture(GL_TEXTURE0 + layer);
+    if (!m_id){
+        glGenTextures(1, &m_id);
+        glBindTexture(GL_TEXTURE_2D, m_id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, m_repeat ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, m_repeat ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                     m_rgba.data());
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else{
+        glBindTexture(GL_TEXTURE_2D, m_id);
+    }
 }
-
-void Texture::unbind()
-{
-	if (m_valid)
-		glBindTexture(m_type, m_id);
-}
-
-void Texture::cleanup()
-{
-
-	if (m_valid)
-		glDeleteTextures(1, &m_id);
-
-	m_valid = false;
-}
-
+} // namespace vr

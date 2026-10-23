@@ -1,27 +1,98 @@
-# Get the name of this directory and use that as the name of the build_target/application
-get_filename_component(TARGET_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/vr/vrlib_version.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/vr/vrlib_version.h @ONLY)
-
-
-# Find all source files
-FILE(GLOB_RECURSE SOURCE *.cpp *.c *.h)
-#FILE(GLOB SOURCE_EXTRA ../*.cpp ../*.h)
-
-INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-
-
-# Create an executable from the sources
-ADD_EXECUTABLE(${TARGET_NAME} ${SOURCE} ${SOURCE_EXTRA})
-
-
-# This executable requires a few libraries to link
-TARGET_LINK_LIBRARIES(${TARGET_NAME} ${GLFW3_LIBRARY} ${OPENGL_LIBRARIES} ${SOIL_LIBRARIES} ${ASSIMP_LIBRARIES_RELEASE} ${ZLIB_LIBRARY} ${FREETYPE_LIBRARIES} )
-
-IF(NOT WIN32) 
-	TARGET_LINK_LIBRARIES(${TARGET_NAME} ${X_LIBS}  )
-ENDIF()
-
-# Where to put files during install
-INSTALL(TARGETS ${TARGET_NAME}  RUNTIME DESTINATION bin ARCHIVE DESTINATION lib LIBRARY DESTINATION bin )
+add_library(vrlib STATIC
+    src/glad.c
+    src/vr/Animation.cpp
+    src/vr/Application.cpp
+    src/vr/Camera.cpp
+    src/vr/DotVisitor.cpp
+    src/vr/FramebufferImage.cpp
+    src/vr/Geometry.cpp
+    src/vr/GeometryFactory.cpp
+    src/vr/Group.cpp
+    src/vr/LOD.cpp
+    src/vr/Light.cpp
+    src/vr/Material.cpp
+    src/vr/ModelReader.cpp
+    src/vr/NodeVisitor.cpp
+    src/vr/PathVisitor.cpp
+    src/vr/Program.cpp
+    src/vr/Reader.cpp
+    src/vr/RenderVisitor.cpp
+    src/vr/RenderingValidator.cpp
+    src/vr/ResourceLocator.cpp
+    src/vr/Scene.cpp
+    src/vr/SceneOverlay.cpp
+    src/vr/SceneReader.cpp
+    src/vr/State.cpp
+    src/vr/Text.cpp
+    src/vr/Texture.cpp
+    src/vr/UpdateVisitor.cpp
+    src/vr/Viewer.cpp
+)
+target_include_directories(vrlib PUBLIC include)
+target_include_directories(vrlib SYSTEM PUBLIC "${VRLIB_SOURCE_DIR}/dependencies/glm"
+  PRIVATE "${VRLIB_SOURCE_DIR}/dependencies"
+  "${VRLIB_SOURCE_DIR}/dependencies/stb"
+  "${VRLIB_SOURCE_DIR}/dependencies/assimp-5.3.1/contrib/zlib"
+  "${PROJECT_BINARY_DIR}/dependencies/assimp-5.3.1/contrib/zlib"
+  "${VRLIB_SOURCE_DIR}/dependencies/freetype-2.3.11/include")
+target_link_libraries(vrlib PUBLIC glfw assimp OpenGL::GL PRIVATE freetype zlibstatic ${CMAKE_DL_LIBS})
+target_compile_definitions(vrlib PUBLIC GLFW_INCLUDE_NONE GLM_FORCE_RADIANS)
+target_compile_definitions(vrlib PRIVATE VR_SOURCE_ROOT="${VRLIB_SOURCE_DIR}")
+if(MSVC)
+  target_compile_definitions(vrlib PRIVATE _CRT_SECURE_NO_WARNINGS)
+endif()
+if(MSVC)
+  target_compile_options(vrlib PRIVATE /W4 /utf-8 /permissive-)
+else()
+  target_compile_options(vrlib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
+endif()
+add_executable(viewer main.cpp)
+target_link_libraries(viewer PRIVATE vrlib)
+if(MSVC)
+  set_target_properties(viewer PROPERTIES WIN32_EXECUTABLE TRUE)
+  target_link_options(viewer PRIVATE /ENTRY:mainCRTStartup)
+endif()
+set_target_properties(viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
+foreach(config Debug Release RelWithDebInfo MinSizeRel)
+  string(TOUPPER ${config} CONFIG_UPPER)
+  set_target_properties(viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${PROJECT_BINARY_DIR}/bin")
+endforeach()
+# Keep the default scene runnable beside the executable and in installed packages.
+set(VIEWER_RESOURCES
+    scenes/demo.xml
+    models/monkey.obj
+    models/texturedBox.obj
+    models/texturedBox.mtl
+    models/cow/cow_0.99.obj
+    models/cow/cow_0.5.obj
+    models/cow/cow_0.3.obj
+    models/cow/cow_0.1.obj
+    models/cow/cow_0.05.obj
+    models/cow/cow_0.01.obj
+    textures/box.bmp
+    textures/grid.png
+    textures/detail.png
+    textures/alphatest.png
+    fonts/arial.ttf
+    shaders/phong-shading.vs
+    shaders/phong-shading.fs
+    shaders/text.vs
+    shaders/text.fs
+)
+set(VIEWER_RESOURCE_OUTPUTS)
+foreach(resource IN LISTS VIEWER_RESOURCES)
+    get_filename_component(resource_directory "${resource}" DIRECTORY)
+    set(resource_output "${PROJECT_BINARY_DIR}/bin/${resource}")
+    add_custom_command(OUTPUT "${resource_output}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/bin/${resource_directory}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${VRLIB_SOURCE_DIR}/${resource}" "${resource_output}"
+        DEPENDS "${VRLIB_SOURCE_DIR}/${resource}"
+        VERBATIM)
+    list(APPEND VIEWER_RESOURCE_OUTPUTS "${resource_output}")
+    install(FILES "${VRLIB_SOURCE_DIR}/${resource}" DESTINATION "${resource_directory}")
+endforeach()
+add_custom_target(viewer_resources DEPENDS ${VIEWER_RESOURCE_OUTPUTS})
+add_dependencies(viewer viewer_resources)
+install(TARGETS viewer RUNTIME DESTINATION .)
+install(FILES "${VRLIB_SOURCE_DIR}/LICENSE" DESTINATION .)

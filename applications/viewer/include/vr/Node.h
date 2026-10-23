@@ -1,75 +1,77 @@
 #pragma once
-
+#include "State.h"
+#include "UpdateCallback.h"
 #include <memory>
+#include <string>
+#include <vector>
 
-#include "Material.h"
-#include "Mesh.h"
-#include "BoundingBox.h"
-#include <glm/glm.hpp>
-#include <vr/Shader.h>
+namespace vr{
+class NodeVisitor;
+class Group;
 
-namespace vr
-{
-  /**
-  Simple class that store a number of meshes and draws it
-  */
-  class Node
-  {
+class Node : public std::enable_shared_from_this<Node>{
+public:
+    // Creates a named node without local rendering overrides or behavior.
+    explicit Node(std::string name ={}) : m_name(std::move(name)){
+    }
 
-  public:
-    /**
-    /Name of the node
-    */
-    std::string name;
+    // Prevents copying ownership or identity of this object.
+    Node(const Node&) = delete;
 
-    /**
-    Transformation for the nodes local coordinate system to the world
-    */
-    glm::mat4 object2world;
+    // Prevents copying ownership or identity of this object.
+    Node& operator=(const Node&) = delete;
 
-    /**
-    Constructor
-    */
-    Node();
+    // Allows derived objects to release their owned resources safely.
+    virtual ~Node() = default;
 
-    /**
-    Get all meshes
+    // Dispatches this concrete node type to the visitor.
+    virtual void accept(NodeVisitor& visitor) = 0;
 
-    \return A vector of meshes
-    */
-    MeshVector& getMeshes();
+    // Reports whether the requested node is part of this subtree.
+    virtual bool contains(const Node* node) const{
+        return this == node;
+    }
 
-    /**
-    Add a mesh to the vector of meshes
-    \param mesh - A new mesh
-    */
-    void add(std::shared_ptr<Mesh>& mesh);
+    // Returns the node name used for lookup and graph visualization.
+    const std::string& getName() const{
+        return m_name;
+    }
 
-    /**
-    Set an initial transformation that can be reset at a later point in time
-    \param m - transformation matrix
-    */
-    void setInitialTransform(const glm::mat4& m);
+    // Changes the node name without changing its identity.
+    void setName(std::string name){
+        m_name = std::move(name);
+    }
 
-    ~Node();
+    // Returns the local rendering overrides attached to this node.
+    const std::shared_ptr<State>& getState() const{
+        return m_state;
+    }
 
-    void resetTransform();
+    // Attaches rendering overrides inherited by this node and its descendants.
+    void setState(std::shared_ptr<State> state){
+        m_state = std::move(state);
+    }
 
+    // Returns the callback executed during graph updates.
+    const std::shared_ptr<UpdateCallback>& getUpdateCallback() const{
+        return m_callback;
+    }
 
-    /**
-    Draw the node (all of its meshes)
-    \param program - The active program for which rendering will be performed
-    */
-    void render(std::shared_ptr<vr::Shader> shader);
+    // Attaches behavior to be executed by the update visitor.
+    void setUpdateCallback(std::shared_ptr<UpdateCallback> callback){
+        m_callback = std::move(callback);
+    }
 
-    /// Calculate and return a bounding box for this Node based on its Mesh objects
-    BoundingBox calculateBoundingBox();
+    // Returns weak parent references without extending their lifetimes.
+    const std::vector<std::weak_ptr<Node>>& getParents() const{
+        return m_parents;
+    }
 
-  private:
-
-    MeshVector m_meshes;
-    glm::mat4 m_initialTransform;
-
-  };
-  typedef std::vector<std::shared_ptr<Node> > NodeVector;
-}
+private:
+    friend class Group;
+    std::string m_name;
+    std::shared_ptr<State> m_state;
+    std::shared_ptr<UpdateCallback> m_callback;
+    std::vector<std::weak_ptr<Node>> m_parents;
+};
+} // namespace vr

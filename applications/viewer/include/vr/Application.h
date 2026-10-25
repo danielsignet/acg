@@ -10,7 +10,7 @@
 namespace vr{
 class Application{
 public:
-    static constexpr const char* WindowTitle = "Scene graph viewer";
+    static constexpr const char* WindowTitle = "ACG";
 
     // Creates the overlay and loads the initial demonstration scene.
     Application(GLFWwindow* window, std::filesystem::path root, std::filesystem::path scene,

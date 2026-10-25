@@ -19,6 +19,8 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uTint", glm::vec3(1));
     s.setUniform("uEmissive", glm::vec3(0));
     s.setUniform("uToon", false);
+    s.setUniform("uProcedural", 0);
+    s.setUniform("uLinearOutput", false);
     s.setUniform("uAlphaCutoff", 0.0f);
     s.setUniform("uTextureMix", 0.3f);
     s.setUniform("uMultiTexture", true);
@@ -150,18 +152,23 @@ void State::apply() const{
     for (const auto& value : m_uniforms){
         m_program->set(value.first, value.second);
     }
+    applyShadowMaps(*m_program);
+}
+
+// Binds shadow maps after any caller-reserved G-buffer texture units.
+void State::applyShadowMaps(const Program& program, unsigned firstUnit) const{
     for (unsigned i = 0; i < MaxShadowMaps; ++i){
         if (m_shadowMaps[i]){
-            m_shadowMaps[i]->apply(MaxTextures + i);
+            m_shadowMaps[i]->apply(firstUnit + i);
         } else{
-            glActiveTexture(GL_TEXTURE0 + MaxTextures + i);
+            glActiveTexture(GL_TEXTURE0 + firstUnit + i);
             glBindTexture(i == 0 ? GL_TEXTURE_2D : GL_TEXTURE_CUBE_MAP, 0);
         }
     }
-    m_program->set("uSunShadow", static_cast<int>(MaxTextures));
+    program.set("uSunShadow", static_cast<int>(firstUnit));
     for (unsigned i = 0; i < MaxLights; ++i){
-        m_program->set("uPointShadows[" + std::to_string(i) + "]",
-                       static_cast<int>(MaxTextures + 1 + i));
+        program.set("uPointShadows[" + std::to_string(i) + "]",
+                    static_cast<int>(firstUnit + 1 + i));
     }
 }
 } // namespace vr

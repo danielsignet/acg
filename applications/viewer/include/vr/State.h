@@ -24,6 +24,9 @@ public:
     // Applies resolved shader, material, texture and rasterization state.
     void apply() const;
 
+    // Binds shadow maps after any caller-reserved G-buffer texture units.
+    void applyShadowMaps(const Program& program, unsigned firstUnit = MaxTextures) const;
+
     // Overrides global shader lighting for this rendering scope.
     void setLighting(bool enabled){
         m_lightingEnabled = enabled;

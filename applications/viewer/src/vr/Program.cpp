@@ -1,4 +1,5 @@
 #include <fstream>
+#include <sstream>
 #include <glm/gtc/type_ptr.hpp>
 #include <stdexcept>
 #include <type_traits>
@@ -6,13 +7,36 @@
 #include <vr/Program.h>
 
 namespace vr{
-// Reads a complete shader source file and reports missing files.
-std::string Program::readSource(const std::filesystem::path& path){
+// Reads shader source and expands relative includes with bounded nesting.
+std::string Program::readSource(const std::filesystem::path& path, unsigned depth){
+    if (depth > 16){
+        throw std::runtime_error("Shader include nesting too deep: " + path.string());
+    }
     std::ifstream stream(path);
     if (!stream){
         throw std::runtime_error("Cannot read " + path.string());
     }
-    return{std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+    std::ostringstream result;
+    std::string line;
+    unsigned lineNumber = 0;
+    while (std::getline(stream, line)){
+        ++lineNumber;
+        const auto first = line.find_first_not_of(" \t");
+        if (first != std::string::npos && line.compare(first, 8, "#include") == 0){
+            const auto begin = line.find('"', first + 8);
+            const auto end = begin == std::string::npos ? begin : line.find('"', begin + 1);
+            if (end == std::string::npos){
+                throw std::runtime_error("Invalid shader include: " + path.string());
+            }
+            result << "\n#line 1\n"
+                   << readSource(path.parent_path() / line.substr(begin + 1, end - begin - 1),
+                                 depth + 1)
+                   << "\n#line " << lineNumber + 1 << '\n';
+        } else{
+            result << line << '\n';
+        }
+    }
+    return result.str();
 }
 
 // Compiles one shader stage and reports the driver diagnostic on failure.

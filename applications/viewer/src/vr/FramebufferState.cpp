@@ -1,0 +1,47 @@
+#include <vr/FramebufferState.h>
+
+namespace vr{
+// Captures framebuffer bindings and rasterization state before a render pass.
+FramebufferState::FramebufferState(){
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_drawFramebuffer);
+    glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &m_readFramebuffer);
+    glGetIntegerv(GL_VIEWPORT, m_viewport);
+    glGetIntegerv(GL_DEPTH_FUNC, &m_depthFunction);
+    glGetIntegerv(GL_POLYGON_MODE, m_polygonMode);
+    glGetBooleanv(GL_COLOR_WRITEMASK, m_colorMask);
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &m_depthMask);
+    glGetDoublev(GL_DEPTH_CLEAR_VALUE, &m_clearDepth);
+    m_depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
+    m_blendEnabled = glIsEnabled(GL_BLEND);
+    m_cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
+    m_scissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
+    m_polygonOffsetEnabled = glIsEnabled(GL_POLYGON_OFFSET_FILL);
+    glGetFloatv(GL_POLYGON_OFFSET_FACTOR, &m_polygonOffsetFactor);
+    glGetFloatv(GL_POLYGON_OFFSET_UNITS, &m_polygonOffsetUnits);
+}
+
+// Restores caller state during normal return and exception unwinding.
+FramebufferState::~FramebufferState(){
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(m_drawFramebuffer));
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(m_readFramebuffer));
+    glViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
+    glDepthMask(m_depthMask);
+    glDepthFunc(static_cast<GLenum>(m_depthFunction));
+    glClearDepth(m_clearDepth);
+    glColorMask(m_colorMask[0], m_colorMask[1], m_colorMask[2], m_colorMask[3]);
+    const auto restore = [](GLenum flag, bool enabled){
+        if (enabled){
+            glEnable(flag);
+        } else{
+            glDisable(flag);
+        }
+    };
+    restore(GL_DEPTH_TEST, m_depthTestEnabled);
+    restore(GL_BLEND, m_blendEnabled);
+    restore(GL_CULL_FACE, m_cullFaceEnabled);
+    restore(GL_SCISSOR_TEST, m_scissorEnabled);
+    restore(GL_POLYGON_OFFSET_FILL, m_polygonOffsetEnabled);
+    glPolygonOffset(m_polygonOffsetFactor, m_polygonOffsetUnits);
+    glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(m_polygonMode[0]));
+}
+} // namespace vr

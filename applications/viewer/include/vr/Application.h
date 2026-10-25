@@ -2,6 +2,7 @@
 #include "Animation.h"
 #include "Controls.h"
 #include "DebugLines.h"
+#include "DeferredRenderer.h"
 #include "Reader.h"
 #include "SceneOverlay.h"
 #include "ShadowRenderer.h"
@@ -110,6 +111,7 @@ private:
     std::shared_ptr<Scene> m_scene;
     std::shared_ptr<Program> m_program;
     std::unique_ptr<RenderVisitor> m_renderer;
+    std::unique_ptr<DeferredRenderer> m_deferred;
     std::unique_ptr<ShadowRenderer> m_shadowRenderer;
     std::unique_ptr<Flashlight> m_flashlight;
     std::unique_ptr<SceneOverlay> m_overlay;
@@ -123,6 +125,8 @@ private:
     std::array<bool, 5> m_pointLights{true, true, true, true, true};
     ShadingMode m_shadingMode = ShadingMode::Phong;
     bool m_shaderMenuOpen = false;
+    BufferView m_bufferView = BufferView::Lit;
+    bool m_bloomEnabled = false, m_depthOfFieldEnabled = false, m_bufferPreviews = true;
     glm::vec3 m_position{0};
     glm::vec3 m_front{0, 0, -1};
     float m_yaw = -90;

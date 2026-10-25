@@ -37,7 +37,10 @@ WSL requires a graphical session such as WSLg.
 | RMB + Q/E | Move down/up |
 | RMB + Shift | Move faster |
 | 1-5 or light buttons | Toggle the four colored lights and daylight |
-| Z or Shader | Open the Phong/Toon menu; select with the mouse or 1/2 |
+| Z or Shader | Select Phong, Toon, positions, normals, albedo, specular or depth; use the mouse or 1-7 in the menu; 8/9/0 show ambient, emissive and geometric normals |
+| G | Show/hide G-buffer previews; click a preview to expand it, click again to return |
+| B or Bloom | Toggle bloom |
+| V or DoF | Toggle depth of field; focus follows the center of the view |
 | J or Shadows | Toggle shadows |
 | L or Flashlight | Toggle the camera-mounted flashlight |
 | Arrows / Page Up / Page Down | Move the lights along X/Z and Y |

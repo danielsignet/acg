@@ -17,17 +17,11 @@ constexpr ToolbarButton shaderButton{Action::ShaderMenu, 418, 168};
 constexpr ToolbarButton shadowButton{Action::Shadows, 348, 148};
 constexpr ToolbarButton flashlightButton{Action::Flashlight, 180, 152};
 constexpr float shaderRowHeight = 32;
-constexpr float shaderMenuTop = -72;
+constexpr float shaderMenuTop = -8 - shaderRowHeight * Controls::getShaderOptions().size();
+constexpr ToolbarButton bloomButton{Action::Bloom, 512, 112};
+constexpr ToolbarButton dofButton{Action::DepthOfField, 636, 112};
 
-struct ShaderOption{
-    Action action;
-    ShadingMode mode;
-    const char* caption;
-};
-
-constexpr std::array<ShaderOption, 2> shaderOptions{
-    {{Action::PhongShader, ShadingMode::Phong, "1  Phong"},
-     {Action::ToonShader, ShadingMode::Toon, "2  Toon"}}};
+constexpr auto& shaderOptions = Controls::getShaderOptions();
 
 constexpr std::array<ToolbarButton, 8> buttons{{{Action::PointRed, 78, 56},
                                                 {Action::PointGreen, 142, 56},
@@ -48,12 +42,31 @@ void SceneOverlay::draw(const Application& application){
     m_text.begin(application.m_width, application.m_height);
     drawHeader(application);
     drawLabels(application);
+    if (application.m_bufferPreviews){
+        for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
+            const auto rect = application.m_deferred->previewRectangle(i);
+            const bool selected = application.m_bufferView == static_cast<BufferView>(i + 1);
+            m_text.rectangle(static_cast<float>(rect.x), static_cast<float>(rect.y - 22),
+                             static_cast<float>(rect.z), 22,
+                             selected ? glm::vec4(0.12f, 0.3f, 0.31f, 1)
+                                      : glm::vec4(0.025f, 0.04f, 0.065f, 0.96f));
+            m_text.draw(Controls::bufferName(static_cast<BufferView>(i + 1)),
+                        static_cast<float>(rect.x + 8), static_cast<float>(rect.y - 18), 12,
+                        {0.85f, 0.92f, 0.96f, 1});
+        }
+    }
     drawFooter(application);
     m_text.end();
 }
 
 // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
 void SceneOverlay::click(Application& app, float x, float y){
+    for (const auto& button :{bloomButton, dofButton}){
+        if (x >= button.x && x <= button.x + button.width && y >= 12 && y <= 44){
+            app.execute(button.action);
+            return;
+        }
+    }
     if (x >= flashlightButton.x && x <= flashlightButton.x + flashlightButton.width && y >= 12 &&
         y <= 44){
         app.execute(flashlightButton.action);
@@ -69,6 +82,22 @@ void SceneOverlay::click(Application& app, float x, float y){
             const float top = bottom + shaderMenuTop + shaderRowHeight * static_cast<float>(index);
             if (y >= top && y < top + shaderRowHeight){
                 app.execute(shaderOptions[index].action);
+                return;
+            }
+        }
+    }
+    if (app.m_bufferPreviews){
+        for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
+            const auto rect = app.m_deferred->previewRectangle(i);
+            if (x >= rect.x && x < rect.x + rect.z && y >= rect.y - 22 && y < rect.y + rect.w){
+                const auto view = static_cast<BufferView>(i + 1);
+                if (app.m_bufferView == view){
+                    app.execute(app.m_shadingMode == ShadingMode::Phong ? Action::PhongShader
+                                                                        : Action::ToonShader);
+                } else{
+                    app.execute(
+                        static_cast<Action>(static_cast<unsigned>(Action::PositionBuffer) + i));
+                }
                 return;
             }
         }
@@ -100,11 +129,21 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(shadowButton.x, 12, shadowButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
     m_text.draw(std::string("Shadows: ") + (app.m_shadowsEnabled ? "ON" : "OFF") + " [J]",
                 shadowButton.x + 10, 21, 12,{0.7f, 0.9f, 0.84f, 1});
+    for (const auto& button :{bloomButton, dofButton}){
+        const bool enabled =
+            button.action == Action::Bloom ? app.m_bloomEnabled : app.m_depthOfFieldEnabled;
+        const std::string name = button.action == Action::Bloom ? "Bloom" : "DoF";
+        const std::string key = button.action == Action::Bloom ? "B" : "V";
+        m_text.rectangle(button.x, 12, button.width, 32,
+                         enabled ? glm::vec4(0.14f, 0.22f, 0.27f, 1)
+                                 : glm::vec4(0.09f, 0.13f, 0.18f, 1));
+        m_text.draw(name + ": " + (enabled ? "ON" : "OFF") + " [" + key + "]", button.x + 8, 21, 11,
+                    {0.7f, 0.9f, 0.84f, 1});
+    }
     std::ostringstream info;
-    info << stats.draws << " draws  |  " << std::fixed << std::setprecision(0)
-         << app.m_framesPerSecond << " FPS  |  CPU cull " << std::setprecision(2)
-         << stats.cullCpuMs + app.m_portalCpuMs << " ms";
-    m_text.draw(info.str(), static_cast<float>(app.m_width) - 400, 20, 12,{0.7f, 0.8f, 0.88f, 1});
+    info << stats.draws << " draws | " << std::fixed << std::setprecision(0)
+         << app.m_framesPerSecond << " FPS";
+    m_text.draw(info.str(), static_cast<float>(app.m_width) - 185, 20, 12,{0.7f, 0.8f, 0.88f, 1});
 }
 
 // Projects the demonstration labels into the current camera view.
@@ -130,7 +169,7 @@ void SceneOverlay::drawFooter(const Application& app){
     drawToolbar(app, top);
     m_text.draw(
         "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: move lamps   F: freeze view   "
-        "Space: reset   R: reload   Esc: close",
+        "G: buffers   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     const auto& shadowStats = app.m_shadowRenderer->getStats();
     const auto status = app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
@@ -158,7 +197,10 @@ void SceneOverlay::drawToolbar(const Application& app, float top){
             background = on ? glm::vec4(0.14f, 0.22f, 0.27f, 1) : background;
             text = names[*index];
         } else if (button.action == Action::ShaderMenu){
-            text = std::string("Shader: ") + shaderName(app.m_shadingMode) + " [Z]";
+            text = std::string("Shader: ") +
+                   (app.m_bufferView == BufferView::Lit ? shaderName(app.m_shadingMode)
+                                                        : Controls::bufferName(app.m_bufferView)) +
+                   " [Z]";
         } else if (button.action == Action::Culling){
             const bool enabled = app.m_frustumCulling || app.m_portalCulling;
             text = std::string("Culling: ") + (enabled ? "ON" : "OFF") + " [C]";
@@ -181,8 +223,10 @@ void SceneOverlay::drawShaderMenu(const Application& app, float bottom){
         const auto& option = shaderOptions[index];
         const float top = bottom + shaderMenuTop + shaderRowHeight * static_cast<float>(index);
         m_text.rectangle(shaderButton.x, top, shaderButton.width, shaderRowHeight,
-                         option.mode == app.m_shadingMode ? glm::vec4(0.12f, 0.3f, 0.31f, 1)
-                                                          : glm::vec4(0.06f, 0.1f, 0.15f, 1));
+                         (option.view == app.m_bufferView &&
+                          (option.view != BufferView::Lit || option.mode == app.m_shadingMode))
+                             ? glm::vec4(0.12f, 0.3f, 0.31f, 1)
+                             : glm::vec4(0.06f, 0.1f, 0.15f, 1));
         m_text.draw(option.caption, shaderButton.x + 12, top + 7, 13,{0.9f, 0.96f, 1, 1});
     }
 }

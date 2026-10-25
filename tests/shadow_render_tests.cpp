@@ -1,4 +1,5 @@
 #include <vr/ShadowRenderer.h>
+#include <vr/DeferredRenderer.h>
 #include <vr/ShadowCameras.h>
 #include <vr/SceneGraph.h>
 #include <GLFW/glfw3.h>
@@ -11,6 +12,7 @@
 namespace{
 constexpr int width = 640, height = 480;
 unsigned checks = 0;
+std::unique_ptr<vr::DeferredRenderer> deferred;
 
 void check(bool value, const char* message){
     ++checks;
@@ -88,7 +90,7 @@ void portalReceivers(const std::filesystem::path& path){
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shadows.render(scene, camera->getPosition(), shadowed, false);
-        renderer.render(*root, *camera, nullptr, &portals);
+        renderer.render(*root, *camera, nullptr, &portals, deferred.get());
         return pixels();
     };
     const auto sample = [&](const auto& image, const glm::vec3& world){
@@ -161,7 +163,7 @@ void wallLighting(const std::filesystem::path& path){
         glClearColor(0, 0, 0, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shadows.render(scene, camera->getPosition(), true, false);
-        renderer.render(*root, *camera, nullptr, portals);
+        renderer.render(*root, *camera, nullptr, portals, deferred.get());
         const auto image = pixels();
         const auto offset = ((height / 2) * width + width / 2) * 3;
         return glm::ivec3(image[offset], image[offset + 1], image[offset + 2]);
@@ -263,7 +265,7 @@ void run(const std::filesystem::path& path){
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shadows.render(scene, camera->getPosition(), enabled, filtered);
         renderer.setCulling(culling);
-        renderer.render(*root, *camera, nullptr, portals);
+        renderer.render(*root, *camera, nullptr, portals, deferred.get());
         check(glGetError() == GL_NO_ERROR, "Shadow and main passes have no GL errors");
         return pixels();
     };
@@ -459,7 +461,7 @@ void run(const std::filesystem::path& path){
 } // namespace
 
 int main(int argc, char** argv){
-    if (argc != 2){
+    if (argc != 2 && argc != 3){
         return 1;
     }
     if (!glfwInit()){
@@ -483,11 +485,17 @@ int main(int argc, char** argv){
     }
     int result = 0;
     try{
+        if (argc == 3){
+            deferred = std::make_unique<vr::DeferredRenderer>(argv[1]);
+            deferred->resize(width, height);
+            deferred->setPreviews(false);
+        }
         run(argv[1]);
     } catch (const std::exception& e){
         std::cerr << "FAILED: " << e.what() << '\n';
         result = 1;
     }
+    deferred.reset();
     glfwDestroyWindow(window);
     glfwTerminate();
     return result;

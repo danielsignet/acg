@@ -34,6 +34,21 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_lodDemoCallback = true;
         } else if (option == "--inside"){
             m_inside = true;
+        } else if (option == "--bloom"){
+            m_bloom = true;
+        } else if (option == "--dof"){
+            m_depthOfField = true;
+        } else if (option == "--no-buffer-previews"){
+            m_noBufferPreviews = true;
+        } else if (option == "--buffer"){
+            const auto view = next();
+            const std::array<std::string, 6> names{
+                {"lit", "positions", "normals", "albedo", "specular", "depth"}};
+            const auto found = std::find(names.begin(), names.end(), view);
+            if (found == names.end()){
+                throw std::invalid_argument("Unknown buffer view: " + view);
+            }
+            m_bufferView = static_cast<BufferView>(std::distance(names.begin(), found));
         } else if (option == "--no-culling"){
             m_noCulling = true;
         } else if (option == "--no-shadows"){
@@ -61,7 +76,8 @@ bool Viewer::parseOptions(int argc, char** argv){
             std::cout << "viewer [--root path] [--scene file] [--frames N] [--hidden] [--validate] "
                          "[--lod-demo] [--inside] [--no-culling] "
                          "[--portal-demo] [--no-portals] [--solid-walls] [--no-shadows] "
-                         "[--screenshot file.png] [--dot file.dot]\n";
+                         "[--buffer lit|positions|normals|albedo|specular|depth] [--bloom] [--dof] "
+                         "[--no-buffer-previews] [--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
             throw std::invalid_argument("Unknown option: " + option);
@@ -158,6 +174,20 @@ int Viewer::run(int argc, char** argv){
     }
     if (m_solidWalls){
         m_application->execute(Controls::Action::TransparentWalls);
+    }
+    if (m_bloom){
+        m_application->execute(Controls::Action::Bloom);
+    }
+    if (m_depthOfField){
+        m_application->execute(Controls::Action::DepthOfField);
+    }
+    if (m_noBufferPreviews){
+        m_application->execute(Controls::Action::BufferPreviews);
+    }
+    if (m_bufferView != BufferView::Lit){
+        m_application->execute(
+            static_cast<Controls::Action>(static_cast<unsigned>(Controls::Action::PositionBuffer) +
+                                          static_cast<unsigned>(m_bufferView) - 1));
     }
     double previous = glfwGetTime();
     int frames = 0;

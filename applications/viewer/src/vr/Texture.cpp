@@ -56,6 +56,23 @@ std::shared_ptr<Texture> Texture::fromMemory(const unsigned char* bytes, int len
 // Uploads pixels on first use and binds the requested texture layer.
 void Texture::apply(unsigned layer) const{
     glActiveTexture(GL_TEXTURE0 + layer);
+    if (m_renderFormat){
+        if (!m_id){
+            glGenTextures(1, &m_id);
+            glBindTexture(GL_TEXTURE_2D, m_id);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                            m_linearTarget ? GL_LINEAR : GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                            m_linearTarget ? GL_LINEAR : GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexImage2D(GL_TEXTURE_2D, 0, m_renderFormat, m_width, m_height, 0, GL_RGBA, GL_FLOAT,
+                         nullptr);
+        } else{
+            glBindTexture(GL_TEXTURE_2D, m_id);
+        }
+        return;
+    }
     if (m_depth){
         uploadDepth();
         return;
@@ -114,3 +131,16 @@ void Texture::uploadDepth() const{
     }
 }
 } // namespace vr
+
+// Creates a nearest or linearly sampled color attachment without CPU pixel storage.
+std::shared_ptr<vr::Texture> vr::Texture::colorTarget(int width, int height, GLenum format,
+                                                      bool linear){
+    if (format != GL_RGBA8 && format != GL_RGBA16F && format != GL_RGBA32F){
+        throw std::invalid_argument("Unsupported color attachment format");
+    }
+    auto texture = std::shared_ptr<Texture>(new Texture(width, height, false));
+    texture->m_depth = false;
+    texture->m_renderFormat = format;
+    texture->m_linearTarget = linear;
+    return texture;
+}

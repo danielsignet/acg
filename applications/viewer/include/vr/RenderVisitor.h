@@ -2,10 +2,11 @@
 #include "CullVisitor.h"
 #include "LightCollector.h"
 #include "PathVisitor.h"
+#include "RenderMode.h"
 #include <map>
 
 namespace vr{
-enum class ShadingMode{ Phong, Toon };
+class DeferredRenderer;
 
 struct RenderStats{
     unsigned draws = 0;
@@ -26,7 +27,7 @@ public:
 
     // Collects transformed lights and then draws the scene instances.
     void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr,
-                const PortalResult* portals = nullptr);
+                const PortalResult* portals = nullptr, DeferredRenderer* deferred = nullptr);
 
     // Enables or disables hierarchical frustum rejection.
     void setCulling(bool enabled){
@@ -70,11 +71,15 @@ private:
     void drawRenderList(const Camera& camera);
 
     // Submits one resolved instance and updates room and transparency counts.
-    void drawInstance(const RenderNode& item);
+    void drawInstance(const RenderNode& item, const std::shared_ptr<Program>& program ={},
+                      bool linearOutput = false);
 
     // Submits a mesh with its resolved transform and rendering state.
-    void drawGeometry(const RenderNode& item);
+    void drawGeometry(const RenderNode& item, const std::shared_ptr<Program>& program,
+                      bool linearOutput);
 
+    DeferredRenderer* m_deferred = nullptr;
+    State m_globalState;
     std::vector<PositionedLight> m_lights;
     const Camera* m_camera = nullptr;
     RenderStats m_stats;

@@ -21,6 +21,9 @@ private:
     // Captures scene pixels while excluding HUD status bands.
     FramebufferImage captureScene() const;
 
+    // Checks public buffer controls, post effects, resize and reload persistence.
+    void validateDeferred();
+
     // Checks that lighting, texture and toon controls change scene pixels.
     void validateLighting();
 

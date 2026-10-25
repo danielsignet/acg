@@ -6,6 +6,8 @@
 #include "Transform.h"
 
 namespace vr{
+class RenderToTexture;
+
 class Scene{
 public:
     // Creates one graph root and attaches its camera node.
@@ -19,6 +21,14 @@ public:
     // Returns the scene camera shared with the rendering and update visitors.
     const std::shared_ptr<Camera>& getCamera() const{
         return m_camera;
+    }
+
+    // Attaches a depth render target and its independent light cameras to the scene.
+    void attachRenderTarget(const std::shared_ptr<RenderToTexture>& target);
+
+    // Returns the render targets owned by this scene.
+    const std::vector<std::shared_ptr<RenderToTexture>>& getRenderTargets() const{
+        return m_renderTargets;
     }
 
     // Registers a named transform and rejects ambiguous duplicate names.
@@ -66,6 +76,7 @@ public:
 private:
     std::shared_ptr<Group> m_root;
     std::shared_ptr<Camera> m_camera;
+    std::vector<std::shared_ptr<RenderToTexture>> m_renderTargets;
     std::map<std::string, std::shared_ptr<Transform>> m_transforms;
     std::map<std::string, std::shared_ptr<Light>> m_lights;
     glm::vec3 m_initialEye{16, 11, 22};

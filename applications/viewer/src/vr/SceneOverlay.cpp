@@ -14,6 +14,7 @@ struct ToolbarButton{
 };
 
 constexpr ToolbarButton shaderButton{Action::ShaderMenu, 418, 168};
+constexpr ToolbarButton shadowButton{Action::Shadows, 348, 148};
 constexpr float shaderRowHeight = 32;
 constexpr float shaderMenuTop = -72;
 
@@ -52,6 +53,10 @@ void SceneOverlay::draw(const Application& application){
 
 // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
 void SceneOverlay::click(Application& app, float x, float y){
+    if (x >= shadowButton.x && x <= shadowButton.x + shadowButton.width && y >= 12 && y <= 44){
+        app.execute(shadowButton.action);
+        return;
+    }
     const float bottom = static_cast<float>(app.m_height - FooterHeight);
     if (app.m_shaderMenuOpen && x >= shaderButton.x && x <= shaderButton.x + shaderButton.width){
         for (std::size_t index = 0; index < shaderOptions.size(); ++index){
@@ -83,6 +88,9 @@ void SceneOverlay::drawHeader(const Application& app){
                      {0.025f, 0.04f, 0.065f, 0.96f});
     m_text.draw("Scene viewer", 24, 12, 22,{0.94f, 0.96f, 1, 1});
     m_text.draw("HOUSE + PATIO", 190, 20, 11,{0.3f, 0.84f, 0.73f, 1});
+    m_text.rectangle(shadowButton.x, 12, shadowButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
+    m_text.draw(std::string("Shadows: ") + (app.m_shadowsEnabled ? "ON" : "OFF") + " [J]",
+                shadowButton.x + 10, 21, 12,{0.7f, 0.9f, 0.84f, 1});
     std::ostringstream info;
     info << stats.draws << " draws  |  " << std::fixed << std::setprecision(0)
          << app.m_framesPerSecond << " FPS  |  CPU cull " << std::setprecision(2)
@@ -111,11 +119,14 @@ void SceneOverlay::drawFooter(const Application& app){
                      {0.025f, 0.04f, 0.065f, 0.97f});
     m_text.draw("Lights", 20, top + 7, 13,{0.7f, 0.8f, 0.88f, 1});
     drawToolbar(app, top);
-    m_text.draw("RMB + WASD/QE: fly   Shift: faster   1-5: lights   Z: shader menu   C: culling   "
-                "F: freeze view   "
-                "Space: reset   R: reload   Esc: close",
-                20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
-    m_text.draw(app.m_status.substr(0, 140), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});
+    m_text.draw(
+        "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: move lamps   F: freeze view   "
+        "Space: reset   R: reload   Esc: close",
+        20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
+    const auto& shadowStats = app.m_shadowRenderer->getStats();
+    const auto status = app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
+                        ", draws: " + std::to_string(shadowStats.draws);
+    m_text.draw(status.substr(0, 160), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});
     if (app.m_shaderMenuOpen){
         drawShaderMenu(app, bottom);
     }

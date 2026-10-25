@@ -43,6 +43,29 @@ public:
         return m_blend.value_or(false);
     }
 
+    // Overrides whether this subtree contributes geometry to light depth passes.
+    void setCastShadows(bool enabled){
+        m_castShadows = enabled;
+    }
+
+    // Overrides whether the lighting shader samples shadow maps on this subtree.
+    void setReceiveShadows(bool enabled){
+        m_receiveShadows = enabled;
+    }
+
+    // Returns the resolved shadow-caster flag, enabled by default.
+    bool getCastShadows() const{
+        return m_castShadows.value_or(true);
+    }
+
+    // Returns the resolved shadow-receiver flag, enabled by default.
+    bool getReceiveShadows() const{
+        return m_receiveShadows.value_or(true);
+    }
+
+    // Assigns a validated 2D or cubemap depth texture outside the material texture slots.
+    void setShadowMap(unsigned index, std::shared_ptr<Texture> texture);
+
     // Overrides one validated light slot independently of global lighting.
     void setLightEnabled(unsigned index, bool enabled);
 
@@ -97,6 +120,8 @@ public:
 
 private:
     std::optional<bool> m_lightingEnabled, m_cullFace, m_blend;
+    std::optional<bool> m_castShadows, m_receiveShadows;
+    std::array<std::shared_ptr<Texture>, 2> m_shadowMaps;
     std::array<std::optional<bool>, MaxLights> m_lightEnabled;
     std::shared_ptr<Material> m_material;
     std::shared_ptr<Program> m_program;

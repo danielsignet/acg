@@ -26,6 +26,7 @@ FramebufferImage RenderingValidator::captureScene() const{
 
 // Executes the configured application or validation sequence.
 void RenderingValidator::run(){
+    validateShadows();
     validateControls();
     validateLighting();
     validateAlphaTest();
@@ -436,6 +437,46 @@ void RenderingValidator::validatePortals(){
               << "; transparency/frozen eye/reload passed\n";
 }
 
+// Checks the shadow toggle and the complete lamp-displacement path into the depth map.
+void RenderingValidator::validateShadows(){
+    auto& app = m_application;
+    app.render();
+    const auto shadowed = captureScene();
+    const auto shadowPasses = app.m_shadowRenderer->getStats().passes;
+    const auto originalShadows = app.m_shadowsEnabled;
+    app.handleKey(GLFW_KEY_J);
+    app.render();
+    require(app.m_shadowsEnabled != originalShadows &&
+                app.m_shadowRenderer->getStats().passes == 0 &&
+                captureScene().countChangedPixels(shadowed) > 100,
+            "J disables depth passes and visibly removes shadows");
+    app.handleClick(360, 28);
+    app.render();
+    require(app.m_shadowsEnabled == originalShadows && shadowPasses == 7 &&
+                app.m_shadowRenderer->getStats().passes == shadowPasses,
+            "The shadow button and J share the same action for both shadow lights");
+    // The existing displacement callback is the path used by arrow/Page Up/Down input.
+    const auto lightOffset = app.m_lightOrbitCallback->getOffset();
+    const bool orbitEnabled = app.m_lightOrbitCallback->getEnabled();
+    app.m_lightOrbitCallback->setEnabled(false);
+    app.m_updater.update(*app.m_scene->getRoot(),{0, 0, false});
+    app.render();
+    const auto pointBefore = app.m_shadowRenderer->getPointTarget()->getCameras()[0]->getPosition();
+    const auto depthBefore = app.m_shadowRenderer->getPointTarget()->readDepth(0);
+    const glm::vec3 lightDisplacement(1.25f, 0.5f, 0.75f);
+    app.m_lightOrbitCallback->moveBy(lightDisplacement);
+    app.m_updater.update(*app.m_scene->getRoot(),{0, 0, false});
+    app.render();
+    const auto pointAfter = app.m_shadowRenderer->getPointTarget()->getCameras()[0]->getPosition();
+    require(glm::length(pointAfter - pointBefore - lightDisplacement) < 0.0001f &&
+                depthBefore != app.m_shadowRenderer->getPointTarget()->readDepth(0),
+            "Interactive lamp displacement moves the shadow camera and changes its real depth map");
+    app.m_lightOrbitCallback->setOffset(lightOffset);
+    app.m_lightOrbitCallback->setEnabled(orbitEnabled);
+    app.m_updater.update(*app.m_scene->getRoot(),{0, 0, false});
+}
+
+// Checks that toolbar clicks and compact shortcuts share the same application actions.
 void RenderingValidator::validateControls(){
     auto& app = m_application;
     using Action = Controls::Action;
@@ -479,12 +520,16 @@ void RenderingValidator::validateControls(){
     require(!app.m_shaderMenuOpen && !glfwWindowShouldClose(app.m_window),
             "Escape closes a menu before closing the viewer");
     app.execute(Action::ToonShader);
+    app.execute(Action::Shadows);
     app.execute(Action::ReloadScene);
+    require(!app.m_shadowsEnabled && app.m_scene->getRenderTargets().size() == 2,
+            "Reload preserves disabled shadows and recreates scene depth attachments");
+    app.execute(Action::Shadows);
     require(app.m_renderer->getShadingMode() == ShadingMode::Toon,
             "Reload preserves the selected shading mode");
     app.execute(Action::PhongShader);
     std::cout << "Viewport controls passed: shader menu, five clickable lights, shared shortcuts, "
-                 "culling, reload\n";
+                 "culling, shadows, reload\n";
 }
 
 } // namespace vr

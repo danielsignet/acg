@@ -1,5 +1,6 @@
 #pragma once
 #include "CullVisitor.h"
+#include "LightCollector.h"
 #include "PathVisitor.h"
 #include <map>
 
@@ -74,20 +75,8 @@ private:
     // Handles a geometry instance with its resolved transform and rendering state.
     void geometry(Geometry& node, const glm::mat4& model, const State& state) override;
 
-    // Handles a light with the transform accumulated along its current path.
-    void light(Light& node, const glm::mat4& model, const State& state) override;
-
-    // Records the detail level selected for this traversal path.
-    void lod(LOD& node, std::size_t level) override;
-
-    struct PositionedLight{
-        Light* node;
-        glm::mat4 model;
-    };
-
     std::vector<PositionedLight> m_lights;
     const Camera* m_camera = nullptr;
-    bool m_collectingLights = false;
     RenderStats m_stats;
     CullVisitor m_culler;
     bool m_culling = true;

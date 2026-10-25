@@ -40,6 +40,9 @@ private:
     void validateReload();
     void validateCulling();
     void validatePortals();
+    // Checks the shadow toggle and the complete lamp-displacement path into the depth map.
+    void validateShadows();
+
     void validateControls();
     Application& m_application;
 };

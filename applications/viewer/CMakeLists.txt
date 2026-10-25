@@ -17,6 +17,11 @@ add_library(vrlib STATIC
     src/vr/GeometryFactory.cpp
     src/vr/Group.cpp
     src/vr/LOD.cpp
+    src/vr/LightCollector.cpp
+    src/vr/RenderToTexture.cpp
+    src/vr/ShadowCameras.cpp
+    src/vr/ShadowCollector.cpp
+    src/vr/ShadowRenderer.cpp
     src/vr/Light.cpp
     src/vr/Material.cpp
     src/vr/ModelReader.cpp
@@ -88,6 +93,8 @@ set(VIEWER_RESOURCES
     shaders/phong-shading.fs
     shaders/text.vs
     shaders/text.fs
+    shaders/shadow-depth.vs
+    shaders/shadow-depth.fs
     shaders/debug.vs
     shaders/debug.fs
 )

@@ -40,7 +40,10 @@ void Application::reload(){
     auto renderer = std::make_unique<RenderVisitor>(program);
     renderer->setCulling(m_frustumCulling);
     renderer->setShadingMode(m_shadingMode);
+    auto shadows = std::make_unique<ShadowRenderer>(m_root);
+    shadows->attach(*scene);
     auto debugLines = std::make_unique<DebugLines>(m_root);
+    m_shadowRenderer = std::move(shadows);
     m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
     m_scene = std::move(scene);
@@ -144,7 +147,10 @@ void Application::handleClick(float x, float y){
 // Executes the shared action used by keyboard, toolbar and validation paths.
 void Application::execute(Controls::Action action){
     using Action = Controls::Action;
-    if (action == Action::ShaderMenu){
+    if (action == Action::Shadows){
+        m_shadowsEnabled = !m_shadowsEnabled;
+        m_status = m_shadowsEnabled ? "Shadows enabled" : "Shadows disabled";
+    } else if (action == Action::ShaderMenu){
         m_shaderMenuOpen = !m_shaderMenuOpen;
     } else if (action == Action::PhongShader || action == Action::ToonShader){
         m_shadingMode = action == Action::PhongShader ? ShadingMode::Phong : ShadingMode::Toon;
@@ -259,6 +265,7 @@ bool Application::consumeScreenshotRequest(){
 void Application::input(float delta){
     updateCameraOrientation();
     moveCamera(delta);
+    moveLights(delta);
     m_scene->getCamera()->setLookAt(m_position, m_position + m_front);
 }
 
@@ -294,6 +301,7 @@ void Application::render(){
     const auto& camera = *m_scene->getCamera();
     const auto vp = camera.getProjection() * camera.getView();
     const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
+    m_shadowRenderer->render(*m_scene, camera.getPosition(), m_shadowsEnabled, true);
     updatePortalVisibility(camera, vp);
     m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult);
     drawVisibilityDebug(camera, vp);
@@ -528,6 +536,33 @@ void Application::moveCamera(float delta){
     if (glfwGetKey(m_window, GLFW_KEY_E) == GLFW_PRESS){
         m_position.y += speed;
     }
+}
+
+// Moves the existing light ring along world axes using arrows and Page Up/Down.
+void Application::moveLights(float delta){
+    if (!m_lightOrbitCallback){
+        return;
+    }
+    glm::vec3 displacement(0);
+    if (glfwGetKey(m_window, GLFW_KEY_LEFT) == GLFW_PRESS){
+        displacement.x -= 1;
+    }
+    if (glfwGetKey(m_window, GLFW_KEY_RIGHT) == GLFW_PRESS){
+        displacement.x += 1;
+    }
+    if (glfwGetKey(m_window, GLFW_KEY_UP) == GLFW_PRESS){
+        displacement.z -= 1;
+    }
+    if (glfwGetKey(m_window, GLFW_KEY_DOWN) == GLFW_PRESS){
+        displacement.z += 1;
+    }
+    if (glfwGetKey(m_window, GLFW_KEY_PAGE_UP) == GLFW_PRESS){
+        displacement.y += 1;
+    }
+    if (glfwGetKey(m_window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS){
+        displacement.y -= 1;
+    }
+    m_lightOrbitCallback->moveBy(displacement * movementSpeed(delta));
 }
 
 // Returns the frame-scaled normal or fast movement distance.

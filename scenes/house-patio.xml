@@ -33,28 +33,28 @@
     <transform name="redLight" translate="8 0 0">
       <light name="red" position="0 0 0 1" diffuse="2.8 0 0" specular="2.4 0 0" ambient="0.02 0 0" />
       <transform name="redMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="1 0 0" emissive="0.8 0 0" />
+        <state lighting="false" diffuse="1 0 0" emissive="0.8 0 0" castShadows="false" receiveShadows="false" />
         <instance ref="sphere-low" />
       </transform>
     </transform>
     <transform name="greenLight" translate="0 0 -8">
       <light name="green" position="0 0 0 1" diffuse="0 2.8 0" specular="0 2.4 0" ambient="0 0.02 0" />
       <transform name="greenMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="0 1 0" emissive="0 0.8 0" />
+        <state lighting="false" diffuse="0 1 0" emissive="0 0.8 0" castShadows="false" receiveShadows="false" />
         <instance ref="sphere-low" />
       </transform>
     </transform>
     <transform name="blueLight" translate="-8 0 0">
       <light name="blue" position="0 0 0 1" diffuse="0 0 2.8" specular="0 0 2.4" ambient="0 0 0.02" />
       <transform name="blueMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="0 0 1" emissive="0 0 0.8" />
+        <state lighting="false" diffuse="0 0 1" emissive="0 0 0.8" castShadows="false" receiveShadows="false" />
         <instance ref="sphere-low" />
       </transform>
     </transform>
     <transform name="whiteLight" translate="0 0 8">
       <light name="white" position="0 0 0 1" diffuse="1.8 1.8 1.8" specular="1.8 1.8 1.8" ambient="0.025 0.025 0.025" />
       <transform name="whiteMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="1 1 1" emissive="0.6 0.6 0.6" />
+        <state lighting="false" diffuse="1 1 1" emissive="0.6 0.6 0.6" castShadows="false" receiveShadows="false" />
         <instance ref="sphere-low" />
       </transform>
     </transform>

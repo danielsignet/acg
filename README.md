@@ -47,6 +47,8 @@ speed. Releasing the mouse returns to the toolbar.
 - Click Shader, or press Z, to select the existing Phong or Toon shading mode.
   Like [Blender's shading menu](https://docs.blender.org/manual/en/5.4/editors/3dview/display/shading.html),
   Z opens a menu. Choose with the mouse, or use 1/2 while it is open.
+- Click Shadows in the header, or press J, to toggle shadow mapping.
+  Arrows move the lamp ring along X/Z; Page Up/Down moves it vertically.
 - Click Culling, or press C, to switch both frustum and portal culling on/off.
 - Press F to freeze the culling camera and show its volume. Move with RMB/WASD
   to inspect it from another view; F resumes live culling and Space resets.
@@ -56,6 +58,19 @@ speed. Releasing the mouse returns to the toolbar.
 Shader selection applies to the whole scene and survives reload. Lamp and shader
 buttons use the same application actions as their shortcuts. Development presets
 are available through the command line instead of extra viewport shortcuts.
+
+## Shadows
+
+The shadow renderer uses a 2048-square directional
+depth texture and a 1024-square point-light depth cubemap, with seven independent
+light cameras attached through `Scene` and `RenderToTexture`. The first enabled
+sun and point light cast shadows. Physical objects cast and receive them,
+including alpha cutouts and transparent walls that remain solid in the visibility
+model. Camera/portal culling cannot discard their physical shadow casters.
+
+Use J or the Shadows button to compare; `--no-shadows` starts with the feature
+disabled. Arrow keys and Page Up/Down move the existing colored lamps, including
+the active shadow point light. The status line reports depth-pass draws separately.
 
 ## View frustum culling
 

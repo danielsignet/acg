@@ -31,6 +31,33 @@ uniform bool uShadows, uReceiveShadows, uShadowPCF;
 uniform int uSunShadowIndex, uPointShadowIndex;
 uniform float uPointShadowFar;
 
+uniform samplerBuffer uPortalPlanes;
+uniform int uPortalFirst, uPortalVolumeCount;
+
+// Keeps only surface fragments reachable through the room's clipped doorway volumes.
+bool visibleThroughPortals(){
+    vec3 dx = dFdx(worldPosition), dy = dFdy(worldPosition);
+    if (uPortalVolumeCount == 0){
+        return true;
+    }
+    int cursor = uPortalFirst;
+    for (int volume = 0; volume < uPortalVolumeCount; ++volume){
+        int count = int(texelFetch(uPortalPlanes, cursor++).x);
+        bool inside = true;
+        for (int plane = 0; plane < count; ++plane){
+            vec4 boundary = texelFetch(uPortalPlanes, cursor + plane);
+            // Retain pixels straddling an edge; wall depth resolves their MSAA samples.
+            float margin = 0.0001 + 0.5 * (abs(dot(boundary.xyz, dx)) + abs(dot(boundary.xyz, dy)));
+            inside = inside && dot(boundary, vec4(worldPosition, 1.0)) >= -margin;
+        }
+        cursor += count;
+        if (inside){
+            return true;
+        }
+    }
+    return false;
+}
+
 float sunVisibility(vec3 normal){
     vec4 clip = uSunVP * vec4(worldPosition, 1.0);
     vec3 p = clip.xyz / clip.w * 0.5 + 0.5;
@@ -133,6 +160,9 @@ float pointVisibility(vec3 normal, vec3 lightPosition){
 
 // Shades the surface and discards fragments below the alpha threshold.
 void main(){
+    if (!visibleThroughPortals()){
+        discard;
+    }
     vec4 surface = vec4(uMaterial.diffuse * uTint, 1.0);
     if (uHasTexture[0]){
         surface *= texture(uTextures[0], texCoord);

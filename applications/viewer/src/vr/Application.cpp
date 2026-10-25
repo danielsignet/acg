@@ -160,7 +160,8 @@ void Application::handleKey(int key){
     } else if (action == Action::Capture){
         m_screenshotRequested = true;
     } else if (action == Action::ExportGraph){
-        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot") : m_dotFile);
+        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot")
+                                      : m_dotFile);
     } else if (action == Action::FrustumCulling){
         m_frustumCulling = !m_frustumCulling;
         m_renderer->setCulling(m_frustumCulling);
@@ -214,7 +215,7 @@ void Application::input(float delta){
 // Processes input, callbacks and frame-rate statistics.
 void Application::update(double time, double delta){
     input(static_cast<float>(delta));
-    m_updater.update(*m_scene->getRoot(), {time, delta, m_animationEnabled});
+    m_updater.update(*m_scene->getRoot(),{time, delta, m_animationEnabled});
     ++m_frameCount;
     m_frameTimeSeconds += delta;
     if (m_frameTimeSeconds >= 1){
@@ -251,9 +252,9 @@ void Application::render(){
         for (const auto& item : all.getRenderList()){
             const auto bound = item.geometry->getBound().transformed(item.model);
             const auto visible = frustum.classify(bound);
-            const glm::vec4 color = visible == Visibility::Outside  ? glm::vec4(1, .25f, .2f, 1)
-                                    : visible == Visibility::Inside ? glm::vec4(.2f, 1, .5f, 1)
-                                                                    : glm::vec4(1, .8f, .2f, 1);
+            const glm::vec4 color = visible == Visibility::Outside  ? glm::vec4(1, 0.25f, 0.2f, 1)
+                                    : visible == Visibility::Inside ? glm::vec4(0.2f, 1, 0.5f, 1)
+                                                                    : glm::vec4(1, 0.8f, 0.2f, 1);
             m_debugLines->box(bound, vp, color);
         }
         if (frozen){
@@ -338,7 +339,7 @@ void Application::updateCameraOrientation(){
     if (look){
         stopLodDemo();
     }
-    for (int key : {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}){
+    for (int key :{GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}){
         if (glfwGetKey(m_window, key) == GLFW_PRESS){
             stopLodDemo();
         }

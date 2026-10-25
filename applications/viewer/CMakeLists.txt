@@ -6,6 +6,7 @@ add_library(vrlib STATIC
     src/vr/BoundingBox.cpp
     src/vr/CullVisitor.cpp
     src/vr/DebugLines.cpp
+    src/vr/Frustum.cpp
     src/vr/Node.cpp
     src/vr/Application.cpp
     src/vr/Camera.cpp
@@ -31,6 +32,7 @@ add_library(vrlib STATIC
     src/vr/State.cpp
     src/vr/Text.cpp
     src/vr/Texture.cpp
+    src/vr/Transform.cpp
     src/vr/UpdateVisitor.cpp
     src/vr/Viewer.cpp
 )

@@ -22,6 +22,7 @@ public:
         return m_matrix;
     }
 
+    // Transforms the union of child bounds into the parent coordinate system.
     BoundingBox computeBound() const override;
 
 private:

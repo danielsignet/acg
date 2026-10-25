@@ -33,11 +33,11 @@ void SceneOverlay::drawHeader(const Application& application){
 
     const auto& stats = application.m_renderer->getStats();
     m_text.rectangle(0, 0, static_cast<float>(application.m_width),
-                     static_cast<float>(HeaderHeight), {0.025f, 0.04f, 0.065f, 0.94f});
-    m_text.rectangle(28, 26, 4, 52, {0.23f, 0.83f, 0.71f, 1});
-    m_text.draw("INTERACTIVE 3D VIEWER", 46, 18, 13, {0.52f, 0.64f, 0.75f, 1});
-    m_text.draw("Scene graph", 44, 38, 32, {0.94f, 0.96f, 1, 1});
-    m_text.draw("HOUSE & PATIO / VIEW FRUSTUM CULLING", 46, 80, 11, {0.55f, 0.68f, 0.78f, 1});
+                     static_cast<float>(HeaderHeight),{0.025f, 0.04f, 0.065f, 0.94f});
+    m_text.rectangle(28, 26, 4, 52,{0.23f, 0.83f, 0.71f, 1});
+    m_text.draw("INTERACTIVE 3D VIEWER", 46, 18, 13,{0.52f, 0.64f, 0.75f, 1});
+    m_text.draw("Scene graph", 44, 38, 32,{0.94f, 0.96f, 1, 1});
+    m_text.draw("HOUSE & PATIO / VIEW FRUSTUM CULLING", 46, 80, 11,{0.55f, 0.68f, 0.78f, 1});
     std::ostringstream info;
     info << stats.draws << " draw calls  /  " << stats.triangles << " triangles  /  " << std::fixed
          << std::setprecision(0) << application.m_framesPerSecond << " fps";
@@ -49,13 +49,13 @@ void SceneOverlay::drawHeader(const Application& application){
     culling << "VFC " << (application.m_frustumCulling ? "ON" : "OFF") << " / "
             << stats.subtreesRejected << " rejected / " << stats.boundsTested << " tests";
     m_text.draw(culling.str(), static_cast<float>(application.m_width) - 335, 82, 12,
-                {1, .86f, .63f, 1});
+                {1, 0.86f, 0.63f, 1});
     std::ostringstream timings;
     timings << std::fixed << std::setprecision(2) << "CPU cull " << stats.cullCpuMs
             << " ms / submit " << stats.submitCpuMs << " ms";
-    m_text.draw(timings.str(), 430, 31, 12, {.7f, .85f, .94f, 1});
+    m_text.draw(timings.str(), 430, 31, 12,{0.7f, 0.85f, 0.94f, 1});
     m_text.draw(application.m_frozenFrustum ? "CULLING CAMERA: FROZEN" : "CULLING CAMERA: LIVE",
-                430, 57, 12, {.7f, .85f, .94f, 1});
+                430, 57, 12,{0.7f, 0.85f, 0.94f, 1});
 }
 
 // Projects the demonstration labels into the current camera view.
@@ -64,21 +64,21 @@ void SceneOverlay::drawLabels(const Application& application){
     const auto cowLod = stats.lodLevels.find("cowLOD");
     const auto level = cowLod == stats.lodLevels.end() ? 0 : cowLod->second;
     const auto detail = cowDetail(level);
-    label(application, {-6, 0.8f, 2.5f}, "01  SHARED GEOMETRY", "One model, three placements",
+    label(application,{-6, 0.8f, 2.5f}, "01  SHARED GEOMETRY", "One model, three placements",
           {0.3f, 0.93f, 0.78f, 1});
-    label(application, {0, 0.8f, 2.5f}, "02  OBJECT TRANSFORM",
+    label(application,{0, 0.8f, 2.5f}, "02  OBJECT TRANSFORM",
           application.m_animationEnabled ? "RUNNING  [P] pause" : "PAUSED  [P] resume",
           {1, 0.72f, 0.32f, 1});
-    label(application, {6, 0.8f, 2.5f}, "03  COW LOD", detail + "  [V] tour", {1, 0.86f, 0.63f, 1});
-    label(application, {12, 0.8f, 2.5f}, "04  TOON SHADING",
-          application.m_toonEnabled ? "ON  [T] disable" : "OFF  [T] enable", {0.45f, 0.65f, 1, 1});
+    label(application,{6, 0.8f, 2.5f}, "03  COW LOD", detail + "  [V] tour",{1, 0.86f, 0.63f, 1});
+    label(application,{12, 0.8f, 2.5f}, "04  TOON SHADING",
+          application.m_toonEnabled ? "ON  [T] disable" : "OFF  [T] enable",{0.45f, 0.65f, 1, 1});
 }
 
 // Draws the available controls and current application status.
 void SceneOverlay::drawFooter(const Application& application){
     const float bottom = static_cast<float>(application.m_height - FooterHeight);
     m_text.rectangle(0, bottom, static_cast<float>(application.m_width),
-                     static_cast<float>(FooterHeight), {0.025f, 0.04f, 0.065f, 0.94f});
+                     static_cast<float>(FooterHeight),{0.025f, 0.04f, 0.065f, 0.94f});
     using Action = Controls::Action;
     const auto on = [](bool value){ return value ? ": ON" : ": OFF"; };
     const auto motion = [](bool value){ return value ? ": RUNNING" : ": PAUSED"; };
@@ -87,7 +87,7 @@ void SceneOverlay::drawFooter(const Application& application){
     m_text.draw("CAMERA   WASD move   Q/E down/up   Right mouse look   Shift fast   " +
                     caption(Action::ResetView) + "   " + caption(Action::ReloadScene) + "   " +
                     caption(Action::Exit),
-                28, bottom + 12, 13, {0.83f, 0.88f, 0.93f, 1});
+                28, bottom + 12, 13,{0.83f, 0.88f, 0.93f, 1});
     const auto state = application.m_scene->getRoot()->getState();
     std::string lighting = caption(Action::GlobalLighting) + on(application.m_lightingEnabled);
     for (const auto action :
@@ -95,7 +95,7 @@ void SceneOverlay::drawFooter(const Application& application){
         lighting += "   " + caption(action) +
                     on(state->getLightEnabled(*Controls::pointLightIndex(action)));
     }
-    m_text.draw(lighting, 28, bottom + 38, 12, {0.3f, 0.84f, 0.73f, 1});
+    m_text.draw(lighting, 28, bottom + 38, 12,{0.3f, 0.84f, 0.73f, 1});
     m_text.draw(
         caption(Action::ObjectAnimation) + motion(application.m_animationEnabled) + "   " +
             caption(Action::PointOrbit) +
@@ -116,7 +116,7 @@ void SceneOverlay::drawFooter(const Application& application){
                     caption(Action::HouseView) + "   " + caption(Action::Hud),
                 28, bottom + 108, 11, textColor);
     m_text.draw(caption(Action::ExportGraph) + "   " + application.m_status.substr(0, 130), 28,
-                bottom + 134, 11, {0.43f, 0.53f, 0.63f, 1});
+                bottom + 134, 11,{0.43f, 0.53f, 0.63f, 1});
 }
 
 // Projects a world-space annotation and draws it inside the usable viewport.
@@ -139,9 +139,9 @@ void SceneOverlay::label(const Application& application, const glm::vec3& positi
         (0.5f - ndc.y * 0.5f) * application.m_height, static_cast<float>(HeaderHeight + 10),
         std::max(static_cast<float>(HeaderHeight + 10),
                  static_cast<float>(application.m_height - FooterHeight - 54)));
-    m_text.rectangle(x - 10, y - 4, 200, 49, {0.025f, 0.04f, 0.065f, 0.86f});
+    m_text.rectangle(x - 10, y - 4, 200, 49,{0.025f, 0.04f, 0.065f, 0.86f});
     m_text.draw(title, x, y, 14, color);
-    m_text.draw(subtitle, x, y + 20, 12, {0.65f, 0.72f, 0.8f, 1});
+    m_text.draw(subtitle, x, y + 20, 12,{0.65f, 0.72f, 0.8f, 1});
 }
 
 } // namespace vr

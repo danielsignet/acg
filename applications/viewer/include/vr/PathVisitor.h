@@ -8,8 +8,8 @@ namespace vr{
 class PathVisitor : public NodeVisitor{
 public:
     // Initializes traversal with a base state and the identity model matrix.
-    explicit PathVisitor(State initial = {})
-        : m_states{std::move(initial)}, m_models{glm::mat4(1)} {
+    explicit PathVisitor(State initial ={})
+        : m_states{std::move(initial)}, m_models{glm::mat4(1)}{
     }
 
     // Applies local state while traversing the group's children.

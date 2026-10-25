@@ -1,3 +1,4 @@
+#include <vr/ResourceLocator.h>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -52,7 +53,7 @@ void RenderingValidator::validateLighting(){
     m_application.handleKey(GLFW_KEY_G);
     m_application.render();
     const auto lit = captureScene().hash();
-    for (int key : {GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3, GLFW_KEY_4, GLFW_KEY_M, GLFW_KEY_T}){
+    for (int key :{GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_3, GLFW_KEY_4, GLFW_KEY_M, GLFW_KEY_T}){
         m_application.handleKey(key);
         m_application.render();
         require(captureScene().hash() != lit,
@@ -117,11 +118,11 @@ void RenderingValidator::validateLightOrbit(){
     const auto orbit = m_application.m_scene->findTransform("lightOrbit");
     const auto orbitMatrix = orbit->getMatrix();
     m_application.handleKey(GLFW_KEY_L);
-    m_application.m_updater.update(*m_application.m_scene->getRoot(), {0.9, 0.3, true});
+    m_application.m_updater.update(*m_application.m_scene->getRoot(),{0.9, 0.3, true});
     require(glm::length(orbitMatrix[0] - orbit->getMatrix()[0]) < 0.00001f,
             "L must pause the light ring independently of P");
     m_application.handleKey(GLFW_KEY_L);
-    m_application.m_updater.update(*m_application.m_scene->getRoot(), {1.2, 0.3, false});
+    m_application.m_updater.update(*m_application.m_scene->getRoot(),{1.2, 0.3, false});
     require(glm::length(orbitMatrix[0] - orbit->getMatrix()[0]) > 0.001f,
             "Light ring must rotate while geometry animation is paused");
 }
@@ -129,16 +130,16 @@ void RenderingValidator::validateLightOrbit(){
 // Checks distance selection and the camera tour across all cow detail levels.
 void RenderingValidator::validateLod(){
     for (const auto& test : std::vector<std::pair<float, std::size_t>>{
-             {6.0f, 0u}, {10.0f, 1u}, {14.0f, 2u}, {18.0f, 3u}, {26.0f, 4u}, {40.0f, 5u}}){
-        m_application.m_scene->getCamera()->setLookAt({6, 2.02f, test.first}, {6, 2.02f, 0});
+             {6.0f, 0u},{10.0f, 1u},{14.0f, 2u},{18.0f, 3u},{26.0f, 4u},{40.0f, 5u}}){
+        m_application.m_scene->getCamera()->setLookAt({6, 2.02f, test.first},{6, 2.02f, 0});
         m_application.render();
         require(m_application.m_renderer->getStats().lodLevels.at("cowLOD") == test.second,
                 "Cow LOD distance selection");
     }
     m_application.handleKey(GLFW_KEY_V);
     for (const auto& test : std::vector<std::pair<double, std::size_t>>{
-             {0.5, 5u}, {2.0, 4u}, {2.0, 3u}, {2.0, 2u}, {2.0, 1u}, {2.0, 0u}}){
-        m_application.m_updater.update(*m_application.m_scene->getRoot(), {0, test.first, false});
+             {0.5, 5u},{2.0, 4u},{2.0, 3u},{2.0, 2u},{2.0, 1u},{2.0, 0u}}){
+        m_application.m_updater.update(*m_application.m_scene->getRoot(),{0, test.first, false});
         m_application.render();
         require(m_application.m_renderer->getStats().lodLevels.at("cowLOD") == test.second,
                 "LOD camera tour must show all six cow detail levels");
@@ -177,11 +178,11 @@ void RenderingValidator::validateCulling(){
     unsigned reducedViews = 0;
     unsigned roomDrawsOff = 0, roomDrawsOn = 0;
     const std::vector<std::pair<glm::vec3, glm::vec3>> views{
-        {{16, 12, 23}, {0, 1, -1}},    {{-14, 2, -18}, {-14, 2, -40}},
-        {{0, 2, -23}, {14, 2, -23}},   {{14, 2, -37}, {-14, 2, -37}},
-        {{0, 2, -15.9f}, {0, 2, -30}}, {{0, 18, -30}, {0, 0, -30.1f}},
-        {{0, 2, -50}, {0, 2, -30}},    {{0, 2, 8}, {0, 2, 40}}};
-    for (const bool roof : {true, false}){
+        {{16, 12, 23},{0, 1, -1}},{{-14, 2, -18},{-14, 2, -40}},
+        {{0, 2, -23},{14, 2, -23}},{{14, 2, -37},{-14, 2, -37}},
+        {{0, 2, -15.9f},{0, 2, -30}},{{0, 18, -30},{0, 0, -30.1f}},
+        {{0, 2, -50},{0, 2, -30}},{{0, 2, 8},{0, 2, 40}}};
+    for (const bool roof :{true, false}){
         if (app.m_roofEnabled != roof){
             app.handleKey(GLFW_KEY_H);
         }
@@ -196,7 +197,7 @@ void RenderingValidator::validateCulling(){
             app.handleKey(GLFW_KEY_C);
             app.render();
             require(FramebufferImage::capture(0, 0, app.m_width, app.m_height)
-                        .countChangedPixels(reference, 0) == 0,
+                            .countChangedPixels(reference, 0) == 0,
                     "VFC must preserve scene pixels through doors, inside and outside the house");
             require(app.m_renderer->getStats().draws <= allDraws,
                     "VFC must never add geometry draws");
@@ -212,14 +213,14 @@ void RenderingValidator::validateCulling(){
         }
     }
     require(reducedViews > 0, "VFC must reduce actual draws in the house/patio scene");
-    camera->setLookAt({-14, 2, -18}, {-14, 2, -40});
+    camera->setLookAt({-14, 2, -18},{-14, 2, -40});
     app.handleKey(GLFW_KEY_F);
     const auto frozen = *app.m_frozenFrustum;
     app.handleKey(GLFW_KEY_TAB);
     require(app.m_frozenFrustum && *app.m_frozenFrustum == frozen,
             "Switching viewpoints preserves the frozen culling volume");
     app.handleKey(GLFW_KEY_TAB);
-    camera->setLookAt({14, 15, 0}, {0, 0, -30});
+    camera->setLookAt({14, 15, 0},{0, 0, -30});
     const int originalWidth = app.m_width, originalHeight = app.m_height;
     app.resize(1024, 600);
     require(*app.m_frozenFrustum == frozen,

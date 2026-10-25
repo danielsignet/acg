@@ -10,10 +10,10 @@ namespace vr{
 class NodeVisitor;
 class Group;
 
-class Node : public std::enable_shared_from_this<Node> {
+class Node : public std::enable_shared_from_this<Node>{
 public:
     // Creates a named node without local rendering overrides or behavior.
-    explicit Node(std::string name = {}) : m_name(std::move(name)){
+    explicit Node(std::string name ={}) : m_name(std::move(name)){
     }
 
     // Prevents copying ownership or identity of this object.
@@ -71,32 +71,40 @@ public:
     // Bounds are expressed in the parent's coordinates, including a local transform.
     const BoundingBox& getBound() const;
 
+    // Computes this node type's bound in its parent coordinate system.
     virtual BoundingBox computeBound() const{
         return{};
     }
 
+    // Invalidates the cached bound and every ancestor reached through DAG parents.
     void dirtyBound();
 
+    // Reports whether the next bound access must rebuild the cache.
     bool isBoundDirty() const{
         return m_boundDirty;
     }
 
+    // Returns the number of actual bound rebuilds for diagnostics.
     std::size_t getBoundBuildCount() const{
         return m_boundBuildCount;
     }
 
+    // Includes or excludes the subtree from rendering without changing its bound.
     void setVisible(bool visible){
         m_visible = visible;
     }
 
+    // Returns the local rendering visibility flag.
     bool getVisible() const{
         return m_visible;
     }
 
+    // Tags a subtree with the visibility cell inherited by its descendants.
     void setRoomId(std::string id){
         m_roomId = std::move(id);
     }
 
+    // Returns the local cell tag; an empty tag inherits the parent cell.
     const std::string& getRoomId() const{
         return m_roomId;
     }

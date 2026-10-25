@@ -23,15 +23,20 @@ public:
     // Collects transformed lights and then draws the scene instances.
     void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr);
 
+    // Enables or disables hierarchical frustum rejection.
     void setCulling(bool enabled){
         m_culling = enabled;
     }
 
+    // Returns whether frustum culling is enabled.
     bool getCulling() const{
         return m_culling;
     }
 
+    // Returns visible instances from the latest culling traversal.
     const std::vector<RenderNode>& getRenderList() const{
+
+        // Returns visible instances from the latest culling traversal.
         return m_culler.getRenderList();
     }
 

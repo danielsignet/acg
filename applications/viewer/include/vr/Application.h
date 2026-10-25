@@ -13,7 +13,7 @@ public:
 
     // Creates the overlay and loads the initial demonstration scene.
     Application(GLFWwindow* window, std::filesystem::path root, std::filesystem::path scene,
-                std::filesystem::path dotFile = {});
+                std::filesystem::path dotFile ={});
 
     // Processes input, callbacks and frame-rate statistics.
     void update(double time, double delta);

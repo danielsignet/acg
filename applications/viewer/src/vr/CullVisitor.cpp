@@ -14,7 +14,7 @@ void CullVisitor::collect(Node& root, const glm::mat4& vp, const glm::vec3& eye,
     m_insideDepth = 0;
     m_room.clear();
     m_renderList.clear();
-    m_stats = {};
+    m_stats ={};
     root.accept(*this);
 }
 

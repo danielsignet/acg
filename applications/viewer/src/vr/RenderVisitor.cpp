@@ -13,7 +13,7 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
     m_camera = &camera;
     setEye(camera.getPosition());
     m_lights.clear();
-    m_stats = {};
+    m_stats ={};
     m_collectingLights = true;
     root.accept(*this);
     m_collectingLights = false;

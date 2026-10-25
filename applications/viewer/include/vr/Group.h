@@ -17,6 +17,8 @@ public:
 
     // Reports whether the requested node is part of this subtree.
     bool contains(const Node* node) const override;
+
+    // Encloses every child bound in the group's coordinate system.
     BoundingBox computeBound() const override;
 
     // Returns the ordered collection of shared child nodes.

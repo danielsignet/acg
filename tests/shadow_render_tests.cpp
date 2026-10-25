@@ -46,6 +46,79 @@ std::shared_ptr<vr::Transform> place(const std::shared_ptr<vr::Group>& root,
     return node;
 }
 
+// A large exterior receiver must not expose shadows outside either visible doorway.
+void portalReceivers(const std::filesystem::path& path){
+    auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
+                                                 path / "shaders/phong-shading.fs");
+    vr::ShadowRenderer shadows(path, 512, 256);
+    vr::RenderVisitor renderer(program);
+    renderer.setCulling(false);
+    vr::Scene scene;
+    auto root = scene.getRoot();
+    auto state = std::make_shared<vr::State>();
+    state->setUniform("uFog", false);
+    root->setState(state);
+    auto sun = std::make_shared<vr::Light>();
+    sun->setPosition({0, 1, 0, 0});
+    sun->setDiffuse({1, 1, 1});
+    root->addChild(sun);
+    auto floor = place(root, vr::GeometryFactory::createGround(),{0, 0, 4},{0.5f, 1, 1.0f / 3});
+    floor->setRoomId("patio");
+    auto caster = place(root, vr::GeometryFactory::createBox(),{-4, 1, 4},{2, 2, 2});
+    caster->setRoomId("hidden");
+    const auto camera = scene.getCamera();
+    camera->setPerspective(65, static_cast<float>(width) / height, 0.1f, 50);
+    camera->setLookAt({0, 2, -4},{0, 0, 4});
+    const auto vp = camera->getProjection() * camera->getView();
+    vr::PortalGraph graph;
+    graph.build(
+        {{"room",{{-4, 0, -8},{4, 4, 0}}}},
+        {{"room", "patio",{{-1, 0, 0},{1, 3, 0}}},{"room", "patio",{{2, 0, 0},{3, 3, 0}}}},
+        "patio");
+    const auto clipped = graph.collect(camera->getPosition(), &vp);
+    auto unbounded = clipped;
+    unbounded.volumes["patio"] ={vr::ClipVolume{}};
+    const auto render = [&](const vr::PortalResult& portals, bool shadowed){
+        glViewport(0, 0, width, height);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glDisable(GL_BLEND);
+        glDisable(GL_SCISSOR_TEST);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        shadows.render(scene, camera->getPosition(), shadowed, false);
+        renderer.render(*root, *camera, nullptr, &portals);
+        return pixels();
+    };
+    const auto sample = [&](const auto& image, const glm::vec3& world){
+        const auto clip = vp * glm::vec4(world, 1);
+        const auto ndc = glm::vec3(clip) / clip.w;
+        const int x = static_cast<int>((ndc.x * 0.5f + 0.5f) * width);
+        const int y = static_cast<int>((ndc.y * 0.5f + 0.5f) * height);
+        check(x >= 0 && x < width && y >= 0 && y < height, "Portal sample is on screen");
+        const auto index = (y * width + x) * 3;
+        return glm::ivec3(image[index], image[index + 1], image[index + 2]);
+    };
+    const auto ghost = render(unbounded, true);
+    const auto physicalDepth = shadows.getSunTarget()->readDepth(0);
+    const auto unshadowed = render(unbounded, false);
+    check(sample(ghost,{-4, 0, 4}) != sample(unshadowed,{-4, 0, 4}),
+          "Fixture reproduces an orphan shadow on the exterior floor");
+    const auto masked = render(clipped, true);
+    check(shadows.getSunTarget()->readDepth(0) == physicalDepth && shadows.getCasters().size() == 2,
+          "Receiver clipping preserves the physical depth map and off-camera shadow caster");
+    check(sample(masked,{-4, 0, 4}) == glm::ivec3(0) && sample(masked,{3, 0, 4}) == glm::ivec3(0),
+          "Large floor and its orphan shadows disappear behind solid portal boundaries");
+    check(sample(masked,{0, 0, 4}) != glm::ivec3(0) && sample(masked,{5, 0, 4}) != glm::ivec3(0),
+          "Both doorway volumes retain their visible exterior floor fragments");
+    vr::PortalResult fallback;
+    const auto retained = render(fallback, false);
+    check(sample(retained,{3, 0, 4}) != glm::ivec3(0),
+          "Portal fallback clears any previous fragment mask");
+    check(glGetError() == GL_NO_ERROR, "Portal receiver rendering has valid GL state");
+}
+
 void run(const std::filesystem::path& path){
     auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
                                                  path / "shaders/phong-shading.fs");
@@ -258,6 +331,7 @@ void run(const std::filesystem::path& path){
         check(std::abs(distance - 2.5f) < 0.03f,
               "All six cubemap faces store radial distance to their own occluder");
     }
+    portalReceivers(path);
     // The reusable RTT attachment restores caller state even if drawing throws.
     glViewport(11, 13, 201, 177);
     glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE);

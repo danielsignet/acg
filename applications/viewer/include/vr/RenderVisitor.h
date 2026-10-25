@@ -2,6 +2,7 @@
 #include "CullVisitor.h"
 #include "LightCollector.h"
 #include "PathVisitor.h"
+#include "PortalMask.h"
 #include <map>
 
 namespace vr{
@@ -72,13 +73,14 @@ private:
     // Submits one resolved instance and updates room and transparency counts.
     void drawInstance(const RenderNode& item);
 
-    // Handles a geometry instance with its resolved transform and rendering state.
-    void geometry(Geometry& node, const glm::mat4& model, const State& state) override;
+    // Submits a mesh with its resolved transform, rendering state and portal mask.
+    void drawGeometry(const RenderNode& item);
 
     std::vector<PositionedLight> m_lights;
     const Camera* m_camera = nullptr;
     RenderStats m_stats;
     CullVisitor m_culler;
+    PortalMask m_portalMask;
     bool m_culling = true;
     ShadingMode m_shadingMode = ShadingMode::Phong;
 };

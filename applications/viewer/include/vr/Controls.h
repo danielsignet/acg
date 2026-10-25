@@ -63,7 +63,7 @@ public:
         if (action < Action::PointRed || action > Action::PointWhite){
             return{};
         }
-        return unsigned(action) - unsigned(Action::PointRed);
+        return static_cast<unsigned>(action) - static_cast<unsigned>(Action::PointRed);
     }
 
 private:

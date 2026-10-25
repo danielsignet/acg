@@ -1,3 +1,4 @@
+#include <vr/ResourceLocator.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -154,7 +155,8 @@ void Application::handleKey(int key){
     } else if (action == Action::Capture){
         m_screenshotRequested = true;
     } else if (action == Action::ExportGraph){
-        exportGraph(m_dotFile.empty() ? m_root / "verification/scenegraph.dot" : m_dotFile);
+        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot")
+                                      : m_dotFile);
     }
 }
 

@@ -1,6 +1,8 @@
 add_library(vrlib STATIC
     src/glad.c
-    src/vr/Animation.cpp
+    src/vr/SpinCallback.cpp
+    src/vr/OrbitCallback.cpp
+    src/vr/LodDemoCallback.cpp
     src/vr/Application.cpp
     src/vr/Camera.cpp
     src/vr/DotVisitor.cpp

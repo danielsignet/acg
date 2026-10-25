@@ -1,3 +1,4 @@
+#include <vr/ResourceLocator.h>
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
@@ -127,7 +128,7 @@ int Viewer::run(int argc, char** argv){
         ++frames;
         if (m_application->consumeScreenshotRequest()){
             FramebufferImage::capture(0, 0, width, height)
-                .save(m_root / "verification/capture.png");
+                .save(ResourceLocator::temporaryOutput("capture.png"));
         }
         if (m_frameLimit && frames >= m_frameLimit && !m_screenshot.empty()){
             FramebufferImage::capture(0, 0, width, height).save(m_screenshot);

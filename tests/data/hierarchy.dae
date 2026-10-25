@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset><created>2026-10-21T00:00:00Z</created><modified>2026-10-21T00:00:00Z</modified><unit name="meter" meter="1"/><up_axis>Y_UP</up_axis></asset>
+  <library_effects><effect id="mat-effect"><profile_COMMON><technique sid="common"><phong>
+    <ambient><color>0.15 0.08 0.04 1</color></ambient><diffuse><color>0.85 0.35 0.12 1</color></diffuse>
+    <specular><color>0.8 0.7 0.5 1</color></specular><shininess><float>60</float></shininess>
+  </phong></technique></profile_COMMON></effect></library_effects>
+  <library_materials><material id="mat"><instance_effect url="#mat-effect"/></material></library_materials>
+  <library_geometries><geometry id="pyramid" name="pyramid"><mesh>
+    <source id="positions"><float_array id="positions-array" count="15">-0.7 0 -0.7  0.7 0 -0.7  0.7 0 0.7  -0.7 0 0.7  0 1.4 0</float_array>
+      <technique_common><accessor source="#positions-array" count="5" stride="3"><param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/></accessor></technique_common>
+    </source><vertices id="vertices"><input semantic="POSITION" source="#positions"/></vertices>
+    <triangles count="6" material="surface"><input semantic="VERTEX" source="#vertices" offset="0"/>
+      <p>0 1 4  1 2 4  2 3 4  3 0 4  0 3 2  0 2 1</p>
+    </triangles>
+  </mesh></geometry></library_geometries>
+  <library_visual_scenes><visual_scene id="Scene" name="Scene">
+    <node id="parent" name="parent"><translate>2 0 0</translate>
+      <node id="lower" name="lower"><translate>0 1 0</translate><instance_geometry url="#pyramid">
+        <bind_material><technique_common><instance_material symbol="surface" target="#mat"/></technique_common></bind_material>
+      </instance_geometry></node>
+      <node id="upper" name="upper"><translate>0 3 0</translate><instance_geometry url="#pyramid">
+        <bind_material><technique_common><instance_material symbol="surface" target="#mat"/></technique_common></bind_material>
+      </instance_geometry></node>
+    </node>
+  </visual_scene></library_visual_scenes>
+  <scene><instance_visual_scene url="#Scene"/></scene>
+</COLLADA>

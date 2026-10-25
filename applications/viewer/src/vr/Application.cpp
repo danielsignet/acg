@@ -74,6 +74,7 @@ void Application::resetView(){
     m_shaderMenuOpen = false;
     m_frozenFrustum.reset();
     m_frozenEye.reset();
+    m_debugBounds = false;
     m_scene->getRoot()->getState()->setUniform("uFog", true);
     m_houseView = false;
     if (m_lodDemoCallback){
@@ -200,7 +201,8 @@ void Application::execute(Controls::Action action){
     } else if (action == Action::Capture){
         m_screenshotRequested = true;
     } else if (action == Action::ExportGraph){
-        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot") : m_dotFile);
+        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot")
+                                      : m_dotFile);
     } else if (action == Action::FrustumCulling){
         m_frustumCulling = !m_frustumCulling;
         m_renderer->setCulling(m_frustumCulling);
@@ -213,6 +215,9 @@ void Application::execute(Controls::Action action){
             m_frozenFrustum = camera.getProjection() * camera.getView();
             m_frozenEye = camera.getPosition();
         }
+        m_debugBounds = m_frozenFrustum.has_value();
+        m_status = m_frozenFrustum ? "View frozen: move to inspect; F resumes live culling."
+                                   : "Culling follows the live camera.";
     } else if (action == Action::DebugBounds){
         m_debugBounds = !m_debugBounds;
     } else if (action == Action::Roof){

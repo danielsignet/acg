@@ -112,6 +112,7 @@ void SceneOverlay::drawFooter(const Application& app){
     m_text.draw("Lights", 20, top + 7, 13,{0.7f, 0.8f, 0.88f, 1});
     drawToolbar(app, top);
     m_text.draw("RMB + WASD/QE: fly   Shift: faster   1-5: lights   Z: shader menu   C: culling   "
+                "F: freeze view   "
                 "Space: reset   R: reload   Esc: close",
                 20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     m_text.draw(app.m_status.substr(0, 140), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});

@@ -48,6 +48,8 @@ speed. Releasing the mouse returns to the toolbar.
   Like [Blender's shading menu](https://docs.blender.org/manual/en/5.4/editors/3dview/display/shading.html),
   Z opens a menu. Choose with the mouse, or use 1/2 while it is open.
 - Click Culling, or press C, to switch both frustum and portal culling on/off.
+- Press F to freeze the culling camera and show its volume. Move with RMB/WASD
+  to inspect it from another view; F resumes live culling and Space resets.
 - Click View to move between the patio and room A. Space resets the view;
   R reloads the scene and shaders. Esc closes an open menu first, then the viewer.
 
@@ -126,20 +128,6 @@ ctest --test-dir build/windows -C RelWithDebInfo --output-on-failure
 
 On Linux, use `ctest --test-dir build/linux --output-on-failure`.
 The rendering test needs a graphical session.
-The culling test covers bounds, shared-parent invalidation, all six planes,
-2,000 randomized clip-space comparisons, state inheritance, per-path transforms
-and LOD selection without a graphics context. The rendering test compares exact
-pixels with VFC off/on in 16 opaque house/patio view pairs and 16 transparent
-pairs with roofs on and off, checks actual draw reduction, and exercises frozen
-culling, debug rendering and reload. Transparent comparisons allow at most 1/255
-channel rounding in less than 0.1% of pixels; opaque pairs must be exact.
-The portal test independently checks 1,000 line/door intersections, solid wall
-rejection, door sequences, exterior visibility and graph traversal. Rendering
-validation also compares 20 exact image pairs with physically opaque walls and
-portals off/on, plus two overhead views with an open roof, then checks that wall
-transparency preserves the instance list
-and that the transparent overhead demo visibly removes rejected objects.
-
 ## License
 
 Based on Anders Backman/vrguru's VRLib under the [MIT license](LICENSE).

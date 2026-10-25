@@ -36,6 +36,8 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_inside = true;
         } else if (option == "--no-culling"){
             m_noCulling = true;
+        } else if (option == "--no-shadows"){
+            m_noShadows = true;
         } else if (option == "--portal-demo"){
             m_portalDemo = true;
         } else if (option == "--no-portals"){
@@ -58,7 +60,7 @@ bool Viewer::parseOptions(int argc, char** argv){
         } else if (option == "--help"){
             std::cout << "viewer [--root path] [--scene file] [--frames N] [--hidden] [--validate] "
                          "[--lod-demo] [--inside] [--no-culling] "
-                         "[--portal-demo] [--no-portals] [--solid-walls] "
+                         "[--portal-demo] [--no-portals] [--solid-walls] [--no-shadows] "
                          "[--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
@@ -141,6 +143,9 @@ int Viewer::run(int argc, char** argv){
     }
     if (m_inside){
         m_application->execute(Controls::Action::HouseView);
+    }
+    if (m_noShadows){
+        m_application->execute(Controls::Action::Shadows);
     }
     if (m_noCulling){
         m_application->execute(Controls::Action::Culling);

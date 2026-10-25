@@ -18,6 +18,10 @@ public:
     // Validates and sets the perspective projection parameters.
     void setPerspective(float fov, float aspect, float nearPlane, float farPlane);
 
+    // Validates and sets the orthographic projection used by directional light cameras.
+    void setOrthographic(float left, float right, float bottom, float top, float nearPlane,
+                         float farPlane);
+
     // Replaces the camera view matrix.
     void setView(const glm::mat4& matrix){
         m_view = matrix;

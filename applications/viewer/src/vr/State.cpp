@@ -10,6 +10,10 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setLighting(true);
     s.setCullFace(true);
     s.setBlend(false);
+    s.setCastShadows(true);
+    s.setReceiveShadows(true);
+    s.setUniform("uShadows", false);
+    s.setUniform("uShadowPCF", true);
     s.setUniform("uOpacity", 1.0f);
     s.setUniform("uFog", true);
     s.setUniform("uTint", glm::vec3(1));
@@ -32,6 +36,17 @@ State State::merged(const State& local) const{
     }
     if (local.m_blend){
         result.m_blend = local.m_blend;
+    }
+    if (local.m_castShadows){
+        result.m_castShadows = local.m_castShadows;
+    }
+    if (local.m_receiveShadows){
+        result.m_receiveShadows = local.m_receiveShadows;
+    }
+    for (unsigned i = 0; i < m_shadowMaps.size(); ++i){
+        if (local.m_shadowMaps[i]){
+            result.m_shadowMaps[i] = local.m_shadowMaps[i];
+        }
     }
     // Unspecified material properties retain their inherited values.
     if (local.m_material){
@@ -80,6 +95,19 @@ void State::setTexture(unsigned layer, std::shared_ptr<Texture> texture){
     m_textures[layer] = std::move(texture);
 }
 
+// Assigns a validated 2D or cubemap depth texture outside the material texture slots.
+void State::setShadowMap(unsigned index, std::shared_ptr<Texture> texture){
+    if (index >= 2){
+        throw std::out_of_range("Shadow map index");
+    }
+    if (texture && (!texture->isDepth() ||
+                    texture->getTarget() !=
+                        static_cast<GLenum>(index == 0 ? GL_TEXTURE_2D : GL_TEXTURE_CUBE_MAP))){
+        throw std::invalid_argument("Shadow map target");
+    }
+    m_shadowMaps[index] = std::move(texture);
+}
+
 // Returns the texture assigned to one layer, if any.
 std::shared_ptr<Texture> State::getTexture(unsigned layer) const{
     const auto i = m_textures.find(layer);
@@ -106,6 +134,7 @@ void State::apply() const{
         glDisable(GL_CULL_FACE);
     }
     m_program->set("uLighting", getLighting());
+    m_program->set("uReceiveShadows", getReceiveShadows());
     m_material->apply(*m_program);
     for (unsigned i = 0; i < MaxTextures; ++i){
         const auto texture = getTexture(i);
@@ -121,5 +150,15 @@ void State::apply() const{
     for (const auto& value : m_uniforms){
         m_program->set(value.first, value.second);
     }
+    for (unsigned i = 0; i < 2; ++i){
+        if (m_shadowMaps[i]){
+            m_shadowMaps[i]->apply(MaxTextures + i);
+        } else{
+            glActiveTexture(GL_TEXTURE0 + MaxTextures + i);
+            glBindTexture(i == 0 ? GL_TEXTURE_2D : GL_TEXTURE_CUBE_MAP, 0);
+        }
+    }
+    m_program->set("uSunShadow", static_cast<int>(MaxTextures));
+    m_program->set("uPointShadow", static_cast<int>(MaxTextures + 1));
 }
 } // namespace vr

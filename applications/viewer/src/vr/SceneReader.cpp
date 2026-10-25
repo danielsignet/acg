@@ -281,6 +281,12 @@ std::shared_ptr<State> SceneReader::readState(Xml* xml){
     if (xml->first_attribute("blend")){
         state->setBlend(boolean(attribute(xml, "blend")));
     }
+    if (xml->first_attribute("castShadows")){
+        state->setCastShadows(boolean(attribute(xml, "castShadows")));
+    }
+    if (xml->first_attribute("receiveShadows")){
+        state->setReceiveShadows(boolean(attribute(xml, "receiveShadows")));
+    }
     readMaterial(xml, *state);
     readTextures(xml, *state);
     readUniforms(xml, *state);

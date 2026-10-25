@@ -23,4 +23,13 @@ void Camera::setPerspective(float fov, float aspect, float nearPlane, float farP
 glm::vec3 Camera::getPosition() const{
     return glm::vec3(glm::inverse(m_view)[3]);
 }
+
+// Validates and sets the orthographic projection used by directional light cameras.
+void Camera::setOrthographic(float left, float right, float bottom, float top, float nearPlane,
+                             float farPlane){
+    if (!(right > left && top > bottom && nearPlane > 0 && farPlane > nearPlane)){
+        throw std::invalid_argument("Invalid orthographic projection");
+    }
+    m_projection = glm::ortho(left, right, bottom, top, nearPlane, farPlane);
+}
 } // namespace vr

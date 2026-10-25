@@ -540,8 +540,10 @@ private:
             const auto* binding = vr::Controls::find(GLFW_KEY_1 + static_cast<int>(i));
             points = points && binding && vr::Controls::pointLightIndex(binding->action) == i;
         }
+        check(vr::Controls::find(GLFW_KEY_J)->action == Action::Shadows,
+              "J toggles shadow mapping");
         check(points, "Keys 1-5 identify the four colored lights and daylight");
-        check(vr::Controls::getBindings().size() == 11 && !vr::Controls::find(GLFW_KEY_P) &&
+        check(vr::Controls::getBindings().size() == 12 && !vr::Controls::find(GLFW_KEY_P) &&
                   !vr::Controls::find(GLFW_KEY_V) && !vr::Controls::find(GLFW_KEY_F3),
               "Development actions do not add more viewport shortcuts");
         check(!vr::Controls::find(GLFW_KEY_UNKNOWN), "Unbound keys must not trigger an action");

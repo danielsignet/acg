@@ -4,6 +4,7 @@
 #include "DebugLines.h"
 #include "Reader.h"
 #include "SceneOverlay.h"
+#include "ShadowRenderer.h"
 #include <GLFW/glfw3.h>
 
 namespace vr{
@@ -68,6 +69,9 @@ private:
     // Moves the camera along its local axes using the current keyboard state.
     void moveCamera(float delta);
 
+    // Moves the existing light ring along world axes using arrows and Page Up/Down.
+    void moveLights(float delta);
+
     // Returns the frame-scaled normal or fast movement distance.
     float movementSpeed(float delta) const;
 
@@ -105,6 +109,7 @@ private:
     std::shared_ptr<Scene> m_scene;
     std::shared_ptr<Program> m_program;
     std::unique_ptr<RenderVisitor> m_renderer;
+    std::unique_ptr<ShadowRenderer> m_shadowRenderer;
     std::unique_ptr<SceneOverlay> m_overlay;
     std::unique_ptr<DebugLines> m_debugLines;
     std::optional<glm::mat4> m_frozenFrustum;
@@ -140,6 +145,7 @@ private:
     bool m_houseView = false;
     bool m_portalCulling = true;
     bool m_transparentWalls = true;
+    bool m_shadowsEnabled = true;
     double m_framesPerSecond = 0;
     double m_portalCpuMs = 0;
     std::string m_status = "Ready";

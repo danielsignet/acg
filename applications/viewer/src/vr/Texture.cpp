@@ -56,6 +56,10 @@ std::shared_ptr<Texture> Texture::fromMemory(const unsigned char* bytes, int len
 // Uploads pixels on first use and binds the requested texture layer.
 void Texture::apply(unsigned layer) const{
     glActiveTexture(GL_TEXTURE0 + layer);
+    if (m_depth){
+        uploadDepth();
+        return;
+    }
     if (!m_id){
         glGenTextures(1, &m_id);
         glBindTexture(GL_TEXTURE_2D, m_id);
@@ -68,6 +72,45 @@ void Texture::apply(unsigned layer) const{
         glGenerateMipmap(GL_TEXTURE_2D);
     } else{
         glBindTexture(GL_TEXTURE_2D, m_id);
+    }
+}
+
+// Validates the dimensions of a depth resource without allocating color pixels.
+Texture::Texture(int width, int height, bool cube)
+    : m_width(width), m_height(height), m_repeat(false), m_depth(true), m_cube(cube){
+    if (width <= 0 || height <= 0 || (cube && width != height)){
+        throw std::invalid_argument("Invalid depth texture dimensions");
+    }
+}
+
+// Creates a lazy floating-point depth texture, with six faces for a cubemap.
+std::shared_ptr<Texture> Texture::depth(int width, int height, bool cube){
+    return std::shared_ptr<Texture>(new Texture(width, height, cube));
+}
+
+// Allocates the depth image or its six faces on first use.
+void Texture::uploadDepth() const{
+    const auto target = getTarget();
+    if (!m_id){
+        glGenTextures(1, &m_id);
+        glBindTexture(target, m_id);
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(target, GL_TEXTURE_WRAP_S, m_cube ? GL_CLAMP_TO_EDGE : GL_CLAMP_TO_BORDER);
+        glTexParameteri(target, GL_TEXTURE_WRAP_T, m_cube ? GL_CLAMP_TO_EDGE : GL_CLAMP_TO_BORDER);
+        if (m_cube){
+            glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        }
+        const float border[] ={1, 1, 1, 1};
+        glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, border);
+        glTexParameteri(target, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+        for (unsigned face = 0; face < (m_cube ? 6u : 1u); ++face){
+            glTexImage2D(m_cube ? GL_TEXTURE_CUBE_MAP_POSITIVE_X + face : GL_TEXTURE_2D, 0,
+                         GL_DEPTH_COMPONENT32F, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT,
+                         nullptr);
+        }
+    } else{
+        glBindTexture(target, m_id);
     }
 }
 } // namespace vr

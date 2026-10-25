@@ -1,4 +1,6 @@
+#include <algorithm>
 #include <stdexcept>
+#include <vr/RenderToTexture.h>
 #include <vr/Scene.h>
 
 namespace vr{
@@ -32,5 +34,17 @@ std::shared_ptr<Transform> Scene::findTransform(const std::string& name) const{
 std::shared_ptr<Light> Scene::findLight(const std::string& name) const{
     auto i = m_lights.find(name);
     return i == m_lights.end() ? nullptr : i->second;
+}
+
+// Attaches a depth render target and its independent light cameras to the scene.
+void Scene::attachRenderTarget(const std::shared_ptr<RenderToTexture>& target){
+    if (!target){
+        throw std::invalid_argument("Null render target");
+    }
+    if (std::find(m_renderTargets.begin(), m_renderTargets.end(), target) !=
+        m_renderTargets.end()){
+        throw std::invalid_argument("Duplicate render target");
+    }
+    m_renderTargets.push_back(target);
 }
 } // namespace vr

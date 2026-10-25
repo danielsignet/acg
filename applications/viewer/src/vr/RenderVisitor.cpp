@@ -23,10 +23,7 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
 
 // Collects lights before culling so off-screen lights still affect visible geometry.
 void RenderVisitor::collectLights(Node& root){
-    m_lights.clear();
-    m_collectingLights = true;
-    root.accept(*this);
-    m_collectingLights = false;
+    m_lights = vr::collectLights(root, m_camera->getPosition());
 }
 
 // Builds the visible render list and records culling statistics.
@@ -82,9 +79,6 @@ void RenderVisitor::drawInstance(const RenderNode& item){
 
 // Handles a geometry instance with its resolved transform and rendering state.
 void RenderVisitor::geometry(Geometry& node, const glm::mat4& model, const State& state){
-    if (m_collectingLights){
-        return;
-    }
     state.apply();
     const auto& program = *state.getProgram();
     program.set("uToon", m_shadingMode == ShadingMode::Toon);
@@ -106,21 +100,4 @@ void RenderVisitor::geometry(Geometry& node, const glm::mat4& model, const State
     m_stats.triangles += node.getTriangleCount();
 }
 
-// Handles a light with the transform accumulated along its current path.
-void RenderVisitor::light(Light& node, const glm::mat4& model, const State&){
-    if (!m_collectingLights){
-        return;
-    }
-    if (m_lights.size() >= State::MaxLights){
-        throw std::runtime_error("Too many lights");
-    }
-    m_lights.push_back({&node, model});
-}
-
-// Records the detail level selected for this traversal path.
-void RenderVisitor::lod(LOD& node, std::size_t level){
-    if (!m_collectingLights){
-        m_stats.lodLevels[node.getName()] = level;
-    }
-}
 } // namespace vr

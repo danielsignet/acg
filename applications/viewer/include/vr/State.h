@@ -13,6 +13,7 @@ class State{
 public:
     static constexpr unsigned MaxTextures = 4;
     static constexpr unsigned MaxLights = 8;
+    static constexpr unsigned MaxShadowMaps = MaxLights + 1;
 
     // Creates the complete initial rendering state for the supplied shader program.
     static State defaults(const std::shared_ptr<Program>& program);
@@ -121,7 +122,7 @@ public:
 private:
     std::optional<bool> m_lightingEnabled, m_cullFace, m_blend;
     std::optional<bool> m_castShadows, m_receiveShadows;
-    std::array<std::shared_ptr<Texture>, 2> m_shadowMaps;
+    std::array<std::shared_ptr<Texture>, MaxShadowMaps> m_shadowMaps;
     std::array<std::optional<bool>, MaxLights> m_lightEnabled;
     std::shared_ptr<Material> m_material;
     std::shared_ptr<Program> m_program;

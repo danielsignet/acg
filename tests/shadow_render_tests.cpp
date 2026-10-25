@@ -46,7 +46,7 @@ std::shared_ptr<vr::Transform> place(const std::shared_ptr<vr::Group>& root,
     return node;
 }
 
-// A large exterior receiver must not expose shadows outside either visible doorway.
+// Retained exterior surfaces keep their physical lighting in the transparent view.
 void portalReceivers(const std::filesystem::path& path){
     auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
                                                  path / "shaders/phong-shading.fs");
@@ -100,23 +100,115 @@ void portalReceivers(const std::filesystem::path& path){
         const auto index = (y * width + x) * 3;
         return glm::ivec3(image[index], image[index + 1], image[index + 2]);
     };
-    const auto ghost = render(unbounded, true);
+    const auto reference = render(unbounded, true);
     const auto physicalDepth = shadows.getSunTarget()->readDepth(0);
     const auto unshadowed = render(unbounded, false);
-    check(sample(ghost,{-4, 0, 4}) != sample(unshadowed,{-4, 0, 4}),
-          "Fixture reproduces an orphan shadow on the exterior floor");
-    const auto masked = render(clipped, true);
+    check(sample(reference,{-4, 0, 4}) != sample(unshadowed,{-4, 0, 4}),
+          "Off-camera geometry casts a physical shadow on the retained exterior floor");
+    const auto culled = render(clipped, true);
     check(shadows.getSunTarget()->readDepth(0) == physicalDepth && shadows.getCasters().size() == 2,
-          "Receiver clipping preserves the physical depth map and off-camera shadow caster");
-    check(sample(masked,{-4, 0, 4}) == glm::ivec3(0) && sample(masked,{3, 0, 4}) == glm::ivec3(0),
-          "Large floor and its orphan shadows disappear behind solid portal boundaries");
-    check(sample(masked,{0, 0, 4}) != glm::ivec3(0) && sample(masked,{5, 0, 4}) != glm::ivec3(0),
+          "Observer visibility preserves the physical depth map and off-camera shadow caster");
+    check(culled == reference && sample(culled,{-4, 0, 4}) != glm::ivec3(0),
+          "Portal culling preserves transparent-view surfaces and their physical lighting");
+    check(sample(culled,{0, 0, 4}) != glm::ivec3(0) && sample(culled,{5, 0, 4}) != glm::ivec3(0),
           "Both doorway volumes retain their visible exterior floor fragments");
     vr::PortalResult fallback;
     const auto retained = render(fallback, false);
     check(sample(retained,{3, 0, 4}) != glm::ivec3(0),
-          "Portal fallback clears any previous fragment mask");
+          "Portal fallback retains exterior floor surfaces");
     check(glGetError() == GL_NO_ERROR, "Portal receiver rendering has valid GL state");
+}
+
+// All positional lights must be blocked by physical geometry, including transparent walls.
+void wallLighting(const std::filesystem::path& path){
+    auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
+                                                 path / "shaders/phong-shading.fs");
+    vr::ShadowRenderer shadows(path, 256, 256);
+    vr::RenderVisitor renderer(program);
+    vr::Scene scene;
+    shadows.attach(scene);
+    auto root = scene.getRoot();
+    auto state = std::make_shared<vr::State>();
+    state->setUniform("uFog", false);
+    auto material = std::make_shared<vr::Material>();
+    material->setAmbient({0, 0, 0});
+    material->setDiffuse({0.8f, 0.8f, 0.8f});
+    material->setSpecular({0, 0, 0});
+    state->setMaterial(material);
+    root->setState(state);
+    std::array<std::shared_ptr<vr::Light>, 4> lights;
+    for (unsigned i = 0; i < lights.size(); ++i){
+        lights[i] = std::make_shared<vr::Light>();
+        lights[i]->setPosition({static_cast<float>(i) * 0.6f - 0.9f, 4, 0, 1});
+        lights[i]->setAmbient({0, 0, 0});
+        lights[i]->setAttenuation({1, 0, 0});
+        root->addChild(lights[i]);
+    }
+    place(root, vr::GeometryFactory::createGround(),{0, 0, 0},{0.5f, 1, 0.5f});
+    auto roof = place(root, vr::GeometryFactory::createBox(),{0, 2, 0},{8, 0.2f, 8});
+    auto wallState = std::make_shared<vr::State>();
+    roof->setState(wallState);
+    const auto camera = scene.getCamera();
+    camera->setPerspective(55, static_cast<float>(width) / height, 0.1f, 50);
+    camera->setLookAt({0, 1.5f, 6},{0, 0, 0});
+    const auto render = [&](const vr::PortalResult* portals = nullptr){
+        glViewport(0, 0, width, height);
+        glEnable(GL_DEPTH_TEST);
+        glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glDisable(GL_BLEND);
+        glDisable(GL_SCISSOR_TEST);
+        glClearColor(0, 0, 0, 1);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        shadows.render(scene, camera->getPosition(), true, false);
+        renderer.render(*root, *camera, nullptr, portals);
+        const auto image = pixels();
+        const auto offset = ((height / 2) * width + width / 2) * 3;
+        return glm::ivec3(image[offset], image[offset + 1], image[offset + 2]);
+    };
+    for (unsigned selected = 0; selected < lights.size(); ++selected){
+        for (unsigned i = 0; i < lights.size(); ++i){
+            lights[i]->setDiffuse(glm::vec3(i == selected ? 1.5f : 0));
+        }
+        roof->setVisible(false);
+        const auto lit = render();
+        roof->setVisible(true);
+        const auto blocked = render();
+        check(lit.x > 70 && blocked == glm::ivec3(0) && shadows.getStats().passes == 24,
+              "Every enabled point light has its own wall-occluded shadow map");
+        wallState->setBlend(true);
+        wallState->setUniform("uOpacity", 0.12f);
+        check(render() == blocked,
+              "Transparent appearance leaves the physical light barrier solid");
+        wallState->setBlend(false);
+    }
+    roof->setVisible(false);
+    for (unsigned i = 1; i < lights.size(); ++i){
+        lights[i]->setEnabled(false);
+    }
+    auto beam = lights[0];
+    beam->setPosition({0, 3, 4, 1});
+    beam->setDiffuse({1.5f, 1.5f, 1.5f});
+    const auto direction = glm::normalize(glm::vec3(0, -3, -4));
+    beam->setSpot(direction, 14, 20);
+    beam->setRange(35);
+    check(render().x > 70, "Spotlight illuminates a receiver inside its beam");
+    beam->setSpot({1, 0, 0}, 14, 20);
+    check(render() == glm::ivec3(0), "Spotlight cone excludes receivers outside the beam");
+    beam->setSpot(direction, 14, 20);
+    beam->setRange(2);
+    check(render() == glm::ivec3(0), "Flashlight range limits its illumination");
+    beam->setRange(35);
+    auto wall = place(root, vr::GeometryFactory::createBox(),{0, 1.5f, 2},{6, 3, 0.2f});
+    wall->setState(wallState);
+    wallState->setBlend(true);
+    wall->setRoomId("hidden");
+    vr::PortalResult portals;
+    portals.active = true;
+    check(render(&portals) == glm::ivec3(0),
+          "A wall hidden by observer culling still blocks the flashlight beam");
+    check(glGetError() == GL_NO_ERROR,
+          "Multiple-light and flashlight rendering has valid GL state");
 }
 
 void run(const std::filesystem::path& path){
@@ -324,7 +416,7 @@ void run(const std::filesystem::path& path){
     }
     shadows.render(cubeScene,{0, 0, 10}, true, false);
     const float farPlane =
-        std::get<float>(cubeRoot->getState()->getUniforms().at("uPointShadowFar"));
+        std::get<float>(cubeRoot->getState()->getUniforms().at("uPointShadowFar[0]"));
     for (unsigned face = 0; face < 6; ++face){
         const auto data = shadows.getPointTarget()->readDepth(face);
         const float distance = data[128 * 256 + 128] * farPlane;
@@ -332,6 +424,7 @@ void run(const std::filesystem::path& path){
               "All six cubemap faces store radial distance to their own occluder");
     }
     portalReceivers(path);
+    wallLighting(path);
     // The reusable RTT attachment restores caller state even if drawing throws.
     glViewport(11, 13, 201, 177);
     glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE);

@@ -5,6 +5,7 @@
 #include "Reader.h"
 #include "SceneOverlay.h"
 #include "ShadowRenderer.h"
+#include "Flashlight.h"
 #include <GLFW/glfw3.h>
 
 namespace vr{
@@ -110,6 +111,7 @@ private:
     std::shared_ptr<Program> m_program;
     std::unique_ptr<RenderVisitor> m_renderer;
     std::unique_ptr<ShadowRenderer> m_shadowRenderer;
+    std::unique_ptr<Flashlight> m_flashlight;
     std::unique_ptr<SceneOverlay> m_overlay;
     std::unique_ptr<DebugLines> m_debugLines;
     std::optional<glm::mat4> m_frozenFrustum;

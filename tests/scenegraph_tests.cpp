@@ -543,7 +543,9 @@ private:
         check(vr::Controls::find(GLFW_KEY_J)->action == Action::Shadows,
               "J toggles shadow mapping");
         check(points, "Keys 1-5 identify the four colored lights and daylight");
-        check(vr::Controls::getBindings().size() == 12 && !vr::Controls::find(GLFW_KEY_P) &&
+        check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
+              "L toggles the flashlight independently of F's culling inspection");
+        check(vr::Controls::getBindings().size() == 13 && !vr::Controls::find(GLFW_KEY_P) &&
                   !vr::Controls::find(GLFW_KEY_V) && !vr::Controls::find(GLFW_KEY_F3),
               "Development actions do not add more viewport shortcuts");
         check(!vr::Controls::find(GLFW_KEY_UNKNOWN), "Unbound keys must not trigger an action");

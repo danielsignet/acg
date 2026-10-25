@@ -37,6 +37,32 @@ public:
         m_attenuation = v;
     }
 
+    // Configures a normalized spotlight direction and its inner/outer cone angles.
+    void setSpot(const glm::vec3& direction, float innerAngle, float outerAngle);
+
+    // Sets a finite lighting range; zero leaves ordinary lights unbounded.
+    void setRange(float distance);
+
+    // Reports whether this positional light has a restricted beam.
+    bool getSpot() const{
+        return m_spot;
+    }
+
+    // Returns the local direction of the spotlight beam.
+    const glm::vec3& getSpotDirection() const{
+        return m_spotDirection;
+    }
+
+    // Returns the outer half-angle in degrees for the shadow volume.
+    float getOuterAngle() const{
+        return m_outerAngle;
+    }
+
+    // Returns the finite lighting range, or zero for an unbounded light.
+    float getRange() const{
+        return m_range;
+    }
+
     // Enables or pauses this effect without discarding its current state.
     void setEnabled(bool enabled){
         m_enabled = enabled;
@@ -81,6 +107,9 @@ private:
     glm::vec3 m_diffuse{1};
     glm::vec3 m_specular{1};
     glm::vec3 m_attenuation{1, 0.025f, 0.006f};
+    glm::vec3 m_spotDirection{0, 0, -1};
+    float m_innerAngle = 14, m_outerAngle = 20, m_range = 0;
+    bool m_spot = false;
     bool m_enabled = true;
 };
 } // namespace vr

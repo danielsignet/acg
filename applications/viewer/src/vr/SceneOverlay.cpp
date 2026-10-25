@@ -15,6 +15,7 @@ struct ToolbarButton{
 
 constexpr ToolbarButton shaderButton{Action::ShaderMenu, 418, 168};
 constexpr ToolbarButton shadowButton{Action::Shadows, 348, 148};
+constexpr ToolbarButton flashlightButton{Action::Flashlight, 180, 152};
 constexpr float shaderRowHeight = 32;
 constexpr float shaderMenuTop = -72;
 
@@ -53,6 +54,11 @@ void SceneOverlay::draw(const Application& application){
 
 // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
 void SceneOverlay::click(Application& app, float x, float y){
+    if (x >= flashlightButton.x && x <= flashlightButton.x + flashlightButton.width && y >= 12 &&
+        y <= 44){
+        app.execute(flashlightButton.action);
+        return;
+    }
     if (x >= shadowButton.x && x <= shadowButton.x + shadowButton.width && y >= 12 && y <= 44){
         app.execute(shadowButton.action);
         return;
@@ -87,7 +93,10 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(0, 0, static_cast<float>(app.m_width), HeaderHeight,
                      {0.025f, 0.04f, 0.065f, 0.96f});
     m_text.draw("ACG", 24, 12, 22,{0.94f, 0.96f, 1, 1});
-    m_text.draw("HOUSE + PATIO", 190, 20, 11,{0.3f, 0.84f, 0.73f, 1});
+    m_text.rectangle(flashlightButton.x, 12, flashlightButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
+    m_text.draw(std::string("Flashlight: ") + (app.m_flashlight->getEnabled() ? "ON" : "OFF") +
+                    " [L]",
+                flashlightButton.x + 10, 21, 12,{0.7f, 0.9f, 0.84f, 1});
     m_text.rectangle(shadowButton.x, 12, shadowButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
     m_text.draw(std::string("Shadows: ") + (app.m_shadowsEnabled ? "ON" : "OFF") + " [J]",
                 shadowButton.x + 10, 21, 12,{0.7f, 0.9f, 0.84f, 1});

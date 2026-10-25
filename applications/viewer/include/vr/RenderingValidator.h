@@ -43,6 +43,9 @@ private:
     // Checks the shadow toggle and the complete lamp-displacement path into the depth map.
     void validateShadows();
 
+    // Checks flashlight illumination, camera tracking, shared controls and reload persistence.
+    void validateFlashlight();
+
     void validateControls();
     Application& m_application;
 };

@@ -97,7 +97,7 @@ void State::setTexture(unsigned layer, std::shared_ptr<Texture> texture){
 
 // Assigns a validated 2D or cubemap depth texture outside the material texture slots.
 void State::setShadowMap(unsigned index, std::shared_ptr<Texture> texture){
-    if (index >= 2){
+    if (index >= MaxShadowMaps){
         throw std::out_of_range("Shadow map index");
     }
     if (texture && (!texture->isDepth() ||
@@ -150,7 +150,7 @@ void State::apply() const{
     for (const auto& value : m_uniforms){
         m_program->set(value.first, value.second);
     }
-    for (unsigned i = 0; i < 2; ++i){
+    for (unsigned i = 0; i < MaxShadowMaps; ++i){
         if (m_shadowMaps[i]){
             m_shadowMaps[i]->apply(MaxTextures + i);
         } else{
@@ -159,6 +159,9 @@ void State::apply() const{
         }
     }
     m_program->set("uSunShadow", static_cast<int>(MaxTextures));
-    m_program->set("uPointShadow", static_cast<int>(MaxTextures + 1));
+    for (unsigned i = 0; i < MaxLights; ++i){
+        m_program->set("uPointShadows[" + std::to_string(i) + "]",
+                       static_cast<int>(MaxTextures + 1 + i));
+    }
 }
 } // namespace vr

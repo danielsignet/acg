@@ -33,6 +33,14 @@ public:
         m_cullFace = enabled;
     }
 
+    void setBlend(bool enabled){
+        m_blend = enabled;
+    }
+
+    bool getBlend() const{
+        return m_blend.value_or(false);
+    }
+
     // Overrides one validated light slot independently of global lighting.
     void setLightEnabled(unsigned index, bool enabled);
 
@@ -86,7 +94,7 @@ public:
     }
 
 private:
-    std::optional<bool> m_lightingEnabled, m_cullFace;
+    std::optional<bool> m_lightingEnabled, m_cullFace, m_blend;
     std::array<std::optional<bool>, MaxLights> m_lightEnabled;
     std::shared_ptr<Material> m_material;
     std::shared_ptr<Program> m_program;

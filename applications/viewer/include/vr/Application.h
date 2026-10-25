@@ -23,6 +23,7 @@ public:
 
     // Applies the command bound to a pressed key.
     void handleKey(int key);
+    void handleClick(float x, float y);
 
     // Updates the viewport and camera projection for a nonempty framebuffer.
     void resize(int width, int height);
@@ -42,6 +43,8 @@ public:
 private:
     friend class SceneOverlay;
     friend class RenderingValidator;
+    friend class Viewer;
+    void execute(Controls::Action action);
 
     // Registers the procedural meshes referenced by the demonstration scene.
     static void registerGeometry(Reader& reader);
@@ -61,9 +64,6 @@ private:
     // Moves the camera along its local axes using the current keyboard state.
     void moveCamera(float delta);
 
-    // Moves the entire light ring using the arrow keys.
-    void moveLightRing(float delta);
-
     // Returns the frame-scaled normal or fast movement distance.
     float movementSpeed(float delta) const;
 
@@ -78,6 +78,9 @@ private:
 
     // Exports a debug graph and keeps the scene usable if writing fails.
     void exportGraph(const std::filesystem::path& path);
+    void applyWallAppearance(Scene& scene) const;
+    void showCullingDemo();
+    void lookAt(const glm::vec3& eye, const glm::vec3& target);
     GLFWwindow* m_window;
     std::filesystem::path m_root;
     std::filesystem::path m_sceneFile;
@@ -88,10 +91,14 @@ private:
     std::unique_ptr<SceneOverlay> m_overlay;
     std::unique_ptr<DebugLines> m_debugLines;
     std::optional<glm::mat4> m_frozenFrustum;
+    std::optional<glm::vec3> m_frozenEye;
+    PortalResult m_portalResult;
     UpdateVisitor m_updater;
     std::shared_ptr<OrbitCallback> m_lightOrbitCallback;
     std::shared_ptr<LodDemoCallback> m_lodDemoCallback;
-    std::array<bool, 4> m_pointLights{true, true, true, true};
+    std::array<bool, 5> m_pointLights{true, true, true, true, true};
+    ShadingMode m_shadingMode = ShadingMode::Phong;
+    bool m_shaderMenuOpen = false;
     glm::vec3 m_position{0};
     glm::vec3 m_front{0, 0, -1};
     float m_yaw = -90;
@@ -114,7 +121,10 @@ private:
     bool m_roofEnabled = true;
     bool m_showHud = true;
     bool m_houseView = false;
+    bool m_portalCulling = true;
+    bool m_transparentWalls = true;
     double m_framesPerSecond = 0;
+    double m_portalCpuMs = 0;
     std::string m_status = "Ready";
 };
 } // namespace vr

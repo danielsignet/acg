@@ -1,5 +1,6 @@
 #include <vr/ResourceLocator.h>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <glm/gtc/matrix_transform.hpp>
@@ -38,6 +39,7 @@ void Application::reload(){
     auto lodDemo = createLodDemo(*scene);
     auto renderer = std::make_unique<RenderVisitor>(program);
     renderer->setCulling(m_frustumCulling);
+    renderer->setShadingMode(m_shadingMode);
     auto debugLines = std::make_unique<DebugLines>(m_root);
     m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
@@ -69,17 +71,25 @@ void Application::exportGraph(const std::filesystem::path& path){
 
 // Stops the camera tour and restores the scene's initial camera pose.
 void Application::resetView(){
+    m_shaderMenuOpen = false;
     m_frozenFrustum.reset();
+    m_frozenEye.reset();
+    m_scene->getRoot()->getState()->setUniform("uFog", true);
     m_houseView = false;
     if (m_lodDemoCallback){
         m_lodDemoCallback->setEnabled(false);
     }
-    m_position = m_scene->getInitialEye();
-    m_front = glm::normalize(m_scene->getInitialTarget() - m_position);
+    lookAt(m_scene->getInitialEye(), m_scene->getInitialTarget());
+    m_status = "Camera reset";
+}
+
+// Synchronizes the camera pose used by reset, tours and observation views.
+void Application::lookAt(const glm::vec3& eye, const glm::vec3& target){
+    m_position = eye;
+    m_front = glm::normalize(target - m_position);
     m_pitch = glm::degrees(std::asin(m_front.y));
     m_yaw = glm::degrees(std::atan2(m_front.z, m_front.x));
     m_scene->getCamera()->setLookAt(m_position, m_position + m_front);
-    m_status = "Camera reset";
 }
 
 // Stops the camera tour while retaining its current position and direction.
@@ -88,10 +98,8 @@ void Application::stopLodDemo(){
         return;
     }
     m_lodDemoCallback->setEnabled(false);
-    m_position = m_scene->getCamera()->getPosition();
-    m_front = glm::normalize(-glm::vec3(glm::inverse(m_scene->getCamera()->getView())[2]));
-    m_pitch = glm::degrees(std::asin(m_front.y));
-    m_yaw = glm::degrees(std::atan2(m_front.z, m_front.x));
+    const auto eye = m_scene->getCamera()->getPosition();
+    lookAt(eye, eye - glm::vec3(glm::inverse(m_scene->getCamera()->getView())[2]));
     m_status = "Manual camera";
 }
 
@@ -107,13 +115,44 @@ void Application::resize(int width, int height){
 
 // Applies the command bound to a pressed key.
 void Application::handleKey(int key){
+    if (m_shaderMenuOpen){
+        if (key == GLFW_KEY_ESCAPE){
+            m_shaderMenuOpen = false;
+            return;
+        }
+        if (key == GLFW_KEY_1 || key == GLFW_KEY_2){
+            execute(key == GLFW_KEY_1 ? Controls::Action::PhongShader
+                                      : Controls::Action::ToonShader);
+            return;
+        }
+    }
     const auto* binding = Controls::find(key);
     if (!binding){
         return;
     }
-    const auto action = binding->action;
+    execute(binding->action);
+}
+
+void Application::handleClick(float x, float y){
+    if (!m_mouseLookActive){
+        m_overlay->click(*this, x, y);
+    }
+}
+
+void Application::execute(Controls::Action action){
     using Action = Controls::Action;
-    if (action == Action::Exit){
+    if (action == Action::ShaderMenu){
+        m_shaderMenuOpen = !m_shaderMenuOpen;
+    } else if (action == Action::PhongShader || action == Action::ToonShader){
+        m_shadingMode = action == Action::PhongShader ? ShadingMode::Phong : ShadingMode::Toon;
+        m_renderer->setShadingMode(m_shadingMode);
+        m_shaderMenuOpen = false;
+    } else if (action == Action::Culling){
+        const bool enabled = !(m_frustumCulling || m_portalCulling);
+        m_frustumCulling = enabled;
+        m_portalCulling = enabled;
+        m_renderer->setCulling(enabled);
+    } else if (action == Action::Exit){
         glfwSetWindowShouldClose(m_window, GLFW_TRUE);
     } else if (action == Action::ResetView){
         resetView();
@@ -134,8 +173,7 @@ void Application::handleKey(int key){
             stopLodDemo();
         } else{
             m_lodDemoCallback->setEnabled(true);
-            m_status =
-                "LOD tour: all six cow levels. V or camera controls to stop; Space for overview.";
+            m_status = "LOD inspection: use the camera or Space to return to manual navigation.";
         }
     } else if (action == Action::GlobalLighting){
         m_lightingEnabled = !m_lightingEnabled;
@@ -168,9 +206,11 @@ void Application::handleKey(int key){
     } else if (action == Action::FreezeFrustum){
         if (m_frozenFrustum){
             m_frozenFrustum.reset();
+            m_frozenEye.reset();
         } else{
             const auto& camera = *m_scene->getCamera();
             m_frozenFrustum = camera.getProjection() * camera.getView();
+            m_frozenEye = camera.getPosition();
         }
     } else if (action == Action::DebugBounds){
         m_debugBounds = !m_debugBounds;
@@ -181,6 +221,13 @@ void Application::handleKey(int key){
         }
     } else if (action == Action::Hud){
         m_showHud = !m_showHud;
+    } else if (action == Action::PortalCulling){
+        m_portalCulling = !m_portalCulling;
+    } else if (action == Action::TransparentWalls){
+        m_transparentWalls = !m_transparentWalls;
+        applyWallAppearance(*m_scene);
+    } else if (action == Action::CullingDemo){
+        showCullingDemo();
     } else if (action == Action::HouseView){
         if (const auto room = m_scene->findTransform("roomA")){
             stopLodDemo();
@@ -189,9 +236,7 @@ void Application::handleKey(int key){
                                      : m_scene->getInitialEye();
             m_front = m_houseView ? glm::vec3(0, 0, -1)
                                   : glm::normalize(m_scene->getInitialTarget() - m_position);
-            m_pitch = glm::degrees(std::asin(m_front.y));
-            m_yaw = glm::degrees(std::atan2(m_front.z, m_front.x));
-            m_scene->getCamera()->setLookAt(m_position, m_position + m_front);
+            lookAt(m_position, m_position + m_front);
             m_status = m_houseView ? "Inside room A" : "Patio overview";
         }
     }
@@ -208,7 +253,6 @@ bool Application::consumeScreenshotRequest(){
 void Application::input(float delta){
     updateCameraOrientation();
     moveCamera(delta);
-    moveLightRing(delta);
     m_scene->getCamera()->setLookAt(m_position, m_position + m_front);
 }
 
@@ -244,7 +288,42 @@ void Application::render(){
     const auto& camera = *m_scene->getCamera();
     const auto vp = camera.getProjection() * camera.getView();
     const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
-    m_renderer->render(*m_scene->getRoot(), camera, frozen);
+    const auto portalStart = std::chrono::steady_clock::now();
+    m_portalResult = {};
+    if (m_portalCulling){
+        const auto eye = m_frozenEye.value_or(camera.getPosition());
+        const auto& graph = m_scene->getPortalGraph();
+        const bool aboveOpenRoof =
+            !m_roofEnabled &&
+            std::any_of(graph.getCells().begin(), graph.getCells().end(), [&](const auto& cell){
+                const auto& hi = cell.bounds.getMaximum();
+                return eye.y >= hi.y;
+            });
+        if (aboveOpenRoof){
+            m_portalResult.origin = "open roof fallback";
+        } else{
+            m_portalResult =
+                graph.collect(eye, m_frustumCulling ? (frozen ? frozen : &vp) : nullptr);
+        }
+    } else{
+        m_portalResult.origin = "disabled";
+    }
+    m_portalCpuMs =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - portalStart)
+            .count();
+    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult);
+    if (m_frozenEye && !m_frustumCulling){
+        const auto& portals = m_scene->getPortalGraph().getPortals();
+        for (std::size_t i = 0; i < portals.size(); i += 2){
+            BoundingBox opening;
+            for (const auto& corner : portals[i].corners){
+                opening.expandBy(corner);
+            }
+            m_debugLines->box(opening, vp, {0, .8f, 1, 1});
+        }
+        m_debugLines->box({*m_frozenEye - glm::vec3(.2f), *m_frozenEye + glm::vec3(.2f)}, vp,
+                          {1, .8f, .1f, 1});
+    }
     if (m_debugBounds){
         CullVisitor all;
         all.collect(*m_scene->getRoot(), vp, camera.getPosition(), false);
@@ -288,6 +367,7 @@ void Application::registerGeometry(Reader& reader){
 
 // Restores the user's rendering toggles on a loaded scene.
 void Application::applyRenderSettings(Scene& scene) const{
+    applyWallAppearance(scene);
     if (!scene.getRoot()->getState()){
         scene.getRoot()->setState(std::make_shared<State>());
     }
@@ -305,6 +385,45 @@ void Application::applyRenderSettings(Scene& scene) const{
             toon->getState()->setUniform("uToon", m_toonEnabled);
         }
     }
+}
+
+void Application::applyWallAppearance(Scene& scene) const{
+    if (const auto walls = scene.findTransform("walls")){
+        const auto& state = walls->getState();
+        state->setBlend(m_transparentWalls);
+        state->setCullFace(true);
+        state->setUniform("uOpacity", m_transparentWalls ? .12f : 1.0f);
+    }
+}
+
+void Application::showCullingDemo(){
+    const auto room = m_scene->findTransform("roomA");
+    if (!room){
+        return;
+    }
+    stopLodDemo();
+    const auto eye = glm::vec3(room->getMatrix() * glm::vec4(0, 2, 5, 1));
+    const auto& camera = m_scene->getCamera();
+    camera->setLookAt(eye, eye + glm::vec3(0, 0, -1));
+    m_frozenFrustum = camera->getProjection() * camera->getView();
+    m_frozenEye = eye;
+    m_scene->getRoot()->getState()->setUniform("uFog", false);
+    m_portalCulling = true;
+    m_frustumCulling = false;
+    m_renderer->setCulling(false);
+    m_transparentWalls = true;
+    applyWallAppearance(*m_scene);
+    m_roofEnabled = false;
+    if (const auto roof = m_scene->findTransform("roof")){
+        roof->setVisible(false);
+    }
+    m_animationEnabled = false;
+    if (m_lightOrbitCallback){
+        m_lightOrbitCallback->setEnabled(false);
+    }
+    lookAt({28, 32, 16}, {0, 0, -26});
+    m_status = "Observation view: visibility frozen inside A. Doorways are cyan; walls remain "
+               "solid to culling.";
 }
 
 // Attaches the light-ring animation while preserving its user settings.
@@ -337,6 +456,7 @@ void Application::updateCameraOrientation(){
 
     const bool look = glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
     if (look){
+        m_shaderMenuOpen = false;
         stopLodDemo();
     }
     for (int key :{GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}){
@@ -365,6 +485,9 @@ void Application::updateCameraOrientation(){
 
 // Moves the camera along its local axes using the current keyboard state.
 void Application::moveCamera(float delta){
+    if (!m_mouseLookActive){
+        return;
+    }
     const auto right = glm::normalize(glm::cross(m_front, glm::vec3(0, 1, 0)));
     const float speed = movementSpeed(delta);
     if (glfwGetKey(m_window, GLFW_KEY_W) == GLFW_PRESS){
@@ -384,27 +507,6 @@ void Application::moveCamera(float delta){
     }
     if (glfwGetKey(m_window, GLFW_KEY_E) == GLFW_PRESS){
         m_position.y += speed;
-    }
-}
-
-// Moves the entire light ring using the arrow keys.
-void Application::moveLightRing(float delta){
-    const float speed = movementSpeed(delta);
-    if (m_lightOrbitCallback){
-        glm::vec3 shift(0);
-        if (glfwGetKey(m_window, GLFW_KEY_LEFT) == GLFW_PRESS){
-            shift.x -= speed;
-        }
-        if (glfwGetKey(m_window, GLFW_KEY_RIGHT) == GLFW_PRESS){
-            shift.x += speed;
-        }
-        if (glfwGetKey(m_window, GLFW_KEY_UP) == GLFW_PRESS){
-            shift.z -= speed;
-        }
-        if (glfwGetKey(m_window, GLFW_KEY_DOWN) == GLFW_PRESS){
-            shift.z += speed;
-        }
-        m_lightOrbitCallback->moveBy(shift);
     }
 }
 

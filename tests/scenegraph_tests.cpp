@@ -106,8 +106,8 @@ private:
         root->accept(p);
         check(p.draws.size() == 2, "Shared geometry must be visited twice");
         check(p.draws[0].node == p.draws[1].node, "Instancing must reuse the same node");
-        check(near(glm::vec3(p.draws[0].model[3]),{2, 0, 0}) &&
-                  near(glm::vec3(p.draws[1].model[3]),{-3, 0, 0}),
+        check(near(glm::vec3(p.draws[0].model[3]), {2, 0, 0}) &&
+                  near(glm::vec3(p.draws[1].model[3]), {-3, 0, 0}),
               "Transform stack must restore between siblings");
         check(!p.draws[0].state.getLighting() && p.draws[1].state.getLighting(),
               "Lighting state must restore");
@@ -127,10 +127,10 @@ private:
         g->setUpdateCallback(std::make_shared<vr::FunctionCallback>(
             [&](vr::Node&, const vr::UpdateContext&){ ++updates; }));
         vr::UpdateVisitor update;
-        update.update(*root,{1, 0.01});
+        update.update(*root, {1, 0.01});
         check(updates == 1 && update.getCallbackCount() == 1,
               "A shared callback must execute once per update, not per path");
-        update.update(*root,{2, 0.01});
+        update.update(*root, {2, 0.01});
         check(updates == 2, "Callback must execute again next frame");
 
         struct Dispatch : vr::NodeVisitor{
@@ -164,11 +164,11 @@ private:
         a->addChild(light);
         Probe lp;
         root->accept(lp);
-        check(near(glm::vec3(lp.lights.at(0)),{3, 2, 3}), "Point light must inherit translation");
+        check(near(glm::vec3(lp.lights.at(0)), {3, 2, 3}), "Point light must inherit translation");
         light->setPosition({1, 2, 3, 0});
         Probe dp;
         root->accept(dp);
-        check(near(glm::vec3(dp.lights.at(0)),{1, 2, 3}),
+        check(near(glm::vec3(dp.lights.at(0)), {1, 2, 3}),
               "Directional light must ignore translation");
         auto texture =
             std::make_shared<vr::Texture>(1, 1, std::vector<unsigned char>{255, 255, 255, 255});
@@ -181,9 +181,9 @@ private:
         check(!textures.merged(vr::State()).getLightEnabled(1), "Per-light state inheritance");
         rejects([&]{ textures.setTexture(4, texture); }, "Invalid texture slot");
         rejects([&]{ textures.setLightEnabled(8, true); }, "Invalid light slot");
-        rejects([&]{ g->setData({{0, 0, 0}},{0, 1, 2},{{0, 1, 0}}); },
+        rejects([&]{ g->setData({{0, 0, 0}}, {0, 1, 2}, {{0, 1, 0}}); },
                 "Out-of-range geometry indices");
-        rejects([&]{ g->setData({{0, 0, 0}},{0, 0, 0},{}); }, "Missing normals");
+        rejects([&]{ g->setData({{0, 0, 0}}, {0, 0, 0}, {}); }, "Missing normals");
 
         struct ThrowOnceProbe final : Probe{
             bool shouldThrow = true;
@@ -201,8 +201,8 @@ private:
 
         rejects([&]{ root->accept(throwingProbe); }, "Visitor callbacks must propagate errors");
         root->accept(throwingProbe);
-        check(near(glm::vec3(throwingProbe.draws[0].model[3]),{2, 0, 0}) &&
-                  near(glm::vec3(throwingProbe.draws[1].model[3]),{-3, 0, 0}),
+        check(near(glm::vec3(throwingProbe.draws[0].model[3]), {2, 0, 0}) &&
+                  near(glm::vec3(throwingProbe.draws[1].model[3]), {-3, 0, 0}),
               "Matrix scopes must restore after a callback throws");
         check(!throwingProbe.draws[0].state.getLighting() &&
                   throwingProbe.draws[1].state.getLighting(),
@@ -267,27 +267,27 @@ private:
         const auto& merged = *probe.draws[0].state.getMaterial();
         check(near(merged.getAmbient(), parentMaterial->getAmbient()),
               "A diffuse-only child must inherit parent ambient");
-        check(near(merged.getDiffuse(),{0, 0, 1}),
+        check(near(merged.getDiffuse(), {0, 0, 1}),
               "An explicit local diffuse must override the parent");
         check(near(merged.getSpecular(), parentMaterial->getSpecular()) &&
                   merged.getShininess() == 90,
               "Unset material properties must inherit");
-        check(near(probe.draws[1].state.getMaterial()->getDiffuse(),{0.3f, 0.4f, 0.5f}),
+        check(near(probe.draws[1].state.getMaterial()->getDiffuse(), {0.3f, 0.4f, 0.5f}),
               "Material overrides must not leak to siblings");
-        check(near(parentMaterial->getDiffuse(),{0.3f, 0.4f, 0.5f}) &&
-                  near(localMaterial->getAmbient(),{0.13f, 0.13f, 0.13f}),
+        check(near(parentMaterial->getDiffuse(), {0.3f, 0.4f, 0.5f}) &&
+                  near(localMaterial->getAmbient(), {0.13f, 0.13f, 0.13f}),
               "Resolution must preserve source materials");
         localMaterial->setAmbient({0, 0, 0});
         localMaterial->setSpecular({0, 0, 0});
         localMaterial->setShininess(1);
         const auto explicitValues = parentMaterial->merged(*localMaterial);
-        check(near(explicitValues.getAmbient(),{0, 0, 0}) &&
-                  near(explicitValues.getSpecular(),{0, 0, 0}) &&
+        check(near(explicitValues.getAmbient(), {0, 0, 0}) &&
+                  near(explicitValues.getSpecular(), {0, 0, 0}) &&
                   explicitValues.getShininess() == 1,
               "Explicit zero colors and minimum shininess must override");
         Probe changed;
         root->accept(changed);
-        check(near(changed.draws[0].state.getMaterial()->getAmbient(),{0, 0, 0}),
+        check(near(changed.draws[0].state.getMaterial()->getAmbient(), {0, 0, 0}),
               "Changes to a shared local material must be resolved on the next traversal");
     }
 
@@ -367,8 +367,8 @@ private:
         model->accept(p);
         check(p.draws.size() == 2, "Imported hierarchy has two mesh instances");
         check(p.draws[0].node == p.draws[1].node, "Assimp mesh instances must share geometry");
-        check(near(glm::vec3(p.draws[0].model[3]),{2, 1, 0}) &&
-                  near(glm::vec3(p.draws[1].model[3]),{2, 3, 0}),
+        check(near(glm::vec3(p.draws[0].model[3]), {2, 1, 0}) &&
+                  near(glm::vec3(p.draws[1].model[3]), {2, 3, 0}),
               "Reader must preserve nested local transformations");
         reader.readModel("models/monkey.obj");
         auto crate = reader.readModel("models/texturedBox.obj");
@@ -391,7 +391,7 @@ private:
         scene->getRoot()->accept(sp);
         check(sp.draws.size() == 18 && sp.lights.size() == 4,
               "Cow must replace the display sphere; four light markers remain");
-        for (const auto& name :{"red", "green", "blue", "white"}){
+        for (const auto& name : {"red", "green", "blue", "white"}){
             check(scene->findLight(name) && scene->findLight(name)->getPosition().w == 1,
                   "All four ring lights must be point lights");
         }
@@ -420,7 +420,7 @@ private:
         const auto animated = scene->findTransform("animated");
         const auto base = animated->getMatrix();
         vr::UpdateVisitor updater;
-        updater.update(*scene->getRoot(),{1, 1, true});
+        updater.update(*scene->getRoot(), {1, 1, true});
         const auto expected =
             base * glm::rotate(glm::mat4(1), glm::radians(38.0f), glm::vec3(0, 0, 1));
         check(near(glm::vec3(animated->getMatrix()[0]), glm::vec3(expected[0])) &&
@@ -428,8 +428,8 @@ private:
                   near(glm::vec3(animated->getMatrix()[3]), glm::vec3(base[3])),
               "XML animation axis must produce a visible tumble while preserving base placement");
         vr::Camera camera;
-        camera.setLookAt({1, 2, 3},{0, 0, 0});
-        check(near(camera.getPosition(),{1, 2, 3}), "Camera eye from inverse view");
+        camera.setLookAt({1, 2, 3}, {0, 0, 0});
+        check(near(camera.getPosition(), {1, 2, 3}), "Camera eye from inverse view");
         rejects([&]{ camera.setPerspective(60, 0, 0.1f, 100); }, "Invalid projection");
     }
 
@@ -439,7 +439,7 @@ private:
         ring->setMatrix(glm::translate(glm::mat4(1), glm::vec3(0, 5, 0)));
         auto marker = vr::GeometryFactory::createSphere(8, 6);
         for (const auto& offset :
-             std::vector<glm::vec3>{{8, 0, 0},{0, 0, -8},{-8, 0, 0},{0, 0, 8}}){
+             std::vector<glm::vec3>{{8, 0, 0}, {0, 0, -8}, {-8, 0, 0}, {0, 0, 8}}){
             auto placement = std::make_shared<vr::Transform>();
             placement->setMatrix(glm::translate(glm::mat4(1), offset));
             auto light = std::make_shared<vr::Light>();
@@ -451,10 +451,10 @@ private:
         auto orbit = std::make_shared<vr::OrbitCallback>(ring, 90.0f);
         ring->setUpdateCallback(orbit);
         vr::UpdateVisitor update;
-        update.update(*ring,{1, 1, false});
+        update.update(*ring, {1, 1, false});
         Probe moved;
         ring->accept(moved);
-        check(near(glm::vec3(moved.lights.at(0)),{0, 5, -8}),
+        check(near(glm::vec3(moved.lights.at(0)), {0, 5, -8}),
               "Parent orbit must rotate lights even when geometry animation is paused");
         bool aligned = true;
         for (std::size_t i = 0; i < 4; ++i){
@@ -466,31 +466,31 @@ private:
         check(marker->getParents().size() == 4 && update.getCallbackCount() == 1,
               "One callback must animate a ring of four shared marker instances");
         orbit->setEnabled(false);
-        update.update(*ring,{2, 1, true});
+        update.update(*ring, {2, 1, true});
         Probe paused;
         ring->accept(paused);
         check(near(glm::vec3(paused.lights[0]), glm::vec3(moved.lights[0])),
               "Orbit pause must retain the ring orientation");
         orbit->moveBy({2, 0, -3});
-        update.update(*ring,{3, 1, true});
+        update.update(*ring, {3, 1, true});
         Probe shifted;
         ring->accept(shifted);
         bool translated = true;
         for (std::size_t i = 0; i < 4; ++i){
             translated =
-                translated && near(glm::vec3(shifted.lights[i] - paused.lights[i]),{2, 0, -3});
+                translated && near(glm::vec3(shifted.lights[i] - paused.lights[i]), {2, 0, -3});
         }
         check(translated, "Interactive translation must move all four paused lights together");
         auto target = std::make_shared<vr::Transform>();
         target->setMatrix(glm::translate(glm::mat4(1), glm::vec3(1, 2, 3)));
         auto spin = std::make_shared<vr::SpinCallback>(target, 90.0f, glm::vec3(0, 1, 0));
         target->setUpdateCallback(spin);
-        update.update(*target,{1, 1, true});
-        check(near(glm::vec3(target->getMatrix()[0]),{0, 0, -1}) &&
-                  near(glm::vec3(target->getMatrix()[3]),{1, 2, 3}),
+        update.update(*target, {1, 1, true});
+        check(near(glm::vec3(target->getMatrix()[0]), {0, 0, -1}) &&
+                  near(glm::vec3(target->getMatrix()[3]), {1, 2, 3}),
               "Spin must preserve base translation and rotate local axes");
         const auto before = target->getMatrix();
-        update.update(*target,{2, 1, false});
+        update.update(*target, {2, 1, false});
         check(near(glm::vec3(before[0]), glm::vec3(target->getMatrix()[0])),
               "Geometry spin must honor its own pause control");
         auto camera = std::make_shared<vr::Camera>();
@@ -503,13 +503,13 @@ private:
                                                                        {2.0, 14.0f},
                                                                        {2.0, 10.0f},
                                                                        {2.0, 6.0f}}){
-            demo.update(*camera,{0, stage.first, false});
+            demo.update(*camera, {0, stage.first, false});
             check(std::abs(glm::distance(camera->getPosition(), center) - stage.second) < 0.0001f,
                   "LOD tour must hold all six detail distances independently of geometry pause");
         }
         const auto demoEye = camera->getPosition();
         demo.setEnabled(false);
-        demo.update(*camera,{0, 3, false});
+        demo.update(*camera, {0, 3, false});
         check(near(camera->getPosition(), demoEye),
               "Disabled LOD tour must leave the camera unchanged");
     }
@@ -530,19 +530,18 @@ private:
                   vr::Controls::find(GLFW_KEY_R)->action == Action::ReloadScene &&
                   vr::Controls::find(GLFW_KEY_SPACE)->action == Action::ResetView,
               "Exit, reload and reset must retain their key bindings");
-        check(vr::Controls::find(GLFW_KEY_G)->action == Action::GlobalLighting &&
-                  !vr::Controls::pointLightIndex(Action::GlobalLighting),
-              "Global lighting must be distinct from an individual point light");
+        check(vr::Controls::find(GLFW_KEY_C)->action == Action::Culling &&
+                  vr::Controls::find(GLFW_KEY_Z)->action == Action::ShaderMenu,
+              "The compact viewport exposes culling and the shading menu");
         bool points = true;
-        for (unsigned i = 0; i < 4; ++i){
+        for (unsigned i = 0; i < 5; ++i){
             const auto* binding = vr::Controls::find(GLFW_KEY_1 + static_cast<int>(i));
             points = points && binding && vr::Controls::pointLightIndex(binding->action) == i;
         }
-        check(points, "Keys 1-4 must identify red, green, blue and white point-light state slots");
-        check(vr::Controls::find(GLFW_KEY_P)->action == Action::ObjectAnimation &&
-                  vr::Controls::find(GLFW_KEY_L)->action == Action::PointOrbit &&
-                  vr::Controls::find(GLFW_KEY_V)->action == Action::LodTour,
-              "Object, point-light and camera animations must have separate controls");
+        check(points, "Keys 1-5 identify the four colored lights and daylight");
+        check(vr::Controls::getBindings().size() == 10 && !vr::Controls::find(GLFW_KEY_P) &&
+                  !vr::Controls::find(GLFW_KEY_V) && !vr::Controls::find(GLFW_KEY_F3),
+              "Development actions do not add more viewport shortcuts");
         check(!vr::Controls::find(GLFW_KEY_UNKNOWN), "Unbound keys must not trigger an action");
     }
 };

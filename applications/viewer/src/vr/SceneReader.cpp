@@ -87,10 +87,11 @@ std::shared_ptr<Scene> SceneReader::read(const std::filesystem::path& path){
     m_anonymousNodeCount = 0;
     readAssets(root);
     readCamera(root);
+    readVisibility(root);
 
     for (auto* child = root->first_node(); child; child = child->next_sibling()){
         const std::string tag = child->name();
-        if (tag == "assets" || tag == "camera"){
+        if (tag == "assets" || tag == "camera" || tag == "visibility"){
             continue;
         }
         if (tag == "state"){
@@ -102,6 +103,27 @@ std::shared_ptr<Scene> SceneReader::read(const std::filesystem::path& path){
     m_scene->getCamera()->setLookAt(m_scene->getInitialEye(), m_scene->getInitialTarget());
     m_scene->getCamera()->setPerspective(48, 1.6f, 0.1f, 150);
     return m_scene;
+}
+
+void SceneReader::readVisibility(Xml* root){
+    auto* layout = root->first_node("visibility");
+    if (!layout){
+        return;
+    }
+    std::vector<PortalCell> cells;
+    std::vector<Doorway> doors;
+    for (auto* item = layout->first_node(); item; item = item->next_sibling()){
+        const BoundingBox bounds(vec3(required(item, "min")), vec3(required(item, "max")));
+        const std::string tag = item->name();
+        if (tag == "cell"){
+            cells.push_back({required(item, "id"), bounds});
+        } else if (tag == "portal"){
+            doors.push_back({required(item, "from"), required(item, "to"), bounds});
+        } else{
+            throw std::runtime_error("Unknown visibility element: " + tag);
+        }
+    }
+    m_scene->getPortalGraph().build(std::move(cells), doors, attribute(layout, "exterior"));
 }
 
 // Loads and registers model assets before reading their scene instances.
@@ -255,6 +277,9 @@ std::shared_ptr<State> SceneReader::readState(Xml* xml){
     if (xml->first_attribute("cull")){
         state->setCullFace(boolean(attribute(xml, "cull")));
     }
+    if (xml->first_attribute("blend")){
+        state->setBlend(boolean(attribute(xml, "blend")));
+    }
     readMaterial(xml, *state);
     readTextures(xml, *state);
     readUniforms(xml, *state);
@@ -297,6 +322,13 @@ void SceneReader::readTextures(Xml* xml, State& state){
 
 // Reads built-in and arbitrary typed shader-uniform overrides.
 void SceneReader::readUniforms(Xml* xml, State& state){
+    if (xml->first_attribute("opacity")){
+        const auto opacity = number(attribute(xml, "opacity"));
+        if (opacity < 0 || opacity > 1){
+            throw std::runtime_error("Opacity must be 0..1");
+        }
+        state.setUniform("uOpacity", opacity);
+    }
     if (xml->first_attribute("tint")){
         state.setUniform("uTint", vec3(attribute(xml, "tint")));
     }

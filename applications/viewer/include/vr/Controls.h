@@ -22,6 +22,7 @@ public:
         PointGreen,
         PointBlue,
         PointWhite,
+        PointSun,
         Capture,
         ExportGraph,
         FrustumCulling,
@@ -29,7 +30,14 @@ public:
         DebugBounds,
         Roof,
         Hud,
-        HouseView
+        HouseView,
+        PortalCulling,
+        TransparentWalls,
+        CullingDemo,
+        Culling,
+        ShaderMenu,
+        PhongShader,
+        ToonShader
     };
 
     struct Binding{
@@ -40,7 +48,7 @@ public:
     };
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 22>& getBindings(){
+    static const std::array<Binding, 10>& getBindings(){
         return m_bindings;
     }
 
@@ -66,35 +74,23 @@ public:
 
     // Maps individual point-light commands to their state slots.
     static std::optional<unsigned> pointLightIndex(Action action){
-        if (action < Action::PointRed || action > Action::PointWhite){
+        if (action < Action::PointRed || action > Action::PointSun){
             return{};
         }
         return static_cast<unsigned>(action) - static_cast<unsigned>(Action::PointRed);
     }
 
 private:
-    inline static constexpr std::array<Binding, 22> m_bindings{
+    inline static constexpr std::array<Binding, 10> m_bindings{
         {{Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
          {Action::ResetView, GLFW_KEY_SPACE, "Space", "Reset view"},
          {Action::ReloadScene, GLFW_KEY_R, "R", "Reload scene"},
-         {Action::ObjectAnimation, GLFW_KEY_P, "P", "Object transform"},
-         {Action::PointOrbit, GLFW_KEY_L, "L", "Point-light orbit"},
-         {Action::LodTour, GLFW_KEY_V, "V", "LOD camera tour"},
-         {Action::GlobalLighting, GLFW_KEY_G, "G", "Global lighting"},
-         {Action::BackFaceCulling, GLFW_KEY_B, "B", "Back-face culling"},
-         {Action::GroundMultitexture, GLFW_KEY_M, "M", "Ground multitexture"},
-         {Action::MonkeyToon, GLFW_KEY_T, "T", "Monkey toon"},
          {Action::PointRed, GLFW_KEY_1, "1", "Point Red"},
          {Action::PointGreen, GLFW_KEY_2, "2", "Point Green"},
          {Action::PointBlue, GLFW_KEY_3, "3", "Point Blue"},
          {Action::PointWhite, GLFW_KEY_4, "4", "Point White"},
-         {Action::Capture, GLFW_KEY_F2, "F2", "Save frame"},
-         {Action::ExportGraph, GLFW_KEY_F3, "F3", "Save graph"},
-         {Action::FrustumCulling, GLFW_KEY_C, "C", "Frustum culling"},
-         {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze frustum"},
-         {Action::DebugBounds, GLFW_KEY_K, "K", "Bounds"},
-         {Action::Roof, GLFW_KEY_H, "H", "Roof"},
-         {Action::Hud, GLFW_KEY_F1, "F1", "HUD"},
-         {Action::HouseView, GLFW_KEY_TAB, "Tab", "Patio / house"}}};
+         {Action::PointSun, GLFW_KEY_5, "5", "Sun"},
+         {Action::Culling, GLFW_KEY_C, "C", "Culling"},
+         {Action::ShaderMenu, GLFW_KEY_Z, "Z", "Shader"}}};
 };
 } // namespace vr

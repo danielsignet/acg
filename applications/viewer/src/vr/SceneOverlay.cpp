@@ -5,19 +5,27 @@
 #include <vr/SceneOverlay.h>
 
 namespace vr{
-// Formats the model variant and triangle count for one cow detail level.
-std::string SceneOverlay::cowDetail(std::size_t level){
-    const std::array<std::pair<const char*, unsigned>, 6> levels{{
-        {"0.99", 9496},
-        {"0.5", 4796},
-        {"0.3", 2877},
-        {"0.1", 958},
-        {"0.05", 478},
-        {"0.01", 94},
-    }};
-    const auto& detail = levels.at(level);
-    return std::string(detail.first) + " / " + std::to_string(detail.second) + " tris";
+namespace{
+using Action = Controls::Action;
+
+struct ToolbarButton{
+    Action action;
+    float x, width;
+};
+
+constexpr std::array<ToolbarButton, 8> buttons{{{Action::PointRed, 78, 56},
+                                                {Action::PointGreen, 142, 56},
+                                                {Action::PointBlue, 206, 56},
+                                                {Action::PointWhite, 270, 56},
+                                                {Action::PointSun, 334, 56},
+                                                {Action::ShaderMenu, 418, 168},
+                                                {Action::Culling, 602, 120},
+                                                {Action::HouseView, 738, 180}}};
+
+const char* shaderName(ShadingMode mode){
+    return mode == ShadingMode::Phong ? "Phong" : "Toon";
 }
+} // namespace
 
 // Draws the complete HUD without modifying the scene.
 void SceneOverlay::draw(const Application& application){
@@ -28,95 +36,109 @@ void SceneOverlay::draw(const Application& application){
     m_text.end();
 }
 
-// Draws the application title and current rendering statistics.
-void SceneOverlay::drawHeader(const Application& application){
+void SceneOverlay::click(Application& app, float x, float y){
+    const float bottom = float(app.m_height - FooterHeight);
+    if (app.m_shaderMenuOpen && x >= 418 && x <= 586){
+        if (y >= bottom - 72 && y < bottom - 40){
+            app.execute(Action::PhongShader);
+            return;
+        }
+        if (y >= bottom - 40 && y < bottom - 8){
+            app.execute(Action::ToonShader);
+            return;
+        }
+    }
+    if (y >= bottom + 12 && y <= bottom + 44){
+        for (const auto& button : buttons){
+            if (x >= button.x && x <= button.x + button.width){
+                if (button.action != Action::ShaderMenu){
+                    app.m_shaderMenuOpen = false;
+                }
+                app.execute(button.action);
+                return;
+            }
+        }
+    }
+    app.m_shaderMenuOpen = false;
+}
 
-    const auto& stats = application.m_renderer->getStats();
-    m_text.rectangle(0, 0, static_cast<float>(application.m_width),
-                     static_cast<float>(HeaderHeight),{0.025f, 0.04f, 0.065f, 0.94f});
-    m_text.rectangle(28, 26, 4, 52,{0.23f, 0.83f, 0.71f, 1});
-    m_text.draw("INTERACTIVE 3D VIEWER", 46, 18, 13,{0.52f, 0.64f, 0.75f, 1});
-    m_text.draw("Scene graph", 44, 38, 32,{0.94f, 0.96f, 1, 1});
-    m_text.draw("HOUSE & PATIO / VIEW FRUSTUM CULLING", 46, 80, 11,{0.55f, 0.68f, 0.78f, 1});
+// Reuses the existing overlay renderer with a compact viewport header.
+void SceneOverlay::drawHeader(const Application& app){
+    const auto& stats = app.m_renderer->getStats();
+    m_text.rectangle(0, 0, float(app.m_width), HeaderHeight, {.025f, .04f, .065f, .96f});
+    m_text.draw("Scene viewer", 24, 12, 22, {.94f, .96f, 1, 1});
+    m_text.draw("HOUSE + PATIO", 190, 20, 11, {.3f, .84f, .73f, 1});
     std::ostringstream info;
-    info << stats.draws << " draw calls  /  " << stats.triangles << " triangles  /  " << std::fixed
-         << std::setprecision(0) << application.m_framesPerSecond << " fps";
-    m_text.draw("OPENGL 4.1 CORE", static_cast<float>(application.m_width) - 335, 31, 16,
-                {0.7f, 0.85f, 0.94f, 1});
-    m_text.draw(info.str(), static_cast<float>(application.m_width) - 335, 60, 12,
-                {0.52f, 0.64f, 0.75f, 1});
-    std::ostringstream culling;
-    culling << "VFC " << (application.m_frustumCulling ? "ON" : "OFF") << " / "
-            << stats.subtreesRejected << " rejected / " << stats.boundsTested << " tests";
-    m_text.draw(culling.str(), static_cast<float>(application.m_width) - 335, 82, 12,
-                {1, 0.86f, 0.63f, 1});
-    std::ostringstream timings;
-    timings << std::fixed << std::setprecision(2) << "CPU cull " << stats.cullCpuMs
-            << " ms / submit " << stats.submitCpuMs << " ms";
-    m_text.draw(timings.str(), 430, 31, 12,{0.7f, 0.85f, 0.94f, 1});
-    m_text.draw(application.m_frozenFrustum ? "CULLING CAMERA: FROZEN" : "CULLING CAMERA: LIVE",
-                430, 57, 12,{0.7f, 0.85f, 0.94f, 1});
+    info << stats.draws << " draws  |  " << std::fixed << std::setprecision(0)
+         << app.m_framesPerSecond << " FPS  |  CPU cull " << std::setprecision(2)
+         << stats.cullCpuMs + app.m_portalCpuMs << " ms";
+    m_text.draw(info.str(), float(app.m_width) - 400, 20, 12, {.7f, .8f, .88f, 1});
 }
 
 // Projects the demonstration labels into the current camera view.
-void SceneOverlay::drawLabels(const Application& application){
-    const auto& stats = application.m_renderer->getStats();
-    const auto cowLod = stats.lodLevels.find("cowLOD");
-    const auto level = cowLod == stats.lodLevels.end() ? 0 : cowLod->second;
-    const auto detail = cowDetail(level);
-    label(application,{-6, 0.8f, 2.5f}, "01  SHARED GEOMETRY", "One model, three placements",
-          {0.3f, 0.93f, 0.78f, 1});
-    label(application,{0, 0.8f, 2.5f}, "02  OBJECT TRANSFORM",
-          application.m_animationEnabled ? "RUNNING  [P] pause" : "PAUSED  [P] resume",
-          {1, 0.72f, 0.32f, 1});
-    label(application,{6, 0.8f, 2.5f}, "03  COW LOD", detail + "  [V] tour",{1, 0.86f, 0.63f, 1});
-    label(application,{12, 0.8f, 2.5f}, "04  TOON SHADING",
-          application.m_toonEnabled ? "ON  [T] disable" : "OFF  [T] enable",{0.45f, 0.65f, 1, 1});
+void SceneOverlay::drawLabels(const Application& app){
+    if (!app.m_frozenEye || app.m_frustumCulling){
+        return;
+    }
+    const auto& stats = app.m_renderer->getStats();
+    for (const auto& cell : app.m_scene->getPortalGraph().getCells()){
+        const auto found = stats.roomDraws.find(cell.id);
+        const auto draws = found == stats.roomDraws.end() ? 0 : found->second;
+        label(app, cell.bounds.getCenter(), "ROOM " + cell.id + " / " + std::to_string(draws), "",
+              draws ? glm::vec4(.3f, .93f, .78f, 1) : glm::vec4(1, .4f, .3f, 1));
+    }
 }
 
 // Draws the available controls and current application status.
-void SceneOverlay::drawFooter(const Application& application){
-    const float bottom = static_cast<float>(application.m_height - FooterHeight);
-    m_text.rectangle(0, bottom, static_cast<float>(application.m_width),
-                     static_cast<float>(FooterHeight),{0.025f, 0.04f, 0.065f, 0.94f});
-    using Action = Controls::Action;
-    const auto on = [](bool value){ return value ? ": ON" : ": OFF"; };
-    const auto motion = [](bool value){ return value ? ": RUNNING" : ": PAUSED"; };
-    const auto caption = [](Action action){ return Controls::caption(action); };
-    const auto textColor = glm::vec4(0.7f, 0.78f, 0.85f, 1);
-    m_text.draw("CAMERA   WASD move   Q/E down/up   Right mouse look   Shift fast   " +
-                    caption(Action::ResetView) + "   " + caption(Action::ReloadScene) + "   " +
-                    caption(Action::Exit),
-                28, bottom + 12, 13,{0.83f, 0.88f, 0.93f, 1});
-    const auto state = application.m_scene->getRoot()->getState();
-    std::string lighting = caption(Action::GlobalLighting) + on(application.m_lightingEnabled);
-    for (const auto action :
-         {Action::PointRed, Action::PointGreen, Action::PointBlue, Action::PointWhite}){
-        lighting += "   " + caption(action) +
-                    on(state->getLightEnabled(*Controls::pointLightIndex(action)));
+void SceneOverlay::drawFooter(const Application& app){
+    const float bottom = float(app.m_height - FooterHeight), top = bottom + 12;
+    m_text.rectangle(0, bottom, float(app.m_width), FooterHeight, {.025f, .04f, .065f, .97f});
+    m_text.draw("Lights", 20, top + 7, 13, {.7f, .8f, .88f, 1});
+    const std::array<const char*, 5> names{{"1 Red", "2 Green", "3 Blue", "4 White", "5 Sun"}};
+    const std::array<glm::vec4, 5> colors{{{1, .4f, .35f, 1},
+                                           {.35f, .95f, .6f, 1},
+                                           {.4f, .65f, 1, 1},
+                                           {.92f, .94f, 1, 1},
+                                           {1, .85f, .5f, 1}}};
+    for (const auto& button : buttons){
+        std::string text;
+        glm::vec4 foreground(.8f, .87f, .92f, 1), background(.09f, .13f, .18f, 1);
+        if (const auto index = Controls::pointLightIndex(button.action)){
+            const bool on = app.m_pointLights[*index];
+            foreground = on ? colors[*index] : glm::vec4(.4f, .46f, .52f, 1);
+            background = on ? glm::vec4(.14f, .22f, .27f, 1) : background;
+            text = names[*index];
+        } else if (button.action == Action::ShaderMenu){
+            text = std::string("Shader: ") + shaderName(app.m_shadingMode) + " [Z]";
+        } else if (button.action == Action::Culling){
+            const bool enabled = app.m_frustumCulling || app.m_portalCulling;
+            text = std::string("Culling: ") + (enabled ? "ON" : "OFF") + " [C]";
+            if (enabled){
+                foreground = {.3f, .9f, .78f, 1};
+            }
+        } else{
+            text = app.m_frozenEye   ? "View: Observation"
+                   : app.m_houseView ? "View: House"
+                                     : "View: Patio";
+        }
+        m_text.rectangle(button.x, top, button.width, 32, background);
+        m_text.draw(text, button.x + 7, top + 7, 11, foreground);
     }
-    m_text.draw(lighting, 28, bottom + 38, 12,{0.3f, 0.84f, 0.73f, 1});
-    m_text.draw(
-        caption(Action::ObjectAnimation) + motion(application.m_animationEnabled) + "   " +
-            caption(Action::PointOrbit) +
-            motion(application.m_lightOrbitCallback &&
-                   application.m_lightOrbitCallback->getEnabled()) +
-            "   " + caption(Action::LodTour) +
-            on(application.m_lodDemoCallback && application.m_lodDemoCallback->getEnabled()) +
-            "   Arrows: move point-light ring",
-        28, bottom + 62, 12, textColor);
-    m_text.draw(caption(Action::BackFaceCulling) + on(application.m_cullFaceEnabled) + "   " +
-                    caption(Action::GroundMultitexture) + on(application.m_multitextureEnabled) +
-                    "   " + caption(Action::Capture),
-                28, bottom + 86, 11, textColor);
-    m_text.draw(caption(Action::FrustumCulling) + on(application.m_frustumCulling) + "   " +
-                    caption(Action::FreezeFrustum) + on(application.m_frozenFrustum.has_value()) +
-                    "   " + caption(Action::DebugBounds) + on(application.m_debugBounds) + "   " +
-                    caption(Action::Roof) + on(application.m_roofEnabled) + "   " +
-                    caption(Action::HouseView) + "   " + caption(Action::Hud),
-                28, bottom + 108, 11, textColor);
-    m_text.draw(caption(Action::ExportGraph) + "   " + application.m_status.substr(0, 130), 28,
-                bottom + 134, 11,{0.43f, 0.53f, 0.63f, 1});
+    m_text.draw("RMB + WASD/QE: fly   Shift: faster   1-5: lights   Z: shader menu   C: culling   "
+                "Space: reset   R: reload   Esc: close",
+                20, bottom + 53, 11, {.68f, .77f, .85f, 1});
+    m_text.draw(app.m_status.substr(0, 140), 20, bottom + 76, 10, {.42f, .54f, .64f, 1});
+    if (app.m_shaderMenuOpen){
+        for (unsigned i = 0; i < 2; ++i){
+            const auto mode = i == 0 ? ShadingMode::Phong : ShadingMode::Toon;
+            const float y = bottom - 72 + 32 * i;
+            m_text.rectangle(418, y, 168, 32,
+                             mode == app.m_shadingMode ? glm::vec4(.12f, .3f, .31f, 1)
+                                                       : glm::vec4(.06f, .1f, .15f, 1));
+            m_text.draw(std::to_string(i + 1) + "  " + shaderName(mode), 430, y + 7, 13,
+                        {.9f, .96f, 1, 1});
+        }
+    }
 }
 
 // Projects a world-space annotation and draws it inside the usable viewport.
@@ -139,9 +161,10 @@ void SceneOverlay::label(const Application& application, const glm::vec3& positi
         (0.5f - ndc.y * 0.5f) * application.m_height, static_cast<float>(HeaderHeight + 10),
         std::max(static_cast<float>(HeaderHeight + 10),
                  static_cast<float>(application.m_height - FooterHeight - 54)));
-    m_text.rectangle(x - 10, y - 4, 200, 49,{0.025f, 0.04f, 0.065f, 0.86f});
+    m_text.rectangle(x - 10, y - 4, subtitle.empty() ? 128.0f : 200.0f,
+                     subtitle.empty() ? 28.0f : 49.0f, {0.025f, 0.04f, 0.065f, 0.86f});
     m_text.draw(title, x, y, 14, color);
-    m_text.draw(subtitle, x, y + 20, 12,{0.65f, 0.72f, 0.8f, 1});
+    m_text.draw(subtitle, x, y + 20, 12, {0.65f, 0.72f, 0.8f, 1});
 }
 
 } // namespace vr

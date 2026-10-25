@@ -6,8 +6,8 @@ class Application;
 
 class SceneOverlay final{
 public:
-    static constexpr int HeaderHeight = 106;
-    static constexpr int FooterHeight = 160;
+    static constexpr int HeaderHeight = 56;
+    static constexpr int FooterHeight = 96;
 
     // Creates the text renderer used by the application HUD.
     explicit SceneOverlay(const std::filesystem::path& root) : m_text(root){
@@ -15,11 +15,9 @@ public:
 
     // Draws the complete HUD without modifying the scene.
     void draw(const Application& application);
+    void click(Application& application, float x, float y);
 
 private:
-    // Formats the model variant and triangle count for one cow detail level.
-    static std::string cowDetail(std::size_t level);
-
     // Draws the application title and current rendering statistics.
     void drawHeader(const Application& application);
 

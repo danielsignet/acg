@@ -18,10 +18,10 @@ uniform Material uMaterial;
 uniform Light uLights[8];
 uniform int uLightCount;
 uniform vec3 uEye, uTint, uEmissive;
-uniform bool uLighting, uToon, uMultiTexture;
+uniform bool uLighting, uToon, uMultiTexture, uFog;
 uniform sampler2D uTextures[4];
 uniform bool uHasTexture[4];
-uniform float uTextureMix, uAlphaCutoff;
+uniform float uTextureMix, uAlphaCutoff, uOpacity;
 
 // Shades the surface and discards fragments below the alpha threshold.
 void main(){
@@ -81,6 +81,6 @@ void main(){
     }
     result += uEmissive;
     vec3 mapped = pow(result / (result + vec3(0.65)), vec3(1.0 / 2.2));
-    float fog = 1.0 - exp(-0.00055 * dot(uEye - worldPosition, uEye - worldPosition));
-    fragmentColor = vec4(mix(mapped, vec3(0.035, 0.052, 0.078), clamp(fog, 0.0, 0.82)), 1.0);
+    float fog = uFog ? 1.0 - exp(-0.00055 * dot(uEye - worldPosition, uEye - worldPosition)) : 0.0;
+    fragmentColor = vec4(mix(mapped, vec3(0.035, 0.052, 0.078), clamp(fog, 0.0, 0.82)), surface.a * uOpacity);
 }

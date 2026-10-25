@@ -39,6 +39,7 @@ WSL requires a graphical session such as WSLg.
 | 1-5 or light buttons | Toggle the four colored lights and daylight |
 | Z or Shader | Open the Phong/Toon menu; select with the mouse or 1/2 |
 | J or Shadows | Toggle shadows |
+| L or Flashlight | Toggle the camera-mounted flashlight |
 | Arrows / Page Up / Page Down | Move the lights along X/Z and Y |
 | C or Culling | Toggle frustum and portal culling |
 | F | Freeze/resume the culling camera and show/hide its debug volumes |

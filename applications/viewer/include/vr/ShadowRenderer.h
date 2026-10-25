@@ -2,6 +2,7 @@
 #include "CullVisitor.h"
 #include "RenderToTexture.h"
 #include "Scene.h"
+#include "LightCollector.h"
 
 namespace vr{
 struct ShadowStats{
@@ -17,7 +18,7 @@ public:
     explicit ShadowRenderer(const std::filesystem::path& root, int sunResolution = 2048,
                             int pointResolution = 1024);
 
-    // Attaches both render targets and their seven light cameras to a loaded scene.
+    // Attaches allocated depth targets and their independent cameras to a loaded scene.
     void attach(Scene& scene) const;
 
     // Updates light depth images independently of observer frustum and portal culling.
@@ -33,9 +34,9 @@ public:
         return m_sun;
     }
 
-    // Returns the point light's six-face depth attachment.
-    const std::shared_ptr<RenderToTexture>& getPointTarget() const{
-        return m_point;
+    // Returns one positional light's six-face depth attachment.
+    const std::shared_ptr<RenderToTexture>& getPointTarget(unsigned slot = 0) const{
+        return m_points.at(slot);
     }
 
     // Returns the independently collected geometry instances that can cast shadows.
@@ -45,19 +46,24 @@ public:
 
 private:
     // Renders only depth and alpha cutouts from one light camera.
-    void drawDepthPass(const Camera& camera, bool radial, const glm::vec3& point, float farPlane);
+    void drawDepthPass(const Camera& camera, bool radial, const glm::vec3& point, float farPlane,
+                       const Frustum* cone = nullptr);
+
+    // Creates a cubemap with six independent cameras for one positional light.
+    std::shared_ptr<RenderToTexture> createPointTarget(unsigned slot) const;
 
     // Fits and renders the directional camera, then publishes its projection to State.
     void renderSun(State& state, const BoundingBox& bounds, const glm::vec3& direction,
                    const glm::vec3& point, int index);
 
     // Renders all six radial depth faces and publishes their shared far distance.
-    void renderPoint(State& state, const BoundingBox& bounds, const glm::vec3& point, int index);
+    void renderPoint(State& state, const BoundingBox& bounds, const PositionedLight& light,
+                     unsigned index, unsigned slot);
 
     std::shared_ptr<RenderToTexture> m_sun;
-    std::shared_ptr<RenderToTexture> m_point;
+    std::vector<std::shared_ptr<RenderToTexture>> m_points;
     std::shared_ptr<Camera> m_sunCamera;
-    std::array<std::shared_ptr<Camera>, 6> m_pointCameras;
+    int m_pointResolution;
     std::shared_ptr<Program> m_depthProgram;
     std::vector<RenderNode> m_casters;
     ShadowStats m_stats;

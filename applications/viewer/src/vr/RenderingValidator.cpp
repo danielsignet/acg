@@ -28,6 +28,7 @@ FramebufferImage RenderingValidator::captureScene() const{
 void RenderingValidator::run(){
     validateShadows();
     validateControls();
+    validateFlashlight();
     validateLighting();
     validateAlphaTest();
     validateObjectAnimation();
@@ -452,9 +453,9 @@ void RenderingValidator::validateShadows(){
             "J disables depth passes and visibly removes shadows");
     app.handleClick(360, 28);
     app.render();
-    require(app.m_shadowsEnabled == originalShadows && shadowPasses == 7 &&
+    require(app.m_shadowsEnabled == originalShadows && shadowPasses == 25 &&
                 app.m_shadowRenderer->getStats().passes == shadowPasses,
-            "The shadow button and J share the same action for both shadow lights");
+            "The shadow button and J share the same action for all five scene lights");
     // The existing displacement callback is the path used by arrow/Page Up/Down input.
     const auto lightOffset = app.m_lightOrbitCallback->getOffset();
     const bool orbitEnabled = app.m_lightOrbitCallback->getEnabled();
@@ -474,6 +475,51 @@ void RenderingValidator::validateShadows(){
     app.m_lightOrbitCallback->setOffset(lightOffset);
     app.m_lightOrbitCallback->setEnabled(orbitEnabled);
     app.m_updater.update(*app.m_scene->getRoot(),{0, 0, false});
+}
+
+// Checks flashlight illumination, camera tracking, shared controls and reload persistence.
+void RenderingValidator::validateFlashlight(){
+    auto& app = m_application;
+    const auto lights = app.m_pointLights;
+    const bool enabled = app.m_flashlight->getEnabled();
+    for (unsigned i = 0; i < lights.size(); ++i){
+        if (app.m_pointLights[i]){
+            app.execute(static_cast<Controls::Action>(
+                static_cast<unsigned>(Controls::Action::PointRed) + i));
+        }
+    }
+    app.m_flashlight->setEnabled(false);
+    app.lookAt({-14, 2, -20},{-14, 0.3f, -27});
+    app.render();
+    const auto dark = captureScene();
+    app.handleKey(GLFW_KEY_L);
+    app.render();
+    require(app.m_flashlight->getEnabled() && app.m_shadowRenderer->getStats().passes == 6 &&
+                captureScene().countChangedPixels(dark) > 100,
+            "L illuminates the room with an independently shadowed flashlight");
+    const auto beam = app.m_scene->findLight("flashlight");
+    const auto position = glm::vec3(beam->getPosition());
+    app.lookAt({-13, 2, -20},{-13, 0.3f, -27});
+    app.render();
+    require(glm::length(glm::vec3(beam->getPosition()) - position - glm::vec3(1, 0, 0)) < 0.0001f &&
+                glm::length(beam->getSpotDirection() - app.m_front) < 0.0001f &&
+                glm::length(app.m_shadowRenderer->getPointTarget()->getCameras()[0]->getPosition() -
+                            glm::vec3(beam->getPosition())) < 0.0001f,
+            "Flashlight position, beam and shadow camera follow the live camera");
+    app.handleClick(200, 28);
+    require(!app.m_flashlight->getEnabled(), "Flashlight button and L use the same action");
+    app.handleKey(GLFW_KEY_L);
+    app.reload();
+    require(app.m_flashlight->getEnabled() && app.m_scene->findLight("flashlight")->getEnabled(),
+            "Reload preserves the flashlight switch");
+    app.m_flashlight->setEnabled(enabled);
+    for (unsigned i = 0; i < lights.size(); ++i){
+        if (app.m_pointLights[i] != lights[i]){
+            app.execute(static_cast<Controls::Action>(
+                static_cast<unsigned>(Controls::Action::PointRed) + i));
+        }
+    }
+    app.resetView();
 }
 
 // Checks that toolbar clicks and compact shortcuts share the same application actions.

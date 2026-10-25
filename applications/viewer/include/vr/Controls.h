@@ -38,7 +38,8 @@ public:
         ShaderMenu,
         PhongShader,
         ToonShader,
-        Shadows
+        Shadows,
+        Flashlight
     };
 
     struct Binding{
@@ -49,7 +50,7 @@ public:
     };
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 12>& getBindings(){
+    static const std::array<Binding, 13>& getBindings(){
         return m_bindings;
     }
 
@@ -82,7 +83,7 @@ public:
     }
 
 private:
-    inline static constexpr std::array<Binding, 12> m_bindings{
+    inline static constexpr std::array<Binding, 13> m_bindings{
         {{Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
          {Action::ResetView, GLFW_KEY_SPACE, "Space", "Reset view"},
          {Action::ReloadScene, GLFW_KEY_R, "R", "Reload scene"},
@@ -94,6 +95,7 @@ private:
          {Action::Culling, GLFW_KEY_C, "C", "Culling"},
          {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view"},
          {Action::ShaderMenu, GLFW_KEY_Z, "Z", "Shader"},
-         {Action::Shadows, GLFW_KEY_J, "J", "Shadows"}}};
+         {Action::Shadows, GLFW_KEY_J, "J", "Shadows"},
+         {Action::Flashlight, GLFW_KEY_L, "L", "Flashlight"}}};
 };
 } // namespace vr

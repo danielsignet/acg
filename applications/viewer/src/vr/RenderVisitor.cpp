@@ -15,7 +15,6 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
     m_camera = &camera;
     setEye(camera.getPosition());
     m_stats ={};
-    m_portalMask.update(portals);
     collectLights(root);
     collectGeometry(root, camera, frozen ? *frozen : camera.getProjection() * camera.getView(),
                     portals);
@@ -78,14 +77,13 @@ void RenderVisitor::drawInstance(const RenderNode& item){
     }
 }
 
-// Submits a mesh with its resolved transform, rendering state and portal mask.
+// Submits a mesh with its resolved transform and rendering state.
 void RenderVisitor::drawGeometry(const RenderNode& item){
     auto& node = *item.geometry;
     const auto& model = item.model;
     const auto& state = item.state;
     state.apply();
     const auto& program = *state.getProgram();
-    m_portalMask.apply(program, item.room);
     program.set("uToon", m_shadingMode == ShadingMode::Toon);
     program.set("uModel", model);
     program.set("uView", m_camera->getView());

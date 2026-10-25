@@ -35,6 +35,8 @@ void Application::reload(){
                                              m_root / "shaders/phong-shading.fs");
     auto scene = reader.readScene(m_sceneFile);
     applyRenderSettings(*scene);
+    auto flashlight =
+        std::make_unique<Flashlight>(*scene, m_flashlight && m_flashlight->getEnabled());
     auto lightOrbit = createLightOrbit(*scene);
     auto lodDemo = createLodDemo(*scene);
     auto renderer = std::make_unique<RenderVisitor>(program);
@@ -44,6 +46,7 @@ void Application::reload(){
     shadows->attach(*scene);
     auto debugLines = std::make_unique<DebugLines>(m_root);
     m_shadowRenderer = std::move(shadows);
+    m_flashlight = std::move(flashlight);
     m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
     m_scene = std::move(scene);
@@ -147,7 +150,10 @@ void Application::handleClick(float x, float y){
 // Executes the shared action used by keyboard, toolbar and validation paths.
 void Application::execute(Controls::Action action){
     using Action = Controls::Action;
-    if (action == Action::Shadows){
+    if (action == Action::Flashlight){
+        m_flashlight->setEnabled(!m_flashlight->getEnabled());
+        m_status = m_flashlight->getEnabled() ? "Flashlight on" : "Flashlight off";
+    } else if (action == Action::Shadows){
         m_shadowsEnabled = !m_shadowsEnabled;
         m_status = m_shadowsEnabled ? "Shadows enabled" : "Shadows disabled";
     } else if (action == Action::ShaderMenu){
@@ -301,6 +307,7 @@ void Application::render(){
     const auto& camera = *m_scene->getCamera();
     const auto vp = camera.getProjection() * camera.getView();
     const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
+    m_flashlight->update(camera);
     m_shadowRenderer->render(*m_scene, camera.getPosition(), m_shadowsEnabled, true);
     updatePortalVisibility(camera, vp);
     m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult);

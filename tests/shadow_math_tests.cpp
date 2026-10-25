@@ -80,7 +80,18 @@ int main(){
         parent.setShadowMap(0, flat);
         parent.setShadowMap(1, cube);
         rejects([&]{ parent.setShadowMap(0, cube); }, "Shadow sampler target mismatch rejected");
-        rejects([&]{ parent.setShadowMap(2, flat); }, "Shadow sampler bounds checked");
+        rejects([&]{ parent.setShadowMap(vr::State::MaxShadowMaps, flat); },
+                "Shadow sampler bounds checked");
+        vr::Light spot;
+        spot.setSpot({0, 0, -4}, 14, 20);
+        spot.setRange(35);
+        check(spot.getSpot() &&
+                  glm::length(spot.getSpotDirection() - glm::vec3(0, 0, -1)) < 1e-5f &&
+                  spot.getRange() == 35,
+              "Spotlight normalizes its beam direction and retains its range");
+        rejects([&]{ spot.setSpot({0, 0, 0}, 14, 20); }, "Zero beam direction rejected");
+        rejects([&]{ spot.setSpot({0, 0, -1}, 25, 20); }, "Inverted beam cone rejected");
+        rejects([&]{ spot.setRange(-1); }, "Negative light range rejected");
         std::cout << checks << " shadow math/resource checks passed\n";
         return 0;
     } catch (const std::exception& e){

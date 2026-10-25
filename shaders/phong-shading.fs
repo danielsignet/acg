@@ -11,7 +11,9 @@ struct Material{
 struct Light{
     vec4 position;
     vec3 ambient, diffuse, specular, attenuation;
-    bool enabled;
+    vec3 direction;
+    float innerCos, outerCos, range;
+    bool enabled, spotlight;
 };
 
 uniform Material uMaterial;
@@ -24,39 +26,12 @@ uniform bool uHasTexture[4];
 uniform float uTextureMix, uAlphaCutoff, uOpacity;
 
 uniform sampler2D uSunShadow;
-uniform samplerCube uPointShadow;
+uniform samplerCube uPointShadows[8];
 uniform mat4 uSunVP;
 uniform mat3 uSunPlane;
 uniform bool uShadows, uReceiveShadows, uShadowPCF;
-uniform int uSunShadowIndex, uPointShadowIndex;
-uniform float uPointShadowFar;
-
-uniform samplerBuffer uPortalPlanes;
-uniform int uPortalFirst, uPortalVolumeCount;
-
-// Keeps only surface fragments reachable through the room's clipped doorway volumes.
-bool visibleThroughPortals(){
-    vec3 dx = dFdx(worldPosition), dy = dFdy(worldPosition);
-    if (uPortalVolumeCount == 0){
-        return true;
-    }
-    int cursor = uPortalFirst;
-    for (int volume = 0; volume < uPortalVolumeCount; ++volume){
-        int count = int(texelFetch(uPortalPlanes, cursor++).x);
-        bool inside = true;
-        for (int plane = 0; plane < count; ++plane){
-            vec4 boundary = texelFetch(uPortalPlanes, cursor + plane);
-            // Retain pixels straddling an edge; wall depth resolves their MSAA samples.
-            float margin = 0.0001 + 0.5 * (abs(dot(boundary.xyz, dx)) + abs(dot(boundary.xyz, dy)));
-            inside = inside && dot(boundary, vec4(worldPosition, 1.0)) >= -margin;
-        }
-        cursor += count;
-        if (inside){
-            return true;
-        }
-    }
-    return false;
-}
+uniform int uSunShadowIndex, uPointShadowSlot[8];
+uniform float uPointShadowFar[8];
 
 float sunVisibility(vec3 normal){
     vec4 clip = uSunVP * vec4(worldPosition, 1.0);
@@ -80,7 +55,7 @@ float sunVisibility(vec3 normal){
     return visible / float((2 * radius + 1) * (2 * radius + 1));
 }
 
-vec3 cubeTexelDirection(vec3 direction){
+vec3 cubeTexelDirection(vec3 direction, int slot){
     vec3 a = abs(direction);
     vec2 uv;
     int face;
@@ -109,7 +84,7 @@ vec3 cubeTexelDirection(vec3 direction){
             uv = vec2(-direction.x, -direction.y) / a.z;
         }
     }
-    float size = float(textureSize(uPointShadow, 0).x);
+    float size = float(textureSize(uPointShadows[slot], 0).x);
     uv =
         (clamp(floor((uv * 0.5 + 0.5) * size), vec2(0), vec2(size - 1.0)) + 0.5) / size * 2.0 - 1.0;
     if (face == 0){
@@ -130,28 +105,28 @@ vec3 cubeTexelDirection(vec3 direction){
     return vec3(-uv.x, -uv.y, -1);
 }
 
-float pointVisibility(vec3 normal, vec3 lightPosition){
+float pointVisibility(vec3 normal, vec3 lightPosition, int slot){
     vec3 delta = worldPosition - lightPosition;
     float distanceToLight = length(delta);
-    if (distanceToLight >= uPointShadowFar){
+    if (distanceToLight >= uPointShadowFar[slot]){
         return 1.0;
     }
     float bias = 0.01;
     vec3 ray = normalize(delta);
     vec3 axis = abs(ray.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
     vec3 tangent = normalize(cross(ray, axis)), bitangent = cross(ray, tangent);
-    float texelRadius = 2.0 * distanceToLight / float(textureSize(uPointShadow, 0).x),
+    float texelRadius = 2.0 * distanceToLight / float(textureSize(uPointShadows[slot], 0).x),
           visible = 0.0;
     int radius = uShadowPCF ? 1 : 0;
     for (int y = -radius; y <= radius; ++y){
         for (int x = -radius; x <= radius; ++x){
             vec3 sampleRay = cubeTexelDirection(
-                delta + (tangent * float(x) + bitangent * float(y)) * texelRadius);
+                delta + (tangent * float(x) + bitangent * float(y)) * texelRadius, slot);
             float denominator = dot(normal, sampleRay), numerator = dot(normal, delta);
             float reference = abs(denominator) > 1e-6 && numerator * denominator > 0.0
                                   ? numerator / denominator * length(sampleRay)
                                   : distanceToLight;
-            float stored = texture(uPointShadow, sampleRay).r * uPointShadowFar;
+            float stored = texture(uPointShadows[slot], sampleRay).r * uPointShadowFar[slot];
             visible += reference - bias <= stored ? 1.0 : 0.0;
         }
     }
@@ -160,9 +135,6 @@ float pointVisibility(vec3 normal, vec3 lightPosition){
 
 // Shades the surface and discards fragments below the alpha threshold.
 void main(){
-    if (!visibleThroughPortals()){
-        discard;
-    }
     vec4 surface = vec4(uMaterial.diffuse * uTint, 1.0);
     if (uHasTexture[0]){
         surface *= texture(uTextures[0], texCoord);
@@ -200,6 +172,16 @@ void main(){
                 float d = length(delta);
                 lightDirection = delta / max(d, 0.0001);
                 attenuation = 1.0 / max(dot(uLights[i].attenuation, vec3(1.0, d, d * d)), 0.0001);
+                if (uLights[i].range > 0.0){
+                    attenuation *= 1.0 - smoothstep(uLights[i].range * 0.8, uLights[i].range, d);
+                }
+                if (uLights[i].spotlight){
+                    attenuation *= smoothstep(uLights[i].outerCos, uLights[i].innerCos,
+                                              dot(-lightDirection, uLights[i].direction));
+                }
+                if (attenuation == 0.0){
+                    continue;
+                }
             }
             float diffuse = max(dot(n, lightDirection), 0.0);
             float specular = 0.0;
@@ -212,17 +194,18 @@ void main(){
                 specular = step(0.45, specular);
             }
             float visibility = 1.0;
-            if (uShadows && uReceiveShadows && diffuse > 0.0){
+            if (uShadows && uReceiveShadows){
                 if (i == uSunShadowIndex){
                     visibility = sunVisibility(planeNormal);
-                } else if (i == uPointShadowIndex){
-                    visibility = pointVisibility(planeNormal, uLights[i].position.xyz);
+                } else if (uPointShadowSlot[i] >= 0){
+                    visibility =
+                        pointVisibility(planeNormal, uLights[i].position.xyz, uPointShadowSlot[i]);
                 }
             }
             result +=
-                attenuation * (surface.rgb * uLights[i].ambient +
-                               visibility * (surface.rgb * uLights[i].diffuse * diffuse +
-                                             uMaterial.specular * uLights[i].specular * specular));
+                attenuation * visibility *
+                (surface.rgb * uLights[i].ambient + surface.rgb * uLights[i].diffuse * diffuse +
+                 uMaterial.specular * uLights[i].specular * specular);
         }
         if (uToon){
             result *= smoothstep(0.05, 0.3, abs(dot(n, viewDirection)));

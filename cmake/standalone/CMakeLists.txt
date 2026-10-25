@@ -39,5 +39,5 @@ if(BUILD_TESTING)
     add_test(NAME scenegraph COMMAND scenegraph_tests "${VRLIB_SOURCE_DIR}")
   endif()
   add_test(NAME rendering COMMAND viewer --hidden --validate --frames 4
-    --dot "${PROJECT_BINARY_DIR}/verification/scenegraph.dot")
+    --dot "${PROJECT_BINARY_DIR}/artifacts/scenegraph.dot")
 endif()

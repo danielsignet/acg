@@ -44,7 +44,7 @@ Lighting, texture and culling controls are shown in the viewer.
 
 ## Graph visualization
 
-`F3` saves `verification/scenegraph.dot` beside the executable. Use `--dot <file>`
+`F3` saves `acg-viewer/scenegraph.dot` in the system temporary directory. Use `--dot <file>`
 to choose another output path. Shared nodes and all LOD branches are included.
 
 With Graphviz installed, run this from the directory containing the exported file:

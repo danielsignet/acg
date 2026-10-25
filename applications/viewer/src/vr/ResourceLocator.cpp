@@ -60,4 +60,9 @@ std::filesystem::path ResourceLocator::findRoot(const char* executable,
     }
     throw std::runtime_error("Assets not found; use --root <resource directory>");
 }
+
+// Returns a diagnostic output location in the operating system's temporary directory.
+std::filesystem::path ResourceLocator::temporaryOutput(const std::string& filename){
+    return std::filesystem::temp_directory_path() / "acg-viewer" / filename;
+}
 } // namespace vr

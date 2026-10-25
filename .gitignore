@@ -17,4 +17,3 @@ RelWithDebInfo
 cmake_install.cmake
 vrlib_version.h
 /verification/
-/tests/

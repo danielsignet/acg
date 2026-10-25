@@ -9,6 +9,9 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setMaterial(std::make_shared<Material>());
     s.setLighting(true);
     s.setCullFace(true);
+    s.setBlend(false);
+    s.setUniform("uOpacity", 1.0f);
+    s.setUniform("uFog", true);
     s.setUniform("uTint", glm::vec3(1));
     s.setUniform("uEmissive", glm::vec3(0));
     s.setUniform("uToon", false);
@@ -26,6 +29,9 @@ State State::merged(const State& local) const{
     }
     if (local.m_cullFace){
         result.m_cullFace = local.m_cullFace;
+    }
+    if (local.m_blend){
+        result.m_blend = local.m_blend;
     }
     // Unspecified material properties retain their inherited values.
     if (local.m_material){
@@ -86,6 +92,14 @@ void State::apply() const{
         throw std::logic_error("Incomplete resolved rendering state");
     }
     m_program->use();
+    if (getBlend()){
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+    } else{
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+    }
     if (getCullFace()){
         glEnable(GL_CULL_FACE);
     } else{

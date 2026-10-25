@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <stdexcept>
@@ -9,7 +10,8 @@
 
 namespace vr{
 // Collects transformed lights and then draws the scene instances.
-void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* frozen){
+void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* frozen,
+                           const PortalResult* portals){
     m_camera = &camera;
     setEye(camera.getPosition());
     m_lights.clear();
@@ -20,19 +22,42 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
     // An off-screen light can still illuminate a visible object.
     const auto start = std::chrono::steady_clock::now();
     m_culler.collect(root, frozen ? *frozen : camera.getProjection() * camera.getView(),
-                     camera.getPosition(), m_culling);
+                     camera.getPosition(), m_culling, portals);
     m_stats.cullCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
     m_stats.boundsTested = m_culler.getStats().boundsTested;
     m_stats.subtreesRejected = m_culler.getStats().subtreesRejected;
     m_stats.lodLevels = m_culler.getStats().lodLevels;
-    const auto submit = std::chrono::steady_clock::now();
+    m_stats.portalRejected = m_culler.getStats().portalRejected;
+    std::vector<const RenderNode*> opaque, transparent;
     for (const auto& item : m_culler.getRenderList()){
-        geometry(*item.geometry, item.model, item.state);
-        if (!item.room.empty()){
-            ++m_stats.roomDraws[item.room];
-        }
+        (item.state.getBlend() ? transparent : opaque).push_back(&item);
     }
+    const auto distance = [&](const RenderNode* item){
+        const auto center =
+            glm::vec3(item->model * glm::vec4(item->geometry->getBound().getCenter(), 1));
+        return glm::dot(center - camera.getPosition(), center - camera.getPosition());
+    };
+    std::stable_sort(transparent.begin(), transparent.end(),
+                     [&](const auto* a, const auto* b){ return distance(a) > distance(b); });
+    const auto submit = std::chrono::steady_clock::now();
+    const auto draw = [&](const RenderNode* item){
+        geometry(*item->geometry, item->model, item->state);
+        if (!item->room.empty()){
+            ++m_stats.roomDraws[item->room];
+        }
+        if (item->state.getBlend()){
+            ++m_stats.transparentDraws;
+        }
+    };
+    for (const auto* item : opaque){
+        draw(item);
+    }
+    for (const auto* item : transparent){
+        draw(item);
+    }
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
     m_stats.submitCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - submit)
             .count();
@@ -45,6 +70,7 @@ void RenderVisitor::geometry(Geometry& node, const glm::mat4& model, const State
     }
     state.apply();
     const auto& program = *state.getProgram();
+    program.set("uToon", m_shadingMode == ShadingMode::Toon);
     program.set("uModel", model);
     program.set("uView", m_camera->getView());
     program.set("uProjection", m_camera->getProjection());

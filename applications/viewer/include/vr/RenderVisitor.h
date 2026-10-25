@@ -4,12 +4,15 @@
 #include <map>
 
 namespace vr{
+enum class ShadingMode{ Phong, Toon };
+
 struct RenderStats{
     unsigned draws = 0;
     std::size_t triangles = 0;
     std::map<std::string, std::size_t> lodLevels;
     std::map<std::string, unsigned> roomDraws;
     unsigned boundsTested = 0, subtreesRejected = 0;
+    unsigned portalRejected = 0, transparentDraws = 0;
     double cullCpuMs = 0, submitCpuMs = 0;
 };
 
@@ -21,22 +24,26 @@ public:
     }
 
     // Collects transformed lights and then draws the scene instances.
-    void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr);
+    void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr,
+                const PortalResult* portals = nullptr);
 
-    // Enables or disables hierarchical frustum rejection.
     void setCulling(bool enabled){
         m_culling = enabled;
     }
 
-    // Returns whether frustum culling is enabled.
     bool getCulling() const{
         return m_culling;
     }
 
-    // Returns visible instances from the latest culling traversal.
-    const std::vector<RenderNode>& getRenderList() const{
+    void setShadingMode(ShadingMode mode){
+        m_shadingMode = mode;
+    }
 
-        // Returns visible instances from the latest culling traversal.
+    ShadingMode getShadingMode() const{
+        return m_shadingMode;
+    }
+
+    const std::vector<RenderNode>& getRenderList() const{
         return m_culler.getRenderList();
     }
 
@@ -66,5 +73,6 @@ private:
     RenderStats m_stats;
     CullVisitor m_culler;
     bool m_culling = true;
+    ShadingMode m_shadingMode = ShadingMode::Phong;
 };
 } // namespace vr

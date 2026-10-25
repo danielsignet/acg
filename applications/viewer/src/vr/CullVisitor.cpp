@@ -1,10 +1,13 @@
+#include <algorithm>
 #include <vr/CullVisitor.h>
 #include <vr/Geometry.h>
 #include <vr/LOD.h>
 #include <vr/Transform.h>
 
 namespace vr{
-void CullVisitor::collect(Node& root, const glm::mat4& vp, const glm::vec3& eye, bool enabled){
+void CullVisitor::collect(Node& root, const glm::mat4& vp, const glm::vec3& eye, bool enabled,
+                          const PortalResult* portals){
+    m_portals = portals;
     m_frustum.reset();
     if (enabled){
         m_frustum.emplace(vp);
@@ -34,6 +37,18 @@ void CullVisitor::within(Node& node, const std::function<void()>& action){
                 return;
             }
             inside = result == Visibility::Inside;
+        }
+    }
+    const auto& room = node.getRoomId().empty() ? m_room : node.getRoomId();
+    if (m_portals && m_portals->active && !room.empty()){
+        const auto found = m_portals->volumes.find(room);
+        const auto world = node.getBound().transformed(m_models.back());
+        if (found == m_portals->volumes.end() ||
+            !std::any_of(found->second.begin(), found->second.end(),
+                         [&](const auto& volume){ return volume.intersects(world); })){
+            ++m_stats.portalRejected;
+            m_stats.rejectedNames.push_back(node.getName());
+            return;
         }
     }
     const auto previousRoom = m_room;

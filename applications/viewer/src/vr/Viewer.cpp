@@ -36,6 +36,12 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_inside = true;
         } else if (option == "--no-culling"){
             m_noCulling = true;
+        } else if (option == "--portal-demo"){
+            m_portalDemo = true;
+        } else if (option == "--no-portals"){
+            m_noPortals = true;
+        } else if (option == "--solid-walls"){
+            m_solidWalls = true;
         } else if (option == "--frames"){
             m_frameLimit = std::stoi(next());
             if (m_frameLimit < 1){
@@ -52,6 +58,7 @@ bool Viewer::parseOptions(int argc, char** argv){
         } else if (option == "--help"){
             std::cout << "viewer [--root path] [--scene file] [--frames N] [--hidden] [--validate] "
                          "[--lod-demo] [--inside] [--no-culling] "
+                         "[--portal-demo] [--no-portals] [--solid-walls] "
                          "[--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
@@ -80,6 +87,7 @@ void Viewer::initialize(){
     if (!m_window){
         throw std::runtime_error("Window creation failed");
     }
+    glfwSetWindowSizeLimits(m_window, 960, 600, GLFW_DONT_CARE, GLFW_DONT_CARE);
     glfwMakeContextCurrent(m_window);
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))){
         throw std::runtime_error("OpenGL loading failed");
@@ -98,6 +106,20 @@ void Viewer::initialize(){
     glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int width, int height){
         static_cast<Application*>(glfwGetWindowUserPointer(window))->resize(width, height);
     });
+    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int){
+        if (button != GLFW_MOUSE_BUTTON_LEFT || action != GLFW_PRESS){
+            return;
+        }
+        double x, y;
+        int windowWidth, windowHeight, width, height;
+        glfwGetCursorPos(window, &x, &y);
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        glfwGetFramebufferSize(window, &width, &height);
+        if (windowWidth > 0 && windowHeight > 0){
+            static_cast<Application*>(glfwGetWindowUserPointer(window))
+                ->handleClick(float(x * width / windowWidth), float(y * height / windowHeight));
+        }
+    });
 }
 
 // Executes the configured application or validation sequence.
@@ -114,13 +136,22 @@ int Viewer::run(int argc, char** argv){
         m_application->validate();
     }
     if (m_lodDemoCallback){
-        m_application->handleKey(GLFW_KEY_V);
+        m_application->execute(Controls::Action::LodTour);
     }
     if (m_inside){
-        m_application->handleKey(GLFW_KEY_TAB);
+        m_application->execute(Controls::Action::HouseView);
     }
     if (m_noCulling){
-        m_application->handleKey(GLFW_KEY_C);
+        m_application->execute(Controls::Action::Culling);
+    }
+    if (m_portalDemo){
+        m_application->execute(Controls::Action::CullingDemo);
+    }
+    if (m_noPortals){
+        m_application->execute(Controls::Action::PortalCulling);
+    }
+    if (m_solidWalls){
+        m_application->execute(Controls::Action::TransparentWalls);
     }
     double previous = glfwGetTime();
     int frames = 0;

@@ -38,6 +38,7 @@ private:
     bool m_lodDemoCallback = false;
     bool m_inside = false;
     bool m_noCulling = false;
+    bool m_portalDemo = false, m_noPortals = false, m_solidWalls = false;
     int m_frameLimit = 0;
 };
 } // namespace vr

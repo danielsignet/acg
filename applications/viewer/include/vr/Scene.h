@@ -2,6 +2,7 @@
 #include "Camera.h"
 #include "Group.h"
 #include "Light.h"
+#include "PortalVisibility.h"
 #include "Transform.h"
 
 namespace vr{
@@ -52,6 +53,14 @@ public:
         return m_initialTarget;
     }
 
+    PortalGraph& getPortalGraph(){
+        return m_portals;
+    }
+
+    const PortalGraph& getPortalGraph() const{
+        return m_portals;
+    }
+
 private:
     std::shared_ptr<Group> m_root;
     std::shared_ptr<Camera> m_camera;
@@ -59,5 +68,6 @@ private:
     std::map<std::string, std::shared_ptr<Light>> m_lights;
     glm::vec3 m_initialEye{16, 11, 22};
     glm::vec3 m_initialTarget{0, 1, 0};
+    PortalGraph m_portals;
 };
 } // namespace vr

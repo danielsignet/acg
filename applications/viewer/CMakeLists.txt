@@ -8,6 +8,7 @@ add_library(vrlib STATIC
     src/vr/DebugLines.cpp
     src/vr/Frustum.cpp
     src/vr/Node.cpp
+    src/vr/PortalVisibility.cpp
     src/vr/Application.cpp
     src/vr/Camera.cpp
     src/vr/DotVisitor.cpp

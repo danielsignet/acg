@@ -23,6 +23,8 @@ public:
 
     // Applies the command bound to a pressed key.
     void handleKey(int key);
+
+    // Dispatches a toolbar click expressed in framebuffer coordinates.
     void handleClick(float x, float y);
 
     // Updates the viewport and camera projection for a nonempty framebuffer.
@@ -44,6 +46,8 @@ private:
     friend class SceneOverlay;
     friend class RenderingValidator;
     friend class Viewer;
+
+    // Executes the shared action used by keyboard, toolbar and validation paths.
     void execute(Controls::Action action);
 
     // Registers the procedural meshes referenced by the demonstration scene.
@@ -67,7 +71,7 @@ private:
     // Returns the frame-scaled normal or fast movement distance.
     float movementSpeed(float delta) const;
 
-    // Updates camera movement and interactive light-ring movement.
+    // Updates camera orientation and movement from the current input state.
     void input(float delta);
 
     // Stops the camera tour while retaining its current position and direction.
@@ -78,9 +82,22 @@ private:
 
     // Exports a debug graph and keeps the scene usable if writing fails.
     void exportGraph(const std::filesystem::path& path);
+
+    // Changes wall appearance while retaining its solid portal boundaries.
     void applyWallAppearance(Scene& scene) const;
+
+    // Starts the overhead inspection preset with visibility frozen inside room A.
     void showCullingDemo();
+
+    // Synchronizes the camera pose and mouse-look angles for every view change.
     void lookAt(const glm::vec3& eye, const glm::vec3& target);
+
+    // Updates portal visibility from the live or frozen eye independently of the observer.
+    void updatePortalVisibility(const Camera& camera, const glm::mat4& viewProjection);
+
+    // Draws doorway, eye and bounding-volume references from the observer camera.
+    void drawVisibilityDebug(const Camera& camera, const glm::mat4& observerViewProjection);
+
     GLFWwindow* m_window;
     std::filesystem::path m_root;
     std::filesystem::path m_sceneFile;

@@ -133,12 +133,14 @@ void Application::handleKey(int key){
     execute(binding->action);
 }
 
+// Dispatches a toolbar click expressed in framebuffer coordinates.
 void Application::handleClick(float x, float y){
     if (!m_mouseLookActive){
         m_overlay->click(*this, x, y);
     }
 }
 
+// Executes the shared action used by keyboard, toolbar and validation paths.
 void Application::execute(Controls::Action action){
     using Action = Controls::Action;
     if (action == Action::ShaderMenu){
@@ -198,8 +200,7 @@ void Application::execute(Controls::Action action){
     } else if (action == Action::Capture){
         m_screenshotRequested = true;
     } else if (action == Action::ExportGraph){
-        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot")
-                                      : m_dotFile);
+        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot") : m_dotFile);
     } else if (action == Action::FrustumCulling){
         m_frustumCulling = !m_frustumCulling;
         m_renderer->setCulling(m_frustumCulling);
@@ -249,7 +250,7 @@ bool Application::consumeScreenshotRequest(){
     return value;
 }
 
-// Updates camera movement and interactive light-ring movement.
+// Updates camera orientation and movement from the current input state.
 void Application::input(float delta){
     updateCameraOrientation();
     moveCamera(delta);
@@ -288,22 +289,34 @@ void Application::render(){
     const auto& camera = *m_scene->getCamera();
     const auto vp = camera.getProjection() * camera.getView();
     const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
+    updatePortalVisibility(camera, vp);
+    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult);
+    drawVisibilityDebug(camera, vp);
+    if (m_showHud){
+        overlay();
+    }
+    OpenGL::check("Frame");
+}
+
+// Updates portal visibility from the live or frozen eye independently of the observer.
+void Application::updatePortalVisibility(const Camera& camera, const glm::mat4& viewProjection){
     const auto portalStart = std::chrono::steady_clock::now();
-    m_portalResult = {};
+    m_portalResult ={};
     if (m_portalCulling){
         const auto eye = m_frozenEye.value_or(camera.getPosition());
         const auto& graph = m_scene->getPortalGraph();
         const bool aboveOpenRoof =
             !m_roofEnabled &&
             std::any_of(graph.getCells().begin(), graph.getCells().end(), [&](const auto& cell){
-                const auto& hi = cell.bounds.getMaximum();
-                return eye.y >= hi.y;
+                const auto& maximum = cell.bounds.getMaximum();
+                return eye.y >= maximum.y;
             });
         if (aboveOpenRoof){
             m_portalResult.origin = "open roof fallback";
         } else{
-            m_portalResult =
-                graph.collect(eye, m_frustumCulling ? (frozen ? frozen : &vp) : nullptr);
+            m_portalResult = graph.collect(
+                eye, m_frustumCulling ? (m_frozenFrustum ? &*m_frozenFrustum : &viewProjection)
+                                      : nullptr);
         }
     } else{
         m_portalResult.origin = "disabled";
@@ -311,7 +324,11 @@ void Application::render(){
     m_portalCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - portalStart)
             .count();
-    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult);
+}
+
+// Draws doorway, eye and bounding-volume references from the observer camera.
+void Application::drawVisibilityDebug(const Camera& camera,
+                                      const glm::mat4& observerViewProjection){
     if (m_frozenEye && !m_frustumCulling){
         const auto& portals = m_scene->getPortalGraph().getPortals();
         for (std::size_t i = 0; i < portals.size(); i += 2){
@@ -319,31 +336,27 @@ void Application::render(){
             for (const auto& corner : portals[i].corners){
                 opening.expandBy(corner);
             }
-            m_debugLines->box(opening, vp, {0, .8f, 1, 1});
+            m_debugLines->box(opening, observerViewProjection,{0, 0.8f, 1, 1});
         }
-        m_debugLines->box({*m_frozenEye - glm::vec3(.2f), *m_frozenEye + glm::vec3(.2f)}, vp,
-                          {1, .8f, .1f, 1});
+        m_debugLines->box({*m_frozenEye - glm::vec3(0.2f), *m_frozenEye + glm::vec3(0.2f)},
+                          observerViewProjection,{1, 0.8f, 0.1f, 1});
     }
     if (m_debugBounds){
         CullVisitor all;
-        all.collect(*m_scene->getRoot(), vp, camera.getPosition(), false);
-        const Frustum frustum(frozen ? *frozen : vp);
+        all.collect(*m_scene->getRoot(), observerViewProjection, camera.getPosition(), false);
+        const Frustum frustum(m_frozenFrustum.value_or(observerViewProjection));
         for (const auto& item : all.getRenderList()){
             const auto bound = item.geometry->getBound().transformed(item.model);
             const auto visible = frustum.classify(bound);
             const glm::vec4 color = visible == Visibility::Outside  ? glm::vec4(1, 0.25f, 0.2f, 1)
                                     : visible == Visibility::Inside ? glm::vec4(0.2f, 1, 0.5f, 1)
                                                                     : glm::vec4(1, 0.8f, 0.2f, 1);
-            m_debugLines->box(bound, vp, color);
+            m_debugLines->box(bound, observerViewProjection, color);
         }
-        if (frozen){
-            m_debugLines->frustum(*frozen, vp);
+        if (m_frozenFrustum){
+            m_debugLines->frustum(*m_frozenFrustum, observerViewProjection);
         }
     }
-    if (m_showHud){
-        overlay();
-    }
-    OpenGL::check("Frame");
 }
 
 // Draws the application HUD after rendering the 3D scene.
@@ -387,15 +400,17 @@ void Application::applyRenderSettings(Scene& scene) const{
     }
 }
 
+// Changes wall appearance while retaining its solid portal boundaries.
 void Application::applyWallAppearance(Scene& scene) const{
     if (const auto walls = scene.findTransform("walls")){
         const auto& state = walls->getState();
         state->setBlend(m_transparentWalls);
         state->setCullFace(true);
-        state->setUniform("uOpacity", m_transparentWalls ? .12f : 1.0f);
+        state->setUniform("uOpacity", m_transparentWalls ? 0.12f : 1.0f);
     }
 }
 
+// Starts the overhead inspection preset with visibility frozen inside room A.
 void Application::showCullingDemo(){
     const auto room = m_scene->findTransform("roomA");
     if (!room){
@@ -421,7 +436,7 @@ void Application::showCullingDemo(){
     if (m_lightOrbitCallback){
         m_lightOrbitCallback->setEnabled(false);
     }
-    lookAt({28, 32, 16}, {0, 0, -26});
+    lookAt({28, 32, 16},{0, 0, -26});
     m_status = "Observation view: visibility frozen inside A. Doorways are cyan; walls remain "
                "solid to culling.";
 }

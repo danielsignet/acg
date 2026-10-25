@@ -15,6 +15,7 @@ public:
 
     // Draws the complete HUD without modifying the scene.
     void draw(const Application& application);
+    // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
     void click(Application& application, float x, float y);
 
 private:
@@ -26,6 +27,12 @@ private:
 
     // Draws the available controls and current application status.
     void drawFooter(const Application& application);
+
+    // Draws the toolbar using the same button rectangles as click handling.
+    void drawToolbar(const Application& application, float top);
+
+    // Draws the shader choices using the same rows as menu hit testing.
+    void drawShaderMenu(const Application& application, float bottom);
 
     // Projects a world-space annotation and draws it inside the usable viewport.
     void label(const Application& application, const glm::vec3& position, const std::string& title,

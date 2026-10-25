@@ -33,10 +33,12 @@ public:
         m_cullFace = enabled;
     }
 
+    // Overrides alpha blending and depth-write behavior for this rendering scope.
     void setBlend(bool enabled){
         m_blend = enabled;
     }
 
+    // Returns the resolved alpha-blending setting.
     bool getBlend() const{
         return m_blend.value_or(false);
     }

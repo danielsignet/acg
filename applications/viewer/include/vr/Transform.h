@@ -14,12 +14,15 @@ public:
     // Replaces the local transformation without modifying child geometry.
     void setMatrix(const glm::mat4& matrix){
         m_matrix = matrix;
+        dirtyBound();
     }
 
     // Returns the local transformation accumulated during traversal.
     const glm::mat4& getMatrix() const{
         return m_matrix;
     }
+
+    BoundingBox computeBound() const override;
 
 private:
     glm::mat4 m_matrix{1.0f};

@@ -3,6 +3,10 @@ add_library(vrlib STATIC
     src/vr/SpinCallback.cpp
     src/vr/OrbitCallback.cpp
     src/vr/LodDemoCallback.cpp
+    src/vr/BoundingBox.cpp
+    src/vr/CullVisitor.cpp
+    src/vr/DebugLines.cpp
+    src/vr/Node.cpp
     src/vr/Application.cpp
     src/vr/Camera.cpp
     src/vr/DotVisitor.cpp
@@ -62,6 +66,7 @@ endforeach()
 # Keep the default scene runnable beside the executable and in installed packages.
 set(VIEWER_RESOURCES
     scenes/demo.xml
+    scenes/house-patio.xml
     models/monkey.obj
     models/texturedBox.obj
     models/texturedBox.mtl
@@ -80,6 +85,8 @@ set(VIEWER_RESOURCES
     shaders/phong-shading.fs
     shaders/text.vs
     shaders/text.fs
+    shaders/debug.vs
+    shaders/debug.fs
 )
 set(VIEWER_RESOURCE_OUTPUTS)
 foreach(resource IN LISTS VIEWER_RESOURCES)

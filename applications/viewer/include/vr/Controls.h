@@ -23,7 +23,13 @@ public:
         PointBlue,
         PointWhite,
         Capture,
-        ExportGraph
+        ExportGraph,
+        FrustumCulling,
+        FreezeFrustum,
+        DebugBounds,
+        Roof,
+        Hud,
+        HouseView
     };
 
     struct Binding{
@@ -34,7 +40,7 @@ public:
     };
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 16>& getBindings(){
+    static const std::array<Binding, 22>& getBindings(){
         return m_bindings;
     }
 
@@ -67,7 +73,7 @@ public:
     }
 
 private:
-    inline static constexpr std::array<Binding, 16> m_bindings{
+    inline static constexpr std::array<Binding, 22> m_bindings{
         {{Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
          {Action::ResetView, GLFW_KEY_SPACE, "Space", "Reset view"},
          {Action::ReloadScene, GLFW_KEY_R, "R", "Reload scene"},
@@ -83,6 +89,12 @@ private:
          {Action::PointBlue, GLFW_KEY_3, "3", "Point Blue"},
          {Action::PointWhite, GLFW_KEY_4, "4", "Point White"},
          {Action::Capture, GLFW_KEY_F2, "F2", "Save frame"},
-         {Action::ExportGraph, GLFW_KEY_F3, "F3", "Save graph"}}};
+         {Action::ExportGraph, GLFW_KEY_F3, "F3", "Save graph"},
+         {Action::FrustumCulling, GLFW_KEY_C, "C", "Frustum culling"},
+         {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze frustum"},
+         {Action::DebugBounds, GLFW_KEY_K, "K", "Bounds"},
+         {Action::Roof, GLFW_KEY_H, "H", "Roof"},
+         {Action::Hud, GLFW_KEY_F1, "F1", "HUD"},
+         {Action::HouseView, GLFW_KEY_TAB, "Tab", "Patio / house"}}};
 };
 } // namespace vr

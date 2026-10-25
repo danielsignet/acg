@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cmath>
 #include <stdexcept>
 #include <vr/Camera.h>
@@ -8,15 +9,33 @@
 
 namespace vr{
 // Collects transformed lights and then draws the scene instances.
-void RenderVisitor::render(Node& root, const Camera& camera){
+void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* frozen){
     m_camera = &camera;
     setEye(camera.getPosition());
     m_lights.clear();
-    m_stats ={};
+    m_stats = {};
     m_collectingLights = true;
     root.accept(*this);
     m_collectingLights = false;
-    root.accept(*this);
+    // An off-screen light can still illuminate a visible object.
+    const auto start = std::chrono::steady_clock::now();
+    m_culler.collect(root, frozen ? *frozen : camera.getProjection() * camera.getView(),
+                     camera.getPosition(), m_culling);
+    m_stats.cullCpuMs =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+    m_stats.boundsTested = m_culler.getStats().boundsTested;
+    m_stats.subtreesRejected = m_culler.getStats().subtreesRejected;
+    m_stats.lodLevels = m_culler.getStats().lodLevels;
+    const auto submit = std::chrono::steady_clock::now();
+    for (const auto& item : m_culler.getRenderList()){
+        geometry(*item.geometry, item.model, item.state);
+        if (!item.room.empty()){
+            ++m_stats.roomDraws[item.room];
+        }
+    }
+    m_stats.submitCpuMs =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - submit)
+            .count();
 }
 
 // Handles a geometry instance with its resolved transform and rendering state.

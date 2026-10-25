@@ -29,13 +29,15 @@ private:
     GLFWwindow* m_window = nullptr;
     std::unique_ptr<Application> m_application;
     std::filesystem::path m_root;
-    std::filesystem::path m_scene = "scenes/demo.xml";
+    std::filesystem::path m_scene = "scenes/house-patio.xml";
     std::filesystem::path m_screenshot;
     std::filesystem::path m_dotFile;
     bool m_initialized = false;
     bool m_hidden = false;
     bool m_validate = false;
     bool m_lodDemoCallback = false;
+    bool m_inside = false;
+    bool m_noCulling = false;
     int m_frameLimit = 0;
 };
 } // namespace vr

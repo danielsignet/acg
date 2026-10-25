@@ -1,6 +1,7 @@
 #pragma once
 #include "Animation.h"
 #include "Controls.h"
+#include "DebugLines.h"
 #include "Reader.h"
 #include "SceneOverlay.h"
 #include <GLFW/glfw3.h>
@@ -12,7 +13,7 @@ public:
 
     // Creates the overlay and loads the initial demonstration scene.
     Application(GLFWwindow* window, std::filesystem::path root, std::filesystem::path scene,
-                std::filesystem::path dotFile ={});
+                std::filesystem::path dotFile = {});
 
     // Processes input, callbacks and frame-rate statistics.
     void update(double time, double delta);
@@ -85,6 +86,8 @@ private:
     std::shared_ptr<Program> m_program;
     std::unique_ptr<RenderVisitor> m_renderer;
     std::unique_ptr<SceneOverlay> m_overlay;
+    std::unique_ptr<DebugLines> m_debugLines;
+    std::optional<glm::mat4> m_frozenFrustum;
     UpdateVisitor m_updater;
     std::shared_ptr<OrbitCallback> m_lightOrbitCallback;
     std::shared_ptr<LodDemoCallback> m_lodDemoCallback;
@@ -106,6 +109,11 @@ private:
     bool m_cullFaceEnabled = true;
     bool m_toonEnabled = true;
     bool m_screenshotRequested = false;
+    bool m_frustumCulling = true;
+    bool m_debugBounds = false;
+    bool m_roofEnabled = true;
+    bool m_showHud = true;
+    bool m_houseView = false;
     double m_framesPerSecond = 0;
     std::string m_status = "Ready";
 };

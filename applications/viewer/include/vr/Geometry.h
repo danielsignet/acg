@@ -23,7 +23,7 @@ public:
 
     // Validates and stores local vertex attributes and triangle indices.
     void setData(std::vector<glm::vec3> vertices, std::vector<unsigned> indices,
-                 std::vector<glm::vec3> normals, std::vector<glm::vec2> texCoords ={});
+                 std::vector<glm::vec3> normals, std::vector<glm::vec2> texCoords = {});
 
     // Returns the mesh vertices in their local coordinate system.
     const std::vector<Vertex>& getVertices() const{
@@ -42,6 +42,7 @@ public:
 
     // Uploads changed mesh data and draws its indexed triangles.
     void draw() const;
+    BoundingBox computeBound() const override;
 
 private:
     std::vector<Vertex> m_vertices;

@@ -20,6 +20,7 @@ void Group::addChild(const std::shared_ptr<Node>& child){
     dirtyBound();
 }
 
+// Encloses every child bound in the group's coordinate system.
 BoundingBox Group::computeBound() const{
     BoundingBox bound;
     for (const auto& child : m_children){

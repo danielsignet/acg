@@ -105,6 +105,7 @@ std::shared_ptr<Scene> SceneReader::read(const std::filesystem::path& path){
     return m_scene;
 }
 
+// Reads finite cells, the exterior region and explicit rectangular openings.
 void SceneReader::readVisibility(Xml* root){
     auto* layout = root->first_node("visibility");
     if (!layout){

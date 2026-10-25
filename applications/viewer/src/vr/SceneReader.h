@@ -32,6 +32,7 @@ private:
 
     // Reads the initial camera position and target from XML.
     void readCamera(Xml* root);
+    // Reads finite cells, the exterior region and explicit rectangular openings.
     void readVisibility(Xml* root);
 
     // Attaches local state and recursively builds the ordered child nodes.
@@ -53,7 +54,7 @@ private:
     void readProgram(Xml* xml, State& state);
 
     // Returns an XML attribute or the caller-supplied default.
-    static std::string attribute(Xml* xml, const char* key, const std::string& fallback = {});
+    static std::string attribute(Xml* xml, const char* key, const std::string& fallback ={});
 
     // Rejects a missing or empty required XML attribute.
     static std::string required(Xml* xml, const char* key);

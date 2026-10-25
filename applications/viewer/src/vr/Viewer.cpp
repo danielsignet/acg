@@ -117,7 +117,8 @@ void Viewer::initialize(){
         glfwGetFramebufferSize(window, &width, &height);
         if (windowWidth > 0 && windowHeight > 0){
             static_cast<Application*>(glfwGetWindowUserPointer(window))
-                ->handleClick(float(x * width / windowWidth), float(y * height / windowHeight));
+                ->handleClick(static_cast<float>(x * width / windowWidth),
+                              static_cast<float>(y * height / windowHeight));
         }
     });
 }

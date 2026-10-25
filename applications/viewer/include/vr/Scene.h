@@ -53,10 +53,12 @@ public:
         return m_initialTarget;
     }
 
+    // Returns the visibility layout used when loading cells and openings.
     PortalGraph& getPortalGraph(){
         return m_portals;
     }
 
+    // Returns the visibility layout used during culling.
     const PortalGraph& getPortalGraph() const{
         return m_portals;
     }

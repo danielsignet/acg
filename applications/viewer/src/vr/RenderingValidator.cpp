@@ -122,11 +122,11 @@ void RenderingValidator::validateLightOrbit(){
     const auto orbit = m_application.m_scene->findTransform("lightOrbit");
     const auto orbitMatrix = orbit->getMatrix();
     m_application.execute(Controls::Action::PointOrbit);
-    m_application.m_updater.update(*m_application.m_scene->getRoot(), {0.9, 0.3, true});
+    m_application.m_updater.update(*m_application.m_scene->getRoot(),{0.9, 0.3, true});
     require(glm::length(orbitMatrix[0] - orbit->getMatrix()[0]) < 0.00001f,
             "L must pause the light ring independently of P");
     m_application.execute(Controls::Action::PointOrbit);
-    m_application.m_updater.update(*m_application.m_scene->getRoot(), {1.2, 0.3, false});
+    m_application.m_updater.update(*m_application.m_scene->getRoot(),{1.2, 0.3, false});
     require(glm::length(orbitMatrix[0] - orbit->getMatrix()[0]) > 0.001f,
             "Light ring must rotate while geometry animation is paused");
 }
@@ -134,16 +134,16 @@ void RenderingValidator::validateLightOrbit(){
 // Checks distance selection and the camera tour across all cow detail levels.
 void RenderingValidator::validateLod(){
     for (const auto& test : std::vector<std::pair<float, std::size_t>>{
-             {6.0f, 0u}, {10.0f, 1u}, {14.0f, 2u}, {18.0f, 3u}, {26.0f, 4u}, {40.0f, 5u}}){
-        m_application.m_scene->getCamera()->setLookAt({6, 2.02f, test.first}, {6, 2.02f, 0});
+             {6.0f, 0u},{10.0f, 1u},{14.0f, 2u},{18.0f, 3u},{26.0f, 4u},{40.0f, 5u}}){
+        m_application.m_scene->getCamera()->setLookAt({6, 2.02f, test.first},{6, 2.02f, 0});
         m_application.render();
         require(m_application.m_renderer->getStats().lodLevels.at("cowLOD") == test.second,
                 "Cow LOD distance selection");
     }
     m_application.execute(Controls::Action::LodTour);
     for (const auto& test : std::vector<std::pair<double, std::size_t>>{
-             {0.5, 5u}, {2.0, 4u}, {2.0, 3u}, {2.0, 2u}, {2.0, 1u}, {2.0, 0u}}){
-        m_application.m_updater.update(*m_application.m_scene->getRoot(), {0, test.first, false});
+             {0.5, 5u},{2.0, 4u},{2.0, 3u},{2.0, 2u},{2.0, 1u},{2.0, 0u}}){
+        m_application.m_updater.update(*m_application.m_scene->getRoot(),{0, test.first, false});
         m_application.render();
         require(m_application.m_renderer->getStats().lodLevels.at("cowLOD") == test.second,
                 "LOD camera tour must show all six cow detail levels");
@@ -186,14 +186,14 @@ void RenderingValidator::validateCulling(){
     unsigned roomDrawsOff = 0, roomDrawsOn = 0;
     std::size_t maxRoundingPixels = 0;
     const std::vector<std::pair<glm::vec3, glm::vec3>> views{
-        {{16, 12, 23}, {0, 1, -1}},    {{-14, 2, -18}, {-14, 2, -40}},
-        {{0, 2, -23}, {14, 2, -23}},   {{14, 2, -37}, {-14, 2, -37}},
-        {{0, 2, -15.9f}, {0, 2, -30}}, {{0, 18, -30}, {0, 0, -30.1f}},
-        {{0, 2, -50}, {0, 2, -30}},    {{0, 2, 8}, {0, 2, 40}}};
-    for (const bool transparent : {false, true}){
+        {{16, 12, 23},{0, 1, -1}},{{-14, 2, -18},{-14, 2, -40}},
+        {{0, 2, -23},{14, 2, -23}},{{14, 2, -37},{-14, 2, -37}},
+        {{0, 2, -15.9f},{0, 2, -30}},{{0, 18, -30},{0, 0, -30.1f}},
+        {{0, 2, -50},{0, 2, -30}},{{0, 2, 8},{0, 2, 40}}};
+    for (const bool transparent :{false, true}){
         app.m_transparentWalls = transparent;
         app.applyWallAppearance(*app.m_scene);
-        for (const bool roof : {true, false}){
+        for (const bool roof :{true, false}){
             if (app.m_roofEnabled != roof){
                 app.execute(Controls::Action::Roof);
             }
@@ -210,9 +210,10 @@ void RenderingValidator::validateCulling(){
                 const auto culledImage = FramebufferImage::capture(0, 0, app.m_width, app.m_height);
                 const auto changed = culledImage.countChangedPixels(reference, 0);
                 const bool preserved =
-                    transparent ? culledImage.countChangedPixels(reference, 1) == 0 &&
-                                      changed <= std::size_t(app.m_width) * app.m_height / 1000
-                                : changed == 0;
+                    transparent
+                        ? culledImage.countChangedPixels(reference, 1) == 0 &&
+                              changed <= static_cast<std::size_t>(app.m_width) * app.m_height / 1000
+                        : changed == 0;
                 if (transparent){
                     maxRoundingPixels = std::max(maxRoundingPixels, changed);
                 }
@@ -241,14 +242,14 @@ void RenderingValidator::validateCulling(){
         }
     }
     require(reducedViews > 0, "VFC must reduce actual draws in the house/patio scene");
-    camera->setLookAt({-14, 2, -18}, {-14, 2, -40});
+    camera->setLookAt({-14, 2, -18},{-14, 2, -40});
     app.execute(Controls::Action::FreezeFrustum);
     const auto frozen = *app.m_frozenFrustum;
     app.execute(Controls::Action::HouseView);
     require(app.m_frozenFrustum && *app.m_frozenFrustum == frozen,
             "Switching viewpoints preserves the frozen culling volume");
     app.execute(Controls::Action::HouseView);
-    camera->setLookAt({14, 15, 0}, {0, 0, -30});
+    camera->setLookAt({14, 15, 0},{0, 0, -30});
     const int originalWidth = app.m_width, originalHeight = app.m_height;
     app.resize(1024, 600);
     require(*app.m_frozenFrustum == frozen,
@@ -317,11 +318,11 @@ void RenderingValidator::validatePortals(){
     }
     unsigned pairs = 0, reduced = 0;
     const std::vector<std::pair<glm::vec3, glm::vec3>> views{
-        {{-14, 2, -18}, {-14, 2, -40}}, {{0, 2, -23}, {14, 2, -23}}, {{14, 2, -37}, {-14, 2, -37}},
-        {{-14, 2, -28}, {0, 2, -37}},   {{0, 2, -15}, {0, 2, -30}},  {{0, 2, -50}, {0, 2, -30}},
-        {{32, 2, -30}, {0, 2, -30}},    {{16, 12, 23}, {0, 1, -1}},  {{0, 18, -30}, {0, 0, -30.1f}},
-        {{-14, 2, -16}, {-14, 2, -30}}};
-    for (const bool frustum : {false, true}){
+        {{-14, 2, -18},{-14, 2, -40}},{{0, 2, -23},{14, 2, -23}},{{14, 2, -37},{-14, 2, -37}},
+        {{-14, 2, -28},{0, 2, -37}},{{0, 2, -15},{0, 2, -30}},{{0, 2, -50},{0, 2, -30}},
+        {{32, 2, -30},{0, 2, -30}},{{16, 12, 23},{0, 1, -1}},{{0, 18, -30},{0, 0, -30.1f}},
+        {{-14, 2, -16},{-14, 2, -30}}};
+    for (const bool frustum :{false, true}){
         app.m_frustumCulling = frustum;
         app.m_renderer->setCulling(frustum);
         for (const auto& view : views){
@@ -350,7 +351,7 @@ void RenderingValidator::validatePortals(){
     }
     require(reduced > 0, "Solid walls must reject actual scene draws");
     app.execute(Controls::Action::Roof);
-    for (unsigned index : {7u, 8u}){
+    for (unsigned index :{7u, 8u}){
         app.m_scene->getCamera()->setLookAt(views[index].first, views[index].second);
         app.m_portalCulling = false;
         app.render();
@@ -407,7 +408,7 @@ void RenderingValidator::validatePortals(){
                     .countChangedPixels(transparentImage, 0) > 100,
             "Transparent observation view must visibly demonstrate rejected objects");
     app.execute(Controls::Action::PortalCulling);
-    app.m_scene->getCamera()->setLookAt({-30, 25, -40}, {0, 0, -30});
+    app.m_scene->getCamera()->setLookAt({-30, 25, -40},{0, 0, -30});
     app.render();
     require(app.m_renderer->getStats().roomDraws == visibleRooms,
             "Moving the observer keeps frozen portal visibility inside the original room");
@@ -440,7 +441,7 @@ void RenderingValidator::validateControls(){
     const auto lights = app.m_pointLights;
     app.handleKey(GLFW_KEY_Z);
     require(app.m_shaderMenuOpen, "Z opens the shading menu");
-    app.handleClick(440, float(app.m_height - SceneOverlay::FooterHeight - 24));
+    app.handleClick(440, static_cast<float>(app.m_height - SceneOverlay::FooterHeight - 24));
     app.render();
     require(app.m_shadingMode == ShadingMode::Toon && !app.m_shaderMenuOpen &&
                 app.m_renderer->getShadingMode() == ShadingMode::Toon &&
@@ -451,7 +452,7 @@ void RenderingValidator::validateControls(){
     app.handleKey(GLFW_KEY_1);
     require(app.m_shadingMode == ShadingMode::Phong && app.m_pointLights == lights,
             "Menu number selection is separate from viewport light shortcuts");
-    const float toolbarY = float(app.m_height - SceneOverlay::FooterHeight + 28);
+    const float toolbarY = static_cast<float>(app.m_height - SceneOverlay::FooterHeight + 28);
     for (unsigned i = 0; i < app.m_pointLights.size(); ++i){
         app.render();
         const auto lit = captureScene().hash();
@@ -459,7 +460,7 @@ void RenderingValidator::validateControls(){
         app.render();
         require(app.m_pointLights[i] != lights[i] && captureScene().hash() != lit,
                 "Every light button must change both light state and rendered illumination");
-        app.handleKey(GLFW_KEY_1 + int(i));
+        app.handleKey(GLFW_KEY_1 + static_cast<int>(i));
         require(app.m_pointLights[i] == lights[i],
                 "Light buttons and 1-5 shortcuts share the same action");
     }

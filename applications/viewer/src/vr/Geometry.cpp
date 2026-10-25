@@ -49,6 +49,7 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
     dirtyBound();
 }
 
+// Computes the local bound from the stored vertex positions.
 BoundingBox Geometry::computeBound() const{
     BoundingBox bound;
     for (const auto& vertex : m_vertices){

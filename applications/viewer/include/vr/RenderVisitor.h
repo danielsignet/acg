@@ -27,22 +27,27 @@ public:
     void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr,
                 const PortalResult* portals = nullptr);
 
+    // Enables or disables hierarchical frustum rejection.
     void setCulling(bool enabled){
         m_culling = enabled;
     }
 
+    // Returns whether frustum culling is enabled.
     bool getCulling() const{
         return m_culling;
     }
 
+    // Selects the existing shader mode for all rendered instances.
     void setShadingMode(ShadingMode mode){
         m_shadingMode = mode;
     }
 
+    // Returns the shader mode selected for the whole scene.
     ShadingMode getShadingMode() const{
         return m_shadingMode;
     }
 
+    // Returns visible instances from the latest culling traversal.
     const std::vector<RenderNode>& getRenderList() const{
         return m_culler.getRenderList();
     }
@@ -53,6 +58,19 @@ public:
     }
 
 private:
+    // Collects lights before culling so off-screen lights still affect visible geometry.
+    void collectLights(Node& root);
+
+    // Builds the visible render list and records culling statistics.
+    void collectGeometry(Node& root, const Camera& camera, const glm::mat4& viewProjection,
+                         const PortalResult* portals);
+
+    // Draws opaque instances first and transparent instances in stable back-to-front order.
+    void drawRenderList(const Camera& camera);
+
+    // Submits one resolved instance and updates room and transparency counts.
+    void drawInstance(const RenderNode& item);
+
     // Handles a geometry instance with its resolved transform and rendering state.
     void geometry(Geometry& node, const glm::mat4& model, const State& state) override;
 

@@ -530,6 +530,8 @@ private:
                   vr::Controls::find(GLFW_KEY_R)->action == Action::ReloadScene &&
                   vr::Controls::find(GLFW_KEY_SPACE)->action == Action::ResetView,
               "Exit, reload and reset must retain their key bindings");
+        check(vr::Controls::find(GLFW_KEY_F)->action == Action::FreezeFrustum,
+              "F freezes the independent culling camera");
         check(vr::Controls::find(GLFW_KEY_C)->action == Action::Culling &&
                   vr::Controls::find(GLFW_KEY_Z)->action == Action::ShaderMenu,
               "The compact viewport exposes culling and the shading menu");
@@ -539,7 +541,7 @@ private:
             points = points && binding && vr::Controls::pointLightIndex(binding->action) == i;
         }
         check(points, "Keys 1-5 identify the four colored lights and daylight");
-        check(vr::Controls::getBindings().size() == 10 && !vr::Controls::find(GLFW_KEY_P) &&
+        check(vr::Controls::getBindings().size() == 11 && !vr::Controls::find(GLFW_KEY_P) &&
                   !vr::Controls::find(GLFW_KEY_V) && !vr::Controls::find(GLFW_KEY_F3),
               "Development actions do not add more viewport shortcuts");
         check(!vr::Controls::find(GLFW_KEY_UNKNOWN), "Unbound keys must not trigger an action");

@@ -48,7 +48,7 @@ public:
     };
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 10>& getBindings(){
+    static const std::array<Binding, 11>& getBindings(){
         return m_bindings;
     }
 
@@ -81,7 +81,7 @@ public:
     }
 
 private:
-    inline static constexpr std::array<Binding, 10> m_bindings{
+    inline static constexpr std::array<Binding, 11> m_bindings{
         {{Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
          {Action::ResetView, GLFW_KEY_SPACE, "Space", "Reset view"},
          {Action::ReloadScene, GLFW_KEY_R, "R", "Reload scene"},
@@ -91,6 +91,7 @@ private:
          {Action::PointWhite, GLFW_KEY_4, "4", "Point White"},
          {Action::PointSun, GLFW_KEY_5, "5", "Sun"},
          {Action::Culling, GLFW_KEY_C, "C", "Culling"},
+         {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view"},
          {Action::ShaderMenu, GLFW_KEY_Z, "Z", "Shader"}}};
 };
 } // namespace vr

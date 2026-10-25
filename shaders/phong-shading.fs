@@ -82,5 +82,6 @@ void main(){
     result += uEmissive;
     vec3 mapped = pow(result / (result + vec3(0.65)), vec3(1.0 / 2.2));
     float fog = uFog ? 1.0 - exp(-0.00055 * dot(uEye - worldPosition, uEye - worldPosition)) : 0.0;
-    fragmentColor = vec4(mix(mapped, vec3(0.035, 0.052, 0.078), clamp(fog, 0.0, 0.82)), surface.a * uOpacity);
+    fragmentColor =
+        vec4(mix(mapped, vec3(0.035, 0.052, 0.078), clamp(fog, 0.0, 0.82)), surface.a * uOpacity);
 }

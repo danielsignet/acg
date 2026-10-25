@@ -243,7 +243,9 @@ void RenderingValidator::validateCulling(){
     }
     require(reducedViews > 0, "VFC must reduce actual draws in the house/patio scene");
     camera->setLookAt({-14, 2, -18},{-14, 2, -40});
-    app.execute(Controls::Action::FreezeFrustum);
+    app.handleKey(GLFW_KEY_F);
+    require(app.m_frozenFrustum.has_value() && app.m_debugBounds,
+            "F exposes independent culling-camera inspection and its volume visualization");
     const auto frozen = *app.m_frozenFrustum;
     app.execute(Controls::Action::HouseView);
     require(app.m_frozenFrustum && *app.m_frozenFrustum == frozen,
@@ -268,7 +270,9 @@ void RenderingValidator::validateCulling(){
     app.render();
     OpenGL::check("Bounding boxes and frozen frustum");
     app.execute(Controls::Action::DebugBounds);
-    app.execute(Controls::Action::FreezeFrustum);
+    app.handleKey(GLFW_KEY_F);
+    require(!app.m_frozenFrustum && !app.m_frozenEye && !app.m_debugBounds,
+            "F resumes live culling and clears the frozen inspection overlays");
     app.resize(originalWidth, originalHeight);
     app.execute(Controls::Action::Roof);
     require(app.m_roofEnabled, "H restores the physical roof");

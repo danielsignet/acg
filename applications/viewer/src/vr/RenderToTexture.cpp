@@ -1,74 +1,13 @@
 #include <vr/RenderToTexture.h>
+#include <vr/FramebufferState.h>
 #include <stdexcept>
 
 namespace vr{
-namespace{
-class RenderTargetState{
-public:
-    // Keeps restoration responsibility with a single guard instance.
-    RenderTargetState(const RenderTargetState&) = delete;
-    // Prevents assigning ownership of the saved caller state.
-    RenderTargetState& operator=(const RenderTargetState&) = delete;
-
-    // Captures framebuffer bindings and rasterization state before a depth pass.
-    RenderTargetState(){
-        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_drawFramebuffer);
-        glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &m_readFramebuffer);
-        glGetIntegerv(GL_VIEWPORT, m_viewport);
-        glGetIntegerv(GL_DEPTH_FUNC, &m_depthFunction);
-        glGetIntegerv(GL_POLYGON_MODE, m_polygonMode);
-        glGetBooleanv(GL_COLOR_WRITEMASK, m_colorMask);
-        glGetBooleanv(GL_DEPTH_WRITEMASK, &m_depthMask);
-        glGetDoublev(GL_DEPTH_CLEAR_VALUE, &m_clearDepth);
-        m_depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
-        m_blendEnabled = glIsEnabled(GL_BLEND);
-        m_cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
-        m_scissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
-        m_polygonOffsetEnabled = glIsEnabled(GL_POLYGON_OFFSET_FILL);
-        glGetFloatv(GL_POLYGON_OFFSET_FACTOR, &m_polygonOffsetFactor);
-        glGetFloatv(GL_POLYGON_OFFSET_UNITS, &m_polygonOffsetUnits);
-    }
-
-    // Restores caller state during normal return and exception unwinding.
-    ~RenderTargetState(){
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(m_drawFramebuffer));
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(m_readFramebuffer));
-        glViewport(m_viewport[0], m_viewport[1], m_viewport[2], m_viewport[3]);
-        glDepthMask(m_depthMask);
-        glDepthFunc(static_cast<GLenum>(m_depthFunction));
-        glClearDepth(m_clearDepth);
-        glColorMask(m_colorMask[0], m_colorMask[1], m_colorMask[2], m_colorMask[3]);
-        const auto restore = [](GLenum flag, bool enabled){
-            if (enabled){
-                glEnable(flag);
-            } else{
-                glDisable(flag);
-            }
-        };
-        restore(GL_DEPTH_TEST, m_depthTestEnabled);
-        restore(GL_BLEND, m_blendEnabled);
-        restore(GL_CULL_FACE, m_cullFaceEnabled);
-        restore(GL_SCISSOR_TEST, m_scissorEnabled);
-        restore(GL_POLYGON_OFFSET_FILL, m_polygonOffsetEnabled);
-        glPolygonOffset(m_polygonOffsetFactor, m_polygonOffsetUnits);
-        glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(m_polygonMode[0]));
-    }
-
-private:
-    GLint m_drawFramebuffer = 0, m_readFramebuffer = 0, m_viewport[4]{}, m_depthFunction = 0,
-          m_polygonMode[2]{};
-    GLboolean m_colorMask[4]{}, m_depthMask = GL_TRUE;
-    bool m_depthTestEnabled = false, m_blendEnabled = false, m_cullFaceEnabled = false,
-         m_scissorEnabled = false, m_polygonOffsetEnabled = false;
-    GLfloat m_polygonOffsetFactor = 0, m_polygonOffsetUnits = 0;
-    GLdouble m_clearDepth = 1;
-};
-} // namespace
 
 // Creates a complete depth framebuffer backed by one image or six cubemap faces.
 RenderToTexture::RenderToTexture(int resolution, bool cube)
     : m_texture(Texture::depth(resolution, resolution, cube)), m_cameras(cube ? 6 : 1){
-    RenderTargetState saved;
+    FramebufferState saved;
     m_texture->apply(cube ? 5 : 4);
     glGenFramebuffers(1, &m_framebuffer);
     try{
@@ -118,7 +57,7 @@ void RenderToTexture::render(unsigned layer, const std::function<void(const Came
     if (!camera){
         throw std::logic_error("Render target camera not assigned");
     }
-    RenderTargetState saved;
+    FramebufferState saved;
     attach(layer);
     glViewport(0, 0, m_texture->getWidth(), m_texture->getHeight());
     glEnable(GL_DEPTH_TEST);
@@ -137,7 +76,7 @@ void RenderToTexture::render(unsigned layer, const std::function<void(const Came
 
 // Reads an actual depth image for diagnostics without changing the caller target.
 std::vector<float> RenderToTexture::readDepth(unsigned layer) const{
-    RenderTargetState saved;
+    FramebufferState saved;
     attach(layer);
     std::vector<float> pixels(static_cast<std::size_t>(m_texture->getWidth()) *
                               m_texture->getHeight());

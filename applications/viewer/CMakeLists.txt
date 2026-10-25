@@ -8,11 +8,16 @@ add_library(vrlib STATIC
     src/vr/DebugLines.cpp
     src/vr/Frustum.cpp
     src/vr/Flashlight.cpp
+    src/vr/GBuffer.cpp
+    src/vr/ColorTarget.cpp
+    src/vr/ScreenQuad.cpp
+    src/vr/DeferredRenderer.cpp
     src/vr/Node.cpp
     src/vr/PortalVisibility.cpp
     src/vr/Application.cpp
     src/vr/Camera.cpp
     src/vr/DotVisitor.cpp
+    src/vr/FramebufferState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
     src/vr/GeometryFactory.cpp
@@ -92,6 +97,13 @@ set(VIEWER_RESOURCES
     fonts/arial.ttf
     shaders/phong-shading.vs
     shaders/phong-shading.fs
+    shaders/lighting.glsl
+    shaders/surface.glsl
+    shaders/gbuffer.fs
+    shaders/screen-quad.vs
+    shaders/deferred-lighting.fs
+    shaders/post-process.fs
+    shaders/gbuffer-view.fs
     shaders/text.vs
     shaders/text.fs
     shaders/shadow-depth.vs

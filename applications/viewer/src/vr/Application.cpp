@@ -42,6 +42,11 @@ void Application::reload(){
     auto renderer = std::make_unique<RenderVisitor>(program);
     renderer->setCulling(m_frustumCulling);
     renderer->setShadingMode(m_shadingMode);
+    auto deferred = std::make_unique<DeferredRenderer>(m_root);
+    deferred->resize(m_width, m_height);
+    deferred->setView(m_bufferView);
+    deferred->setBloom(m_bloomEnabled);
+    deferred->setDepthOfField(m_depthOfFieldEnabled);
     auto shadows = std::make_unique<ShadowRenderer>(m_root);
     shadows->attach(*scene);
     auto debugLines = std::make_unique<DebugLines>(m_root);
@@ -49,6 +54,7 @@ void Application::reload(){
     m_flashlight = std::move(flashlight);
     m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
+    m_deferred = std::move(deferred);
     m_scene = std::move(scene);
     m_program = std::move(program);
     m_lightOrbitCallback = std::move(lightOrbit);
@@ -115,6 +121,7 @@ void Application::resize(int width, int height){
     m_width = width;
     m_height = height;
     if (width > 0 && height > 0){
+        m_deferred->resize(width, height);
         glViewport(0, 0, width, height);
         m_scene->getCamera()->setPerspective(48, static_cast<float>(width) / height, 0.1f, 150);
     }
@@ -127,9 +134,8 @@ void Application::handleKey(int key){
             m_shaderMenuOpen = false;
             return;
         }
-        if (key == GLFW_KEY_1 || key == GLFW_KEY_2){
-            execute(key == GLFW_KEY_1 ? Controls::Action::PhongShader
-                                      : Controls::Action::ToonShader);
+        if (const auto* option = Controls::findShader(key)){
+            execute(option->action);
             return;
         }
     }
@@ -150,7 +156,20 @@ void Application::handleClick(float x, float y){
 // Executes the shared action used by keyboard, toolbar and validation paths.
 void Application::execute(Controls::Action action){
     using Action = Controls::Action;
-    if (action == Action::Flashlight){
+    if (action == Action::Bloom){
+        m_bloomEnabled = !m_bloomEnabled;
+        m_deferred->setBloom(m_bloomEnabled);
+    } else if (action == Action::DepthOfField){
+        m_depthOfFieldEnabled = !m_depthOfFieldEnabled;
+        m_deferred->setDepthOfField(m_depthOfFieldEnabled);
+    } else if (action == Action::BufferPreviews){
+        m_bufferPreviews = !m_bufferPreviews;
+    } else if (action >= Action::PositionBuffer && action <= Action::PlaneBuffer){
+        m_bufferView = static_cast<BufferView>(static_cast<unsigned>(action) -
+                                               static_cast<unsigned>(Action::PositionBuffer) + 1);
+        m_deferred->setView(m_bufferView);
+        m_shaderMenuOpen = false;
+    } else if (action == Action::Flashlight){
         m_flashlight->setEnabled(!m_flashlight->getEnabled());
         m_status = m_flashlight->getEnabled() ? "Flashlight on" : "Flashlight off";
     } else if (action == Action::Shadows){
@@ -161,6 +180,8 @@ void Application::execute(Controls::Action action){
     } else if (action == Action::PhongShader || action == Action::ToonShader){
         m_shadingMode = action == Action::PhongShader ? ShadingMode::Phong : ShadingMode::Toon;
         m_renderer->setShadingMode(m_shadingMode);
+        m_bufferView = BufferView::Lit;
+        m_deferred->setView(m_bufferView);
         m_shaderMenuOpen = false;
     } else if (action == Action::Culling){
         const bool enabled = !(m_frustumCulling || m_portalCulling);
@@ -310,7 +331,8 @@ void Application::render(){
     m_flashlight->update(camera);
     m_shadowRenderer->render(*m_scene, camera.getPosition(), m_shadowsEnabled, true);
     updatePortalVisibility(camera, vp);
-    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult);
+    m_deferred->setPreviews(m_showHud && m_bufferPreviews);
+    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult, m_deferred.get());
     drawVisibilityDebug(camera, vp);
     if (m_showHud){
         overlay();

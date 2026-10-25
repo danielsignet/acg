@@ -7,12 +7,15 @@
 #include <vr/LOD.h>
 #include <vr/Light.h>
 #include <vr/RenderVisitor.h>
+#include <vr/DeferredRenderer.h>
 
 namespace vr{
 // Collects transformed lights and then draws the scene instances.
 void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* frozen,
-                           const PortalResult* portals){
+                           const PortalResult* portals, DeferredRenderer* deferred){
     m_camera = &camera;
+    m_deferred = deferred;
+    m_globalState = root.getState() ? m_states.front().merged(*root.getState()) : m_states.front();
     setEye(camera.getPosition());
     m_stats ={};
     collectLights(root);
@@ -53,11 +56,26 @@ void RenderVisitor::drawRenderList(const Camera& camera){
     std::stable_sort(transparent.begin(), transparent.end(),
                      [&](const auto* a, const auto* b){ return distance(a) > distance(b); });
     const auto submit = std::chrono::steady_clock::now();
-    for (const auto* item : opaque){
-        drawInstance(*item);
-    }
-    for (const auto* item : transparent){
-        drawInstance(*item);
+    if (m_deferred){
+        m_deferred->render(
+            camera, m_globalState, m_lights,
+            [&](const auto& program){
+                for (const auto* item : opaque){
+                    drawInstance(*item, program);
+                }
+            },
+            [&]{
+                for (const auto* item : transparent){
+                    drawInstance(*item,{}, true);
+                }
+            });
+    } else{
+        for (const auto* item : opaque){
+            drawInstance(*item);
+        }
+        for (const auto* item : transparent){
+            drawInstance(*item);
+        }
     }
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
@@ -67,8 +85,9 @@ void RenderVisitor::drawRenderList(const Camera& camera){
 }
 
 // Submits one resolved instance and updates room and transparency counts.
-void RenderVisitor::drawInstance(const RenderNode& item){
-    drawGeometry(item);
+void RenderVisitor::drawInstance(const RenderNode& item, const std::shared_ptr<Program>& program,
+                                 bool linearOutput){
+    drawGeometry(item, program, linearOutput);
     if (!item.room.empty()){
         ++m_stats.roomDraws[item.room];
     }
@@ -78,12 +97,25 @@ void RenderVisitor::drawInstance(const RenderNode& item){
 }
 
 // Submits a mesh with its resolved transform and rendering state.
-void RenderVisitor::drawGeometry(const RenderNode& item){
+void RenderVisitor::drawGeometry(const RenderNode& item,
+                                 const std::shared_ptr<Program>& overrideProgram,
+                                 bool linearOutput){
     auto& node = *item.geometry;
     const auto& model = item.model;
-    const auto& state = item.state;
+    auto state = item.state;
+    if (overrideProgram){
+        state.setProgram(overrideProgram);
+    }
     state.apply();
     const auto& program = *state.getProgram();
+    program.set("uLinearOutput", linearOutput);
+    int lightMask = 0;
+    for (unsigned i = 0; i < State::MaxLights; ++i){
+        if (state.getLightEnabled(i)){
+            lightMask |= 1 << i;
+        }
+    }
+    program.set("uLightMask", lightMask);
     program.set("uToon", m_shadingMode == ShadingMode::Toon);
     program.set("uModel", model);
     program.set("uView", m_camera->getView());

@@ -545,9 +545,10 @@ private:
         check(points, "Keys 1-5 identify the four colored lights and daylight");
         check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
               "L toggles the flashlight independently of F's culling inspection");
-        check(vr::Controls::getBindings().size() == 13 && !vr::Controls::find(GLFW_KEY_P) &&
-                  !vr::Controls::find(GLFW_KEY_V) && !vr::Controls::find(GLFW_KEY_F3),
-              "Development actions do not add more viewport shortcuts");
+        check(vr::Controls::getBindings().size() == 16 && !vr::Controls::find(GLFW_KEY_P) &&
+                  vr::Controls::find(GLFW_KEY_V)->action == Action::DepthOfField &&
+                  !vr::Controls::find(GLFW_KEY_F3),
+              "Only the post effects and G-buffer previews extend the compact shortcuts");
         check(!vr::Controls::find(GLFW_KEY_UNKNOWN), "Unbound keys must not trigger an action");
     }
 };

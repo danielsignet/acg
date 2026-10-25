@@ -1,4 +1,5 @@
 #pragma once
+#include "RenderMode.h"
 #include <GLFW/glfw3.h>
 #include <array>
 #include <optional>
@@ -39,7 +40,18 @@ public:
         PhongShader,
         ToonShader,
         Shadows,
-        Flashlight
+        Flashlight,
+        Bloom,
+        DepthOfField,
+        BufferPreviews,
+        PositionBuffer,
+        NormalBuffer,
+        AlbedoBuffer,
+        SpecularBuffer,
+        DepthBuffer,
+        AmbientBuffer,
+        EmissiveBuffer,
+        PlaneBuffer
     };
 
     struct Binding{
@@ -49,8 +61,39 @@ public:
         const char* label;
     };
 
+    struct ShaderOption{
+        Action action;
+        ShadingMode mode;
+        BufferView view;
+        int key;
+        const char* caption;
+    };
+
+    // Shares shader and buffer choices between menu rendering and keyboard selection.
+    static constexpr const std::array<ShaderOption, 10>& getShaderOptions(){
+        return m_shaderOptions;
+    }
+
+    // Finds the menu choice assigned to a key without affecting viewport light bindings.
+    static const ShaderOption* findShader(int key){
+        for (const auto& option : m_shaderOptions){
+            if (option.key == key){
+                return &option;
+            }
+        }
+        return nullptr;
+    }
+
+    // Returns the human-readable name of a displayed surface attachment.
+    static const char* bufferName(BufferView view){
+        constexpr std::array<const char*, 9> names{{"Lit", "Positions", "Normals", "Albedo",
+                                                    "Specular", "Depth", "Ambient", "Emissive",
+                                                    "Geom normals"}};
+        return names.at(static_cast<unsigned>(view));
+    }
+
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 13>& getBindings(){
+    static const std::array<Binding, 16>& getBindings(){
         return m_bindings;
     }
 
@@ -83,7 +126,23 @@ public:
     }
 
 private:
-    inline static constexpr std::array<Binding, 13> m_bindings{
+    inline static constexpr std::array<ShaderOption, 10> m_shaderOptions{
+        {{Action::PhongShader, ShadingMode::Phong, BufferView::Lit, GLFW_KEY_1, "1  Phong"},
+         {Action::ToonShader, ShadingMode::Toon, BufferView::Lit, GLFW_KEY_2, "2  Toon"},
+         {Action::PositionBuffer, ShadingMode::Phong, BufferView::Position, GLFW_KEY_3,
+          "3  Positions"},
+         {Action::NormalBuffer, ShadingMode::Phong, BufferView::Normal, GLFW_KEY_4, "4  Normals"},
+         {Action::AlbedoBuffer, ShadingMode::Phong, BufferView::Albedo, GLFW_KEY_5, "5  Albedo"},
+         {Action::SpecularBuffer, ShadingMode::Phong, BufferView::Specular, GLFW_KEY_6,
+          "6  Specular"},
+         {Action::DepthBuffer, ShadingMode::Phong, BufferView::Depth, GLFW_KEY_7, "7  Depth"},
+         {Action::AmbientBuffer, ShadingMode::Phong, BufferView::Ambient, GLFW_KEY_8, "8  Ambient"},
+         {Action::EmissiveBuffer, ShadingMode::Phong, BufferView::Emissive, GLFW_KEY_9,
+          "9  Emissive"},
+         {Action::PlaneBuffer, ShadingMode::Phong, BufferView::Plane, GLFW_KEY_0,
+          "0  Geom normals"}}};
+
+    inline static constexpr std::array<Binding, 16> m_bindings{
         {{Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
          {Action::ResetView, GLFW_KEY_SPACE, "Space", "Reset view"},
          {Action::ReloadScene, GLFW_KEY_R, "R", "Reload scene"},
@@ -96,6 +155,9 @@ private:
          {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view"},
          {Action::ShaderMenu, GLFW_KEY_Z, "Z", "Shader"},
          {Action::Shadows, GLFW_KEY_J, "J", "Shadows"},
-         {Action::Flashlight, GLFW_KEY_L, "L", "Flashlight"}}};
+         {Action::Flashlight, GLFW_KEY_L, "L", "Flashlight"},
+         {Action::Bloom, GLFW_KEY_B, "B", "Bloom"},
+         {Action::DepthOfField, GLFW_KEY_V, "V", "Depth of field"},
+         {Action::BufferPreviews, GLFW_KEY_G, "G", "G-buffer previews"}}};
 };
 } // namespace vr

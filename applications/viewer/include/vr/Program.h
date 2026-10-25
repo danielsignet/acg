@@ -37,8 +37,8 @@ public:
     }
 
 private:
-    // Reads a complete shader source file and reports missing files.
-    static std::string readSource(const std::filesystem::path& path);
+    // Reads shader source and expands relative includes with bounded nesting.
+    static std::string readSource(const std::filesystem::path& path, unsigned depth = 0);
 
     // Compiles one shader stage and reports the driver diagnostic on failure.
     static GLuint compileShader(const std::filesystem::path& path, GLenum type);

@@ -26,6 +26,9 @@ FramebufferImage RenderingValidator::captureScene() const{
 
 // Executes the configured application or validation sequence.
 void RenderingValidator::run(){
+    const bool previews = m_application.m_bufferPreviews;
+    m_application.m_bufferPreviews = false;
+    validateDeferred();
     validateShadows();
     validateControls();
     validateFlashlight();
@@ -39,9 +42,75 @@ void RenderingValidator::run(){
     validatePortals();
     m_application.execute(Controls::Action::ResetView);
     m_application.render();
+    m_application.m_bufferPreviews = previews;
     OpenGL::check("Validation complete");
     std::cout << "GPU validation passed: scene pixels for lighting/lights/multitexture/toon/alpha, "
                  "animation/pause, all LOD levels, reload, reset, frustum culling, OpenGL errors\n";
+}
+
+// Checks public buffer controls, post effects, resize and reload persistence.
+void RenderingValidator::validateDeferred(){
+    auto& app = m_application;
+    using Action = Controls::Action;
+    app.resetView();
+    app.render();
+    const auto lit = captureScene();
+    const auto lights = app.m_pointLights;
+    for (int key = GLFW_KEY_3; key <= GLFW_KEY_9; ++key){
+        app.handleKey(GLFW_KEY_Z);
+        app.handleKey(key);
+        app.render();
+        require(app.m_bufferView != BufferView::Lit &&
+                    app.m_deferred->getView() == app.m_bufferView && app.m_pointLights == lights &&
+                    captureScene().hash() != lit.hash(),
+                "Shader menu exposes independent G-buffer views without toggling lights");
+    }
+    app.handleKey(GLFW_KEY_Z);
+    app.handleKey(GLFW_KEY_0);
+    require(app.m_bufferView == BufferView::Plane,
+            "The geometric normal attachment has its own view");
+    app.execute(Action::PhongShader);
+    app.handleKey(GLFW_KEY_G);
+    require(app.m_bufferPreviews, "G enables all G-buffer thumbnails");
+    const auto preview = app.m_deferred->previewRectangle(2);
+    app.handleClick(static_cast<float>(preview.x + 8), static_cast<float>(preview.y + 8));
+    require(app.m_bufferView == BufferView::Albedo,
+            "Clicking a thumbnail expands its actual G-buffer attachment");
+    app.handleClick(static_cast<float>(preview.x + 8), static_cast<float>(preview.y + 8));
+    require(app.m_bufferView == BufferView::Lit,
+            "Clicking the selected thumbnail returns to the lit image");
+    app.handleKey(GLFW_KEY_G);
+    app.handleKey(GLFW_KEY_B);
+    app.render();
+    require(app.m_deferred->getBloom() && captureScene().countChangedPixels(lit) > 100,
+            "B enables visible bloom outside the overlay");
+    app.handleClick(530, 28);
+    require(!app.m_bloomEnabled && !app.m_deferred->getBloom(),
+            "Bloom button and shortcut share the same toggle");
+    app.handleKey(GLFW_KEY_V);
+    app.render();
+    require(app.m_deferred->getDepthOfField() && captureScene().countChangedPixels(lit) > 100,
+            "V enables visible depth of field outside the overlay");
+    app.execute(Action::Bloom);
+    app.execute(Action::SpecularBuffer);
+    app.reload();
+    require(app.m_bufferView == BufferView::Specular &&
+                app.m_deferred->getView() == BufferView::Specular && app.m_deferred->getBloom() &&
+                app.m_deferred->getDepthOfField(),
+            "Reload preserves the selected buffer and each independent post effect");
+    app.handleClick(650, 28);
+    app.execute(Action::Bloom);
+    app.execute(Action::PhongShader);
+    const int width = app.m_width, height = app.m_height;
+    app.resize(1007, 641);
+    app.render();
+    require(app.m_deferred->getGBuffer().get(GBuffer::Position)->getWidth() == 1007 &&
+                app.m_deferred->getGBuffer().getDepth()->getHeight() == 641,
+            "Viewport resize updates the G-buffer and post-processing targets");
+    app.resize(width, height);
+    app.render();
+    std::cout << "Deferred controls passed: all buffer views, thumbnails, bloom, depth of field, "
+                 "resize and reload\n";
 }
 
 // Checks that lighting, texture and toon controls change scene pixels.
@@ -532,7 +601,7 @@ void RenderingValidator::validateControls(){
     const auto lights = app.m_pointLights;
     app.handleKey(GLFW_KEY_Z);
     require(app.m_shaderMenuOpen, "Z opens the shading menu");
-    app.handleClick(440, static_cast<float>(app.m_height - SceneOverlay::FooterHeight - 24));
+    app.handleClick(440, static_cast<float>(app.m_height - SceneOverlay::FooterHeight - 280));
     app.render();
     require(app.m_shadingMode == ShadingMode::Toon && !app.m_shaderMenuOpen &&
                 app.m_renderer->getShadingMode() == ShadingMode::Toon &&

@@ -28,6 +28,10 @@ public:
     // Creates a lazy floating-point depth texture, with six faces for a cubemap.
     static std::shared_ptr<Texture> depth(int width, int height, bool cube = false);
 
+    // Creates a nearest or linearly sampled color attachment without CPU pixel storage.
+    static std::shared_ptr<Texture> colorTarget(int width, int height, GLenum format = GL_RGBA16F,
+                                                bool linear = false);
+
     // Returns the OpenGL texture identifier after upload.
     GLuint getId() const{
         return m_id;
@@ -70,6 +74,8 @@ private:
     bool m_repeat;
     bool m_depth = false;
     bool m_cube = false;
+    GLenum m_renderFormat = 0;
+    bool m_linearTarget = false;
     std::vector<unsigned char> m_rgba;
     mutable GLuint m_id = 0;
 };

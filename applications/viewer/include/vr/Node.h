@@ -1,4 +1,5 @@
 #pragma once
+#include "BoundingBox.h"
 #include "State.h"
 #include "UpdateCallback.h"
 #include <memory>
@@ -9,10 +10,10 @@ namespace vr{
 class NodeVisitor;
 class Group;
 
-class Node : public std::enable_shared_from_this<Node>{
+class Node : public std::enable_shared_from_this<Node> {
 public:
     // Creates a named node without local rendering overrides or behavior.
-    explicit Node(std::string name ={}) : m_name(std::move(name)){
+    explicit Node(std::string name = {}) : m_name(std::move(name)){
     }
 
     // Prevents copying ownership or identity of this object.
@@ -67,11 +68,49 @@ public:
         return m_parents;
     }
 
+    // Bounds are expressed in the parent's coordinates, including a local transform.
+    const BoundingBox& getBound() const;
+
+    virtual BoundingBox computeBound() const{
+        return{};
+    }
+
+    void dirtyBound();
+
+    bool isBoundDirty() const{
+        return m_boundDirty;
+    }
+
+    std::size_t getBoundBuildCount() const{
+        return m_boundBuildCount;
+    }
+
+    void setVisible(bool visible){
+        m_visible = visible;
+    }
+
+    bool getVisible() const{
+        return m_visible;
+    }
+
+    void setRoomId(std::string id){
+        m_roomId = std::move(id);
+    }
+
+    const std::string& getRoomId() const{
+        return m_roomId;
+    }
+
 private:
     friend class Group;
     std::string m_name;
     std::shared_ptr<State> m_state;
     std::shared_ptr<UpdateCallback> m_callback;
     std::vector<std::weak_ptr<Node>> m_parents;
+    mutable BoundingBox m_bound;
+    mutable bool m_boundDirty = true;
+    mutable std::size_t m_boundBuildCount = 0;
+    bool m_visible = true;
+    std::string m_roomId;
 };
 } // namespace vr

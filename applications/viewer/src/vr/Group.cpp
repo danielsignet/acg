@@ -17,6 +17,15 @@ void Group::addChild(const std::shared_ptr<Node>& child){
     auto self = shared_from_this();
     m_children.push_back(child);
     child->m_parents.push_back(self);
+    dirtyBound();
+}
+
+BoundingBox Group::computeBound() const{
+    BoundingBox bound;
+    for (const auto& child : m_children){
+        bound.expandBy(child->getBound());
+    }
+    return bound;
 }
 
 // Reports whether the requested node is part of this subtree.

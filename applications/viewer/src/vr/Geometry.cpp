@@ -46,6 +46,15 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
     m_vertices = std::move(data);
     m_indices = std::move(indices);
     m_dirty = true;
+    dirtyBound();
+}
+
+BoundingBox Geometry::computeBound() const{
+    BoundingBox bound;
+    for (const auto& vertex : m_vertices){
+        bound.expandBy(vertex.position);
+    }
+    return bound;
 }
 
 // Uploads changed mesh data and draws its indexed triangles.

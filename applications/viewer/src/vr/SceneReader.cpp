@@ -71,7 +71,7 @@ std::filesystem::path SceneReader::portablePath(std::string path){
 std::shared_ptr<Scene> SceneReader::read(const std::filesystem::path& path){
 
     std::ifstream input(path);
-    std::string content{std::istreambuf_iterator<char>(input),{}};
+    std::string content{std::istreambuf_iterator<char>(input), {}};
     content.push_back('\0');
     rapidxml::xml_document<> doc;
     try{
@@ -150,6 +150,7 @@ std::shared_ptr<Node> SceneReader::readNode(Xml* xml){
     } else{
         throw std::runtime_error("Unknown scene element: " + tag);
     }
+    group->setRoomId(attribute(xml, "room"));
     readChildren(xml, *group);
     return group;
 }

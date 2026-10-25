@@ -7,7 +7,7 @@ class Application;
 class SceneOverlay final{
 public:
     static constexpr int HeaderHeight = 106;
-    static constexpr int FooterHeight = 144;
+    static constexpr int FooterHeight = 160;
 
     // Creates the text renderer used by the application HUD.
     explicit SceneOverlay(const std::filesystem::path& root) : m_text(root){

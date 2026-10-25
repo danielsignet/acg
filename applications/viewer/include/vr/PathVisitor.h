@@ -8,8 +8,8 @@ namespace vr{
 class PathVisitor : public NodeVisitor{
 public:
     // Initializes traversal with a base state and the identity model matrix.
-    explicit PathVisitor(State initial ={})
-        : m_states{std::move(initial)}, m_models{glm::mat4(1)}{
+    explicit PathVisitor(State initial = {})
+        : m_states{std::move(initial)}, m_models{glm::mat4(1)} {
     }
 
     // Applies local state while traversing the group's children.
@@ -48,7 +48,6 @@ protected:
     virtual void lod(LOD&, std::size_t){
     }
 
-private:
     // Restores inherited rendering state automatically when leaving this node.
     void scoped(Node& node, const std::function<void()>& action);
     std::vector<State> m_states;

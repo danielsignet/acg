@@ -38,6 +38,7 @@ private:
 
     // Checks that reload replaces the graph and preserves lighting controls.
     void validateReload();
+    void validateCulling();
     Application& m_application;
 };
 } // namespace vr

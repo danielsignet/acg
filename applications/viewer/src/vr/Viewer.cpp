@@ -32,6 +32,10 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_validate = true;
         } else if (option == "--lod-demo"){
             m_lodDemoCallback = true;
+        } else if (option == "--inside"){
+            m_inside = true;
+        } else if (option == "--no-culling"){
+            m_noCulling = true;
         } else if (option == "--frames"){
             m_frameLimit = std::stoi(next());
             if (m_frameLimit < 1){
@@ -47,7 +51,8 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_dotFile = next();
         } else if (option == "--help"){
             std::cout << "viewer [--root path] [--scene file] [--frames N] [--hidden] [--validate] "
-                         "[--lod-demo] [--screenshot file.png] [--dot file.dot]\n";
+                         "[--lod-demo] [--inside] [--no-culling] "
+                         "[--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
             throw std::invalid_argument("Unknown option: " + option);
@@ -110,6 +115,12 @@ int Viewer::run(int argc, char** argv){
     }
     if (m_lodDemoCallback){
         m_application->handleKey(GLFW_KEY_V);
+    }
+    if (m_inside){
+        m_application->handleKey(GLFW_KEY_TAB);
+    }
+    if (m_noCulling){
+        m_application->handleKey(GLFW_KEY_C);
     }
     double previous = glfwGetTime();
     int frames = 0;

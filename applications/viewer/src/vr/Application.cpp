@@ -37,6 +37,9 @@ void Application::reload(){
     auto lightOrbit = createLightOrbit(*scene);
     auto lodDemo = createLodDemo(*scene);
     auto renderer = std::make_unique<RenderVisitor>(program);
+    renderer->setCulling(m_frustumCulling);
+    auto debugLines = std::make_unique<DebugLines>(m_root);
+    m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
     m_scene = std::move(scene);
     m_program = std::move(program);
@@ -66,6 +69,8 @@ void Application::exportGraph(const std::filesystem::path& path){
 
 // Stops the camera tour and restores the scene's initial camera pose.
 void Application::resetView(){
+    m_frozenFrustum.reset();
+    m_houseView = false;
     if (m_lodDemoCallback){
         m_lodDemoCallback->setEnabled(false);
     }
@@ -155,8 +160,39 @@ void Application::handleKey(int key){
     } else if (action == Action::Capture){
         m_screenshotRequested = true;
     } else if (action == Action::ExportGraph){
-        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot")
-                                      : m_dotFile);
+        exportGraph(m_dotFile.empty() ? ResourceLocator::temporaryOutput("scenegraph.dot") : m_dotFile);
+    } else if (action == Action::FrustumCulling){
+        m_frustumCulling = !m_frustumCulling;
+        m_renderer->setCulling(m_frustumCulling);
+    } else if (action == Action::FreezeFrustum){
+        if (m_frozenFrustum){
+            m_frozenFrustum.reset();
+        } else{
+            const auto& camera = *m_scene->getCamera();
+            m_frozenFrustum = camera.getProjection() * camera.getView();
+        }
+    } else if (action == Action::DebugBounds){
+        m_debugBounds = !m_debugBounds;
+    } else if (action == Action::Roof){
+        m_roofEnabled = !m_roofEnabled;
+        if (auto roof = m_scene->findTransform("roof")){
+            roof->setVisible(m_roofEnabled);
+        }
+    } else if (action == Action::Hud){
+        m_showHud = !m_showHud;
+    } else if (action == Action::HouseView){
+        if (const auto room = m_scene->findTransform("roomA")){
+            stopLodDemo();
+            m_houseView = !m_houseView;
+            m_position = m_houseView ? glm::vec3(room->getMatrix() * glm::vec4(0, 2, 5, 1))
+                                     : m_scene->getInitialEye();
+            m_front = m_houseView ? glm::vec3(0, 0, -1)
+                                  : glm::normalize(m_scene->getInitialTarget() - m_position);
+            m_pitch = glm::degrees(std::asin(m_front.y));
+            m_yaw = glm::degrees(std::atan2(m_front.z, m_front.x));
+            m_scene->getCamera()->setLookAt(m_position, m_position + m_front);
+            m_status = m_houseView ? "Inside room A" : "Patio overview";
+        }
     }
 }
 
@@ -178,7 +214,7 @@ void Application::input(float delta){
 // Processes input, callbacks and frame-rate statistics.
 void Application::update(double time, double delta){
     input(static_cast<float>(delta));
-    m_updater.update(*m_scene->getRoot(),{time, delta, m_animationEnabled});
+    m_updater.update(*m_scene->getRoot(), {time, delta, m_animationEnabled});
     ++m_frameCount;
     m_frameTimeSeconds += delta;
     if (m_frameTimeSeconds >= 1){
@@ -204,8 +240,29 @@ void Application::render(){
     glCullFace(GL_BACK);
     glClearColor(0.035f, 0.052f, 0.078f, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    m_renderer->render(*m_scene->getRoot(), *m_scene->getCamera());
-    overlay();
+    const auto& camera = *m_scene->getCamera();
+    const auto vp = camera.getProjection() * camera.getView();
+    const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
+    m_renderer->render(*m_scene->getRoot(), camera, frozen);
+    if (m_debugBounds){
+        CullVisitor all;
+        all.collect(*m_scene->getRoot(), vp, camera.getPosition(), false);
+        const Frustum frustum(frozen ? *frozen : vp);
+        for (const auto& item : all.getRenderList()){
+            const auto bound = item.geometry->getBound().transformed(item.model);
+            const auto visible = frustum.classify(bound);
+            const glm::vec4 color = visible == Visibility::Outside  ? glm::vec4(1, .25f, .2f, 1)
+                                    : visible == Visibility::Inside ? glm::vec4(.2f, 1, .5f, 1)
+                                                                    : glm::vec4(1, .8f, .2f, 1);
+            m_debugLines->box(bound, vp, color);
+        }
+        if (frozen){
+            m_debugLines->frustum(*frozen, vp);
+        }
+    }
+    if (m_showHud){
+        overlay();
+    }
     OpenGL::check("Frame");
 }
 
@@ -239,6 +296,9 @@ void Application::applyRenderSettings(Scene& scene) const{
     }
     scene.getRoot()->getState()->setCullFace(m_cullFaceEnabled);
     scene.getRoot()->getState()->setUniform("uMultiTexture", m_multitextureEnabled);
+    if (auto roof = scene.findTransform("roof")){
+        roof->setVisible(m_roofEnabled);
+    }
     if (auto toon = scene.findTransform("toon")){
         if (toon->getState()){
             toon->getState()->setUniform("uToon", m_toonEnabled);
@@ -278,7 +338,7 @@ void Application::updateCameraOrientation(){
     if (look){
         stopLodDemo();
     }
-    for (int key :{GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}){
+    for (int key : {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_Q, GLFW_KEY_E}){
         if (glfwGetKey(m_window, key) == GLFW_PRESS){
             stopLodDemo();
         }

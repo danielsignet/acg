@@ -17,6 +17,7 @@ public:
 
     // Reports whether the requested node is part of this subtree.
     bool contains(const Node* node) const override;
+    BoundingBox computeBound() const override;
 
     // Returns the ordered collection of shared child nodes.
     const std::vector<std::shared_ptr<Node>>& getChildren() const{

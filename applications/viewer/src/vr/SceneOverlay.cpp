@@ -86,7 +86,7 @@ void SceneOverlay::drawHeader(const Application& app){
     const auto& stats = app.m_renderer->getStats();
     m_text.rectangle(0, 0, static_cast<float>(app.m_width), HeaderHeight,
                      {0.025f, 0.04f, 0.065f, 0.96f});
-    m_text.draw("Scene viewer", 24, 12, 22,{0.94f, 0.96f, 1, 1});
+    m_text.draw("ACG", 24, 12, 22,{0.94f, 0.96f, 1, 1});
     m_text.draw("HOUSE + PATIO", 190, 20, 11,{0.3f, 0.84f, 0.73f, 1});
     m_text.rectangle(shadowButton.x, 12, shadowButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
     m_text.draw(std::string("Shadows: ") + (app.m_shadowsEnabled ? "ON" : "OFF") + " [J]",

@@ -14,6 +14,7 @@ struct RenderNode{
 };
 
 struct CullStats{
+    unsigned visitedNodes = 0;
     unsigned boundsTested = 0;
     unsigned subtreesRejected = 0;
     unsigned portalRejected = 0;

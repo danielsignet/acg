@@ -19,6 +19,9 @@ public:
     void click(Application& application, float x, float y);
 
 private:
+    // Draws measured pipeline timings, frame history and submission/culling counters.
+    void drawPerformance(const Application& application);
+
     // Draws the application title and current rendering statistics.
     void drawHeader(const Application& application);
 

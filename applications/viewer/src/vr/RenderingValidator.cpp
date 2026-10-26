@@ -29,6 +29,7 @@ void RenderingValidator::run(){
     const bool previews = m_application.m_bufferPreviews;
     m_application.m_bufferPreviews = false;
     validateDeferred();
+    validatePerformance();
     validateShadows();
     validateControls();
     validateFlashlight();
@@ -46,6 +47,43 @@ void RenderingValidator::run(){
     OpenGL::check("Validation complete");
     std::cout << "GPU validation passed: scene pixels for lighting/lights/multitexture/toon/alpha, "
                  "animation/pause, all LOD levels, reload, reset, frustum culling, OpenGL errors\n";
+}
+
+// Checks performance controls, counters and overlay isolation from the scene.
+void RenderingValidator::validatePerformance(){
+    auto& app = m_application;
+    const auto lights = app.m_pointLights;
+    const bool culling = app.m_frustumCulling, previews = app.m_bufferPreviews;
+    const int width = app.m_width, height = app.m_height;
+    app.render();
+    const auto image = captureScene();
+    app.handleKey(GLFW_KEY_F1);
+    app.m_profiler.beginFrame(0.08);
+    app.render();
+    app.m_profiler.endFrame();
+    require(app.m_profiler.getEnabled() && captureScene().countChangedPixels(image) > 1000,
+            "F1 opens the measured performance view");
+    require(app.m_pointLights == lights && app.m_frustumCulling == culling &&
+                app.m_bufferPreviews == previews && !app.m_frozenEye,
+            "Performance inspection preserves lights, culling, previews and the live camera");
+    const auto& shadows = app.m_shadowRenderer->getStats();
+    require(shadows.boundsTested == shadows.draws + shadows.rejected &&
+                app.m_deferred->getScreenDraws() == 3 &&
+                app.m_renderer->getStats().visitedNodes > 0,
+            "Profiler counters describe actual shadow rejection and screen submissions");
+    app.resize(960, 600);
+    app.render();
+    app.reload();
+    require(app.m_profiler.getEnabled(), "Reload preserves the open performance view");
+    app.handleKey(GLFW_KEY_F1);
+    require(!app.m_profiler.getEnabled(), "F1 also closes the performance view");
+    app.handleKey(GLFW_KEY_F1);
+    app.handleKey(GLFW_KEY_ESCAPE);
+    require(!app.m_profiler.getEnabled() && !glfwWindowShouldClose(app.m_window),
+            "Esc closes performance inspection before closing the viewer");
+    app.resize(width, height);
+    app.render();
+    OpenGL::check("Performance controls");
 }
 
 // Checks public buffer controls, post effects, resize and reload persistence.

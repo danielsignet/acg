@@ -26,7 +26,9 @@ bool Viewer::parseOptions(int argc, char** argv){
             }
             return std::string(argv[++i]);
         };
-        if (option == "--hidden"){
+        if (option == "--performance"){
+            m_performance = true;
+        } else if (option == "--hidden"){
             m_hidden = true;
         } else if (option == "--validate"){
             m_validate = true;
@@ -77,7 +79,8 @@ bool Viewer::parseOptions(int argc, char** argv){
                          "[--lod-demo] [--inside] [--no-culling] "
                          "[--portal-demo] [--no-portals] [--solid-walls] [--no-shadows] "
                          "[--buffer lit|positions|normals|albedo|specular|depth] [--bloom] [--dof] "
-                         "[--no-buffer-previews] [--screenshot file.png] [--dot file.dot]\n";
+                         "[--no-buffer-previews] [--performance] "
+                         "[--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
             throw std::invalid_argument("Unknown option: " + option);
@@ -115,6 +118,7 @@ void Viewer::initialize(){
               << "\nGLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION)
               << "\nAssets: " << m_root.string() << '\n';
     m_application = std::make_unique<Application>(m_window, m_root, m_scene, m_dotFile);
+    m_application->m_vsync = !m_hidden;
     glfwSetWindowUserPointer(m_window, m_application.get());
     glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int, int action, int){
         if (action == GLFW_PRESS){
@@ -189,29 +193,45 @@ int Viewer::run(int argc, char** argv){
             static_cast<Controls::Action>(static_cast<unsigned>(Controls::Action::PositionBuffer) +
                                           static_cast<unsigned>(m_bufferView) - 1));
     }
+    if (m_performance){
+        m_application->execute(Controls::Action::Performance);
+    }
     double previous = glfwGetTime();
     int frames = 0;
     while (!glfwWindowShouldClose(m_window)){
         glfwPollEvents();
         const double now = glfwGetTime();
-        const double delta = std::min(now - previous, 0.05);
+        const double interval = now - previous;
+        const double delta = std::min(interval, 0.05);
         previous = now;
         glfwGetFramebufferSize(m_window, &width, &height);
         if (width == 0 || height == 0){
             glfwWaitEventsTimeout(0.05);
             continue;
         }
-        m_application->update(now, delta);
-        m_application->render();
-        ++frames;
-        if (m_application->consumeScreenshotRequest()){
-            FramebufferImage::capture(0, 0, width, height)
-                .save(ResourceLocator::temporaryOutput("capture.png"));
+        auto& profiler = m_application->m_profiler;
+        profiler.beginFrame(interval);
+        {
+            FrameProfiler::Scope frame(&profiler, FrameProfiler::Stage::Frame);
+            {
+                FrameProfiler::Scope update(&profiler, FrameProfiler::Stage::Update);
+                m_application->update(now, delta);
+            }
+            m_application->render();
+            ++frames;
+            if (m_application->consumeScreenshotRequest()){
+                FramebufferImage::capture(0, 0, width, height)
+                    .save(ResourceLocator::temporaryOutput("capture.png"));
+            }
+            if (m_frameLimit && frames >= m_frameLimit && !m_screenshot.empty()){
+                FramebufferImage::capture(0, 0, width, height).save(m_screenshot);
+            }
+            {
+                FrameProfiler::Scope swap(&profiler, FrameProfiler::Stage::Swap);
+                glfwSwapBuffers(m_window);
+            }
         }
-        if (m_frameLimit && frames >= m_frameLimit && !m_screenshot.empty()){
-            FramebufferImage::capture(0, 0, width, height).save(m_screenshot);
-        }
-        glfwSwapBuffers(m_window);
+        profiler.endFrame();
         if (m_frameLimit && frames >= m_frameLimit){
             break;
         }

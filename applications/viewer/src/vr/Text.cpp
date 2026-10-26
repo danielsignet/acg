@@ -85,6 +85,22 @@ void Text::rectangle(float x, float y, float w, float h, const glm::vec4& color)
              color, true);
 }
 
+// Draws a group of equally colored rectangles in one submission.
+void Text::rectangles(const std::vector<glm::vec4>& rectangles, const glm::vec4& color){
+    std::vector<glm::vec4> data;
+    data.reserve(rectangles.size() * 6);
+    for (const auto& rect : rectangles){
+        const float x = rect.x, y = rect.y, right = x + rect.z, bottom = y + rect.w;
+        data.insert(data.end(),{{x, y, 0, 0},
+                                 {right, y, 0, 0},
+                                 {right, bottom, 0, 0},
+                                 {x, y, 0, 0},
+                                 {right, bottom, 0, 0},
+                                 {x, bottom, 0, 0}});
+    }
+    vertices(data, color, true);
+}
+
 // Restores depth writing and disables overlay blending.
 void Text::end(){
     glDisable(GL_BLEND);

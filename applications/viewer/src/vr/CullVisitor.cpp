@@ -23,6 +23,7 @@ void CullVisitor::collect(Node& root, const glm::mat4& vp, const glm::vec3& eye,
 
 // Restores inherited room and fully-inside state after traversing this node.
 void CullVisitor::within(Node& node, const std::function<void()>& action){
+    ++m_stats.visitedNodes;
     if (!node.getVisible()){
         return;
     }

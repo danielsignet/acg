@@ -13,8 +13,6 @@
     <model id="porsche" file="models/porsche_911_gt3.glb" flatten="true" />
     <model id="c3po" file="models/5426_C3PO_Robot_Star_Wars.obj" />
     <model id="altair" file="models/Altair Model/altair.obj" flatten="true" />
-    <model id="building-low" file="models/ResidentialBuildings/ResidentialBuildings004.fbx" />
-    <model id="building-tall" file="models/ResidentialBuildings/ResidentialBuildings008.fbx" />
   </assets>
   <visibility exterior="patio">
     <cell id="A" min="-21 0 -30" max="-7 5 -16" />
@@ -168,22 +166,6 @@
       <transform name="carExhibit" translate="18 0.258 -7" scale="1.35 1.35 1.35" rotate="0 -30 0">
         <instance ref="porsche" />
       </transform>
-      <transform name="architecturePlinth" translate="6 0.24 -9" scale="10 0.48 5.2" rotate="0 0 0">
-        <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
-        <instance ref="box" />
-      </transform>
-      <transform name="architectureLow" translate="3.5 0.4804 -8.9" scale="0.00085 0.00085 0.00085" rotate="0 10 0">
-        <instance ref="building-low" />
-      </transform>
-      <transform name="architectureTall" translate="8.3 0.4803 -9.2" scale="0.00055 0.00055 0.00055" rotate="0 -12 0">
-        <instance ref="building-tall" />
-      </transform>
-      <transform name="westBuilding" translate="-30 -0.3984 -30" scale="0.0033 0.0033 0.0033" rotate="0 20 0">
-        <instance ref="building-low" />
-      </transform>
-      <transform name="eastBuilding" translate="30 -0.3989 -36" scale="0.0022 0.0022 0.0022" rotate="0 -20 0">
-        <instance ref="building-tall" />
-      </transform>
       <transform name="terraceEdge-25" translate="-25 0.28 -3" scale="0.28 0.56 26" rotate="0 0 0">
         <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
         <instance ref="box" />
@@ -301,13 +283,6 @@
         <transform name="plinthB3" translate="4.2 0.32 4.2" scale="2 0.64 2" rotate="0 0 0">
           <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
           <instance ref="box" />
-        </transform>
-        <transform name="centerPlinthB" translate="0 0.25 0" scale="4.4 0.5 3.6" rotate="0 0 0">
-          <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
-          <instance ref="box" />
-        </transform>
-        <transform name="buildingB" translate="0 0.501 0" scale="0.0005 0.0005 0.0005" rotate="0 0 0">
-          <instance ref="building-tall" />
         </transform>
       </group>
     </transform>
@@ -433,13 +408,6 @@
         <transform name="plinthE3" translate="4.2 0.32 4.2" scale="2 0.64 2" rotate="0 0 0">
           <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
           <instance ref="box" />
-        </transform>
-        <transform name="centerPlinthE" translate="0 0.25 0" scale="4.4 0.5 3.6" rotate="0 0 0">
-          <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
-          <instance ref="box" />
-        </transform>
-        <transform name="buildingE" translate="0 0.501 0" scale="0.0005 0.0005 0.0005" rotate="0 0 0">
-          <instance ref="building-tall" />
         </transform>
       </group>
     </transform>

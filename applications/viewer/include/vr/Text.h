@@ -25,6 +25,9 @@ public:
     // Draws a solid overlay rectangle as two triangles.
     void rectangle(float x, float y, float width, float height, const glm::vec4& color);
 
+    // Draws a group of equally colored rectangles in one submission.
+    void rectangles(const std::vector<glm::vec4>& rectangles, const glm::vec4& color);
+
     // Restores depth writing and disables overlay blending.
     void end();
 

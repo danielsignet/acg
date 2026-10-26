@@ -31,6 +31,7 @@ public:
         DebugBounds,
         Roof,
         Hud,
+        Performance,
         HouseView,
         PortalCulling,
         TransparentWalls,
@@ -93,7 +94,7 @@ public:
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 16>& getBindings(){
+    static const std::array<Binding, 17>& getBindings(){
         return m_bindings;
     }
 
@@ -142,8 +143,9 @@ private:
          {Action::PlaneBuffer, ShadingMode::Phong, BufferView::Plane, GLFW_KEY_0,
           "0  Geom normals"}}};
 
-    inline static constexpr std::array<Binding, 16> m_bindings{
-        {{Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
+    inline static constexpr std::array<Binding, 17> m_bindings{
+        {{Action::Performance, GLFW_KEY_F1, "F1", "Performance"},
+         {Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
          {Action::ResetView, GLFW_KEY_SPACE, "Space", "Reset view"},
          {Action::ReloadScene, GLFW_KEY_R, "R", "Reload scene"},
          {Action::PointRed, GLFW_KEY_1, "1", "Point Red"},

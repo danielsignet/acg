@@ -40,9 +40,11 @@ void Application::reload(){
     auto lightOrbit = createLightOrbit(*scene);
     auto lodDemo = createLodDemo(*scene);
     auto renderer = std::make_unique<RenderVisitor>(program);
+    renderer->setProfiler(&m_profiler);
     renderer->setCulling(m_frustumCulling);
     renderer->setShadingMode(m_shadingMode);
     auto deferred = std::make_unique<DeferredRenderer>(m_root);
+    deferred->setProfiler(&m_profiler);
     deferred->resize(m_width, m_height);
     deferred->setView(m_bufferView);
     deferred->setBloom(m_bloomEnabled);
@@ -129,6 +131,10 @@ void Application::resize(int width, int height){
 
 // Applies the command bound to a pressed key.
 void Application::handleKey(int key){
+    if (key == GLFW_KEY_ESCAPE && m_profiler.getEnabled()){
+        m_profiler.setEnabled(false);
+        return;
+    }
     if (m_shaderMenuOpen){
         if (key == GLFW_KEY_ESCAPE){
             m_shaderMenuOpen = false;
@@ -156,7 +162,10 @@ void Application::handleClick(float x, float y){
 // Executes the shared action used by keyboard, toolbar and validation paths.
 void Application::execute(Controls::Action action){
     using Action = Controls::Action;
-    if (action == Action::Bloom){
+    if (action == Action::Performance){
+        m_profiler.setEnabled(!m_profiler.getEnabled());
+        m_shaderMenuOpen = false;
+    } else if (action == Action::Bloom){
         m_bloomEnabled = !m_bloomEnabled;
         m_deferred->setBloom(m_bloomEnabled);
     } else if (action == Action::DepthOfField){
@@ -176,6 +185,7 @@ void Application::execute(Controls::Action action){
         m_shadowsEnabled = !m_shadowsEnabled;
         m_status = m_shadowsEnabled ? "Shadows enabled" : "Shadows disabled";
     } else if (action == Action::ShaderMenu){
+        m_profiler.setEnabled(false);
         m_shaderMenuOpen = !m_shaderMenuOpen;
     } else if (action == Action::PhongShader || action == Action::ToonShader){
         m_shadingMode = action == Action::PhongShader ? ShadingMode::Phong : ShadingMode::Toon;
@@ -301,7 +311,8 @@ void Application::update(double time, double delta){
     input(static_cast<float>(delta));
     m_updater.update(*m_scene->getRoot(),{time, delta, m_animationEnabled});
     ++m_frameCount;
-    m_frameTimeSeconds += delta;
+    m_frameTimeSeconds += m_lastFrameTime > 0 ? time - m_lastFrameTime : 0;
+    m_lastFrameTime = time;
     if (m_frameTimeSeconds >= 1){
         m_framesPerSecond = m_frameCount / m_frameTimeSeconds;
         m_frameCount = 0;
@@ -318,6 +329,7 @@ void Application::render(){
     if (m_width <= 0 || m_height <= 0){
         return;
     }
+    FrameProfiler::Scope render(&m_profiler, FrameProfiler::Stage::Render);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
@@ -329,12 +341,22 @@ void Application::render(){
     const auto vp = camera.getProjection() * camera.getView();
     const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
     m_flashlight->update(camera);
-    m_shadowRenderer->render(*m_scene, camera.getPosition(), m_shadowsEnabled, true);
-    updatePortalVisibility(camera, vp);
+    {
+        FrameProfiler::Scope shadows(&m_profiler, FrameProfiler::Stage::Shadows);
+        m_shadowRenderer->render(*m_scene, camera.getPosition(), m_shadowsEnabled, true);
+    }
+    {
+        FrameProfiler::Scope portals(&m_profiler, FrameProfiler::Stage::Portals);
+        updatePortalVisibility(camera, vp);
+    }
     m_deferred->setPreviews(m_showHud && m_bufferPreviews);
     m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult, m_deferred.get());
-    drawVisibilityDebug(camera, vp);
-    if (m_showHud){
+    {
+        FrameProfiler::Scope debug(&m_profiler, FrameProfiler::Stage::Debug);
+        drawVisibilityDebug(camera, vp);
+    }
+    if (m_showHud || m_profiler.getEnabled()){
+        FrameProfiler::Scope hud(&m_profiler, FrameProfiler::Stage::Overlay);
         overlay();
     }
     OpenGL::check("Frame");

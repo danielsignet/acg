@@ -357,6 +357,9 @@ void Application::render(){
     }
     if (m_showHud || m_profiler.getEnabled()){
         FrameProfiler::Scope hud(&m_profiler, FrameProfiler::Stage::Overlay);
+        if (m_profiler.getEnabled()){
+            m_profiler.recordCounters(performanceCounters());
+        }
         overlay();
     }
     OpenGL::check("Frame");
@@ -426,6 +429,41 @@ void Application::drawVisibilityDebug(const Camera& camera,
 // Draws the application HUD after rendering the 3D scene.
 void Application::overlay(){
     m_overlay->draw(*this);
+}
+
+// Collects submission, culling and attachment counters for this scene frame.
+FrameProfiler::Counters Application::performanceCounters() const{
+    using Counter = FrameProfiler::Counter;
+    FrameProfiler::Counters counters{};
+    const auto set = [&](Counter counter, double value){
+        counters[static_cast<std::size_t>(counter)] = value;
+    };
+    const auto& scene = m_renderer->getStats();
+    const auto& shadows = m_shadowRenderer->getStats();
+    set(Counter::ColorDraws, scene.draws);
+    set(Counter::ColorTriangles, static_cast<double>(scene.triangles));
+    set(Counter::TransparentDraws, scene.transparentDraws);
+    set(Counter::ShadowDraws, shadows.draws);
+    set(Counter::ShadowTriangles, static_cast<double>(shadows.triangles));
+    set(Counter::ShadowPasses, shadows.passes);
+    set(Counter::TotalDraws, scene.draws + shadows.draws);
+    set(Counter::TotalTriangles, static_cast<double>(scene.triangles + shadows.triangles));
+    set(Counter::ScreenDraws, m_deferred->getScreenDraws());
+    set(Counter::Lights, scene.lights);
+    set(Counter::VisitedNodes, scene.visitedNodes);
+    set(Counter::CameraBounds, scene.boundsTested);
+    set(Counter::FrustumRejected, scene.subtreesRejected);
+    set(Counter::PortalRejected, scene.portalRejected);
+    set(Counter::ShadowBounds, shadows.boundsTested);
+    set(Counter::ShadowRejected, shadows.rejected);
+    const auto& cells = m_scene->getPortalGraph().getCells();
+    set(Counter::VisibleRooms,
+        static_cast<double>(std::count_if(cells.begin(), cells.end(), [&](const auto& cell){
+            return m_portalResult.visible(cell.id);
+        })));
+    set(Counter::PortalsTested, m_portalResult.portalsTested);
+    set(Counter::GBufferMiB, static_cast<double>(m_width) * m_height * 64 / (1024 * 1024));
+    return counters;
 }
 
 // Runs the isolated framebuffer and scene-behavior regression checks.

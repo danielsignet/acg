@@ -32,6 +32,31 @@ public:
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);
     static constexpr std::size_t HistorySize = 120;
 
+    enum class Counter{
+        ColorDraws,
+        ColorTriangles,
+        TransparentDraws,
+        ShadowDraws,
+        ShadowTriangles,
+        ShadowPasses,
+        TotalDraws,
+        TotalTriangles,
+        ScreenDraws,
+        Lights,
+        VisitedNodes,
+        CameraBounds,
+        FrustumRejected,
+        PortalRejected,
+        ShadowBounds,
+        ShadowRejected,
+        VisibleRooms,
+        PortalsTested,
+        GBufferMiB,
+        Count
+    };
+    static constexpr std::size_t CounterCount = static_cast<std::size_t>(Counter::Count);
+    using Counters = std::array<double, CounterCount>;
+
     struct Description{
         const char* name;
         bool gpu;
@@ -41,13 +66,17 @@ public:
         std::uint64_t sequence = 0;
         double intervalMs = 0;
         std::array<double, StageCount> cpu{}, gpu{};
+        Counters counters{};
+        bool countersValid = false;
         bool gpuReady = false;
     };
 
     struct Summary{
         std::array<double, StageCount> cpu{}, gpu{};
+        std::array<double, StageCount> latestCpu{}, latestGpu{};
+        Counters counters{};
         double frameMs = 0, p95Ms = 0;
-        unsigned samples = 0, gpuSamples = 0;
+        unsigned samples = 0, gpuSamples = 0, counterSamples = 0;
         std::uint64_t gpuLag = 0, skipped = 0;
     };
 
@@ -90,6 +119,14 @@ public:
     void beginFrame(double intervalSeconds);
     // Stores CPU measurements and leaves GPU results pending until a later frame.
     void endFrame();
+    // Updates live scene counters and includes them in the active frame's history.
+    void recordCounters(const Counters& counters);
+
+    // Returns counters from the currently displayed scene frame.
+    const Counters& getCounters() const{
+        return m_current.counters;
+    }
+
     // Averages the bounded history and computes the 95th-percentile frame interval.
     Summary summarize() const;
 
@@ -100,6 +137,8 @@ public:
 
     // Names the measured stages and identifies CPU-only work.
     static const std::array<Description, StageCount>& descriptions();
+    // Names each numeric counter in the same order as its history values.
+    static const std::array<const char*, CounterCount>& counterNames();
 
 private:
     struct Queries{

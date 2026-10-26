@@ -4,6 +4,17 @@
 #include <vr/FrameProfiler.h>
 
 namespace vr{
+// Names each numeric counter in the same order as its history values.
+const std::array<const char*, FrameProfiler::CounterCount>& FrameProfiler::counterNames(){
+    static const std::array<const char*, CounterCount> names{
+        {"Color draws", "Color triangles", "Transparent draws", "Shadow draws", "Shadow triangles",
+         "Shadow passes", "Scene draws, all passes", "Scene triangles, all passes",
+         "Screen-quad draws", "Active lights", "Visited scene nodes", "Camera bounds tested",
+         "Frustum subtrees cut", "Portal subtrees cut", "Shadow bounds tested", "Shadow bounds cut",
+         "Rooms visible", "Portals tested", "G-buffer + depth (MiB)"}};
+    return names;
+}
+
 // Names the measured stages and identifies CPU-only work.
 const std::array<FrameProfiler::Description, FrameProfiler::StageCount>&
 FrameProfiler::descriptions(){
@@ -56,6 +67,7 @@ void FrameProfiler::setEnabled(bool enabled){
     m_active = false;
     m_recording = nullptr;
     m_history.clear();
+    m_current ={};
     m_skipped = 0;
     // Preserve pending queries across toggles until their results become available.
 }
@@ -133,6 +145,14 @@ void FrameProfiler::endFrame(){
     m_active = false;
 }
 
+// Updates live scene counters and includes them in the active frame's history.
+void FrameProfiler::recordCounters(const Counters& counters){
+    if (m_enabled){
+        m_current.counters = counters;
+        m_current.countersValid = true;
+    }
+}
+
 // Starts an optional scope; disabled profiling performs no GL calls.
 FrameProfiler::Scope::Scope(FrameProfiler* profiler, Stage stage)
     : m_profiler(profiler && profiler->m_active ? profiler : nullptr), m_stage(stage){
@@ -174,6 +194,7 @@ FrameProfiler::Summary FrameProfiler::summarize() const{
     for (const auto& sample : m_history){
         intervals.push_back(sample.intervalMs);
         result.frameMs += sample.intervalMs;
+        result.latestCpu = sample.cpu;
         for (std::size_t i = 0; i < StageCount; ++i){
             result.cpu[i] += sample.cpu[i];
             if (sample.gpuReady){
@@ -181,8 +202,15 @@ FrameProfiler::Summary FrameProfiler::summarize() const{
             }
         }
         if (sample.gpuReady){
+            result.latestGpu = sample.gpu;
             ++result.gpuSamples;
             result.gpuLag = m_sequence - sample.sequence;
+        }
+        if (sample.countersValid){
+            for (std::size_t i = 0; i < CounterCount; ++i){
+                result.counters[i] += sample.counters[i];
+            }
+            ++result.counterSamples;
         }
     }
     if (!intervals.empty()){
@@ -196,6 +224,11 @@ FrameProfiler::Summary FrameProfiler::summarize() const{
     if (result.gpuSamples){
         for (auto& time : result.gpu){
             time /= result.gpuSamples;
+        }
+    }
+    if (result.counterSamples){
+        for (auto& value : result.counters){
+            value /= result.counterSamples;
         }
     }
     return result;

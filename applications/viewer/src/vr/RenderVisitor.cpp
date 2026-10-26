@@ -121,7 +121,9 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     program.set("uView", m_camera->getView());
     program.set("uProjection", m_camera->getProjection());
     const glm::mat3 linear(model);
-    if (std::abs(glm::determinant(linear)) < 1e-8f){
+    const float orientation = glm::determinant(
+        glm::mat3(glm::normalize(linear[0]), glm::normalize(linear[1]), glm::normalize(linear[2])));
+    if (!std::isfinite(orientation) || std::abs(orientation) < 1e-8f){
         throw std::runtime_error("Singular model transform");
     }
     program.set("uNormal", glm::transpose(glm::inverse(linear)));

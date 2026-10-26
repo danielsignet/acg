@@ -163,6 +163,26 @@ void run(const std::filesystem::path& path){
     check(glm::distance(glm::vec3(sample(vr::GBuffer::Normal)), transformedNormal) < 0.002f,
           "Nonuniform scale and rotation use the inverse-transpose normal transform");
     object->setMatrix(glm::scale(glm::mat4(1),{2, 2, 2}));
+    const auto referenceScale = render();
+    auto miniature = std::make_shared<vr::Transform>();
+    miniature->setMatrix(glm::scale(glm::mat4(1), glm::vec3(0.0005f)));
+    miniature->setState(objectState);
+    auto miniatureMesh = vr::GeometryFactory::createBox();
+    std::vector<glm::vec3> positions, normals;
+    std::vector<glm::vec2> coordinates;
+    for (const auto& vertex : miniatureMesh->getVertices()){
+        positions.push_back(vertex.position * 4000.0f);
+        normals.push_back(vertex.normal);
+        coordinates.push_back(vertex.texCoord);
+    }
+    miniatureMesh->setData(positions, miniatureMesh->getIndices(), normals, coordinates);
+    miniature->addChild(miniatureMesh);
+    root->addChild(miniature);
+    object->setVisible(false);
+    check(changed(referenceScale, render()) == 0,
+          "Millimeter-scale imports preserve the image and inverse-transpose normals");
+    miniature->setVisible(false);
+    object->setVisible(true);
     objectState->setUniform("uEmissive", glm::vec3(4, 2, 1));
     const auto bright = render();
     deferred.setBloom(true);

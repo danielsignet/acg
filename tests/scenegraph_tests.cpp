@@ -370,12 +370,41 @@ private:
         check(near(glm::vec3(p.draws[0].model[3]),{2, 1, 0}) &&
                   near(glm::vec3(p.draws[1].model[3]),{2, 3, 0}),
               "Reader must preserve nested local transformations");
+        auto flattened = reader.readModel("tests/data/hierarchy.dae", true);
+        Probe fp;
+        flattened->accept(fp);
+        check(flattened != model &&
+                  flattened == reader.readModel("tests/data/hierarchy.dae", true) &&
+                  model == reader.readModel("tests/data/hierarchy.dae"),
+              "Static import variants must not replace hierarchy-preserving cache entries");
+        check(fp.draws.size() < p.draws.size() &&
+                  near(flattened->getBound().getMinimum(), model->getBound().getMinimum()) &&
+                  near(flattened->getBound().getMaximum(), model->getBound().getMaximum()),
+              "Explicit flattening merges static instances while retaining world-space bounds");
+        std::size_t originalTriangles = 0, flattenedTriangles = 0;
+        for (const auto& draw : p.draws){
+            originalTriangles += draw.node->getTriangleCount();
+        }
+        for (const auto& draw : fp.draws){
+            flattenedTriangles += draw.node->getTriangleCount();
+        }
+        check(originalTriangles == flattenedTriangles,
+              "Static import keeps all triangles of the original model instances");
         reader.readModel("models/monkey.obj");
         auto crate = reader.readModel("models/texturedBox.obj");
         Probe cp;
         crate->accept(cp);
         check(!cp.draws.empty() && cp.draws[0].state.getTexture(0) != nullptr,
               "Imported diffuse texture must resolve inside the resource directory");
+        auto building = reader.readModel("models/ResidentialBuildings/ResidentialBuildings004.fbx");
+        Probe bp;
+        building->accept(bp);
+        check(!bp.draws.empty() && building->getBound().valid(),
+              "Bundled FBX buildings must retain their geometry and transforms");
+        for (const auto& draw : bp.draws){
+            check(draw.state.getTexture(0) != nullptr,
+                  "Stale author texture paths must resolve to the bundled textures directory");
+        }
         rejects([&]{ reader.readModel("models/missing.obj"); },
                 "Missing model must report an error");
         reader.registerNode("ground", vr::GeometryFactory::createGround());
@@ -383,6 +412,14 @@ private:
         reader.registerNode("torus", vr::GeometryFactory::createTorus(64, 24));
         reader.registerNode("alphatest-panel", vr::GeometryFactory::createAlphaTestPanel());
         reader.registerNode("sphere-low", vr::GeometryFactory::createSphere(8, 6));
+        const auto miniature = reader.readScene("tests/data/small-scale.xml");
+        Probe mp;
+        miniature->getRoot()->accept(mp);
+        check(
+            mp.draws.size() == 1 && std::abs(mp.draws[0].model[0][0] - 0.0005f) < 1e-8f,
+            "Small uniform scales remain invertible and must not be rejected by their determinant");
+        rejects([&]{ reader.readScene("tests/data/singular-scale.xml"); },
+                "A zero scale component must still be rejected");
         auto scene = reader.readScene("scenes/demo.xml");
         check(scene->findTransform("alphatest") != nullptr,
               "The alpha-test demonstration must be addressable by its feature name");

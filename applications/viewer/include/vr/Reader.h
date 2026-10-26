@@ -1,5 +1,6 @@
 #pragma once
 #include "SceneGraph.h"
+#include <utility>
 
 namespace vr{
 class Reader{
@@ -8,8 +9,8 @@ public:
     explicit Reader(std::filesystem::path root) : m_root(std::move(root)){
     }
 
-    // Loads a model hierarchy once and shares cached roots while they remain in use.
-    std::shared_ptr<Node> readModel(const std::filesystem::path& file);
+    // Shares imported hierarchies, or explicitly flattened static model variants.
+    std::shared_ptr<Node> readModel(const std::filesystem::path& file, bool flatten = false);
 
     // Builds an XML scene using this reader's shared resource caches.
     std::shared_ptr<Scene> readScene(const std::filesystem::path& file);
@@ -33,7 +34,7 @@ private:
     std::filesystem::path resolve(const std::filesystem::path& file) const;
     std::filesystem::path m_root;
     std::map<std::string, std::shared_ptr<Node>> m_assets;
-    std::map<std::string, std::weak_ptr<Node>> m_models;
+    std::map<std::pair<std::string, bool>, std::weak_ptr<Node>> m_models;
     std::map<std::string, std::weak_ptr<Texture>> m_textures;
 };
 } // namespace vr

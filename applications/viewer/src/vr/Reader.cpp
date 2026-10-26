@@ -41,14 +41,14 @@ std::shared_ptr<Node> Reader::getAsset(const std::string& id) const{
     return i->second;
 }
 
-// Loads a model hierarchy once and shares cached roots while they remain in use.
-std::shared_ptr<Node> Reader::readModel(const std::filesystem::path& file){
+// Caches each import variant independently while retaining hierarchy by default.
+std::shared_ptr<Node> Reader::readModel(const std::filesystem::path& file, bool flatten){
     const auto path = resolve(file);
-    const auto key = path.generic_string();
+    const auto key = std::make_pair(path.generic_string(), flatten);
     if (auto cached = m_models[key].lock()){
         return cached;
     }
-    auto model = ModelReader(*this).read(path);
+    auto model = ModelReader(*this).read(path, flatten);
     m_models[key] = model;
     return model;
 }

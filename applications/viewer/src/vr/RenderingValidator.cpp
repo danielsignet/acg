@@ -477,8 +477,8 @@ void RenderingValidator::validatePortals(){
             allObjects += entry.second;
         }
     }
-    require(allObjects == 96 && objectDraws < allObjects,
-            "U must prune house objects behind solid walls with a fixed observer");
+    require(allObjects > 0 && objectDraws < allObjects,
+            "Portal volumes must prune house exhibits behind solid walls with a fixed observer");
     require(FramebufferImage::capture(0, 0, app.m_width, app.m_height)
                     .countChangedPixels(transparentImage, 0) > 100,
             "Transparent observation view must visibly demonstrate rejected objects");

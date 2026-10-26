@@ -156,15 +156,17 @@ void run(){
     check(profiler.getEnabled() && profiler.getHistory().empty() &&
               profiler.summarize().counterSamples == 0,
           "Reset clears averages while leaving profiling enabled");
-    profiler.beginFrame(0.012);
+    profiler.beginFrame(0.25);
     vr::FrameProfiler::Counters fresh{};
     fresh.fill(7);
     profiler.recordCounters(fresh);
-    profiler.endFrame();
+    profiler.endFrame(0.012);
     const auto reset = profiler.summarize();
     check(reset.samples == 1 && reset.gpuSamples == 0 && reset.frameMs == 12 &&
               reset.counters == fresh && profiler.getHistory().back().sequence > previousSequence,
           "Reset discards old counters, timings and delayed GPU results without reusing frame IDs");
+    check(reset.cpu[static_cast<std::size_t>(Stage::Frame)] == 12,
+          "Frame budgets use current wall time rather than the previous configuration's interval");
     profiler.setEnabled(false);
     profiler.setEnabled(true);
     check(profiler.getHistory().empty(), "Reopening starts a fresh measurement window");

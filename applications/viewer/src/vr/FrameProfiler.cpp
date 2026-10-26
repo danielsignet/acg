@@ -165,10 +165,14 @@ void FrameProfiler::beginFrame(double intervalSeconds){
     m_active = true;
 }
 
-// Stores CPU measurements and leaves GPU results pending until a later frame.
-void FrameProfiler::endFrame(){
+// Stores this frame's wall time and leaves GPU results pending until a later frame.
+void FrameProfiler::endFrame(double frameSeconds){
     if (!m_active){
         return;
+    }
+    if (frameSeconds > 0){
+        m_current.intervalMs = frameSeconds * 1000;
+        m_current.cpu[static_cast<std::size_t>(Stage::Frame)] = m_current.intervalMs;
     }
     if (m_recording){
         m_recording->pending = m_recording->last != 0;

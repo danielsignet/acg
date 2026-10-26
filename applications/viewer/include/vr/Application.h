@@ -87,6 +87,9 @@ private:
     // Draws the application HUD after rendering the 3D scene.
     void overlay();
 
+    // Collects submission, culling and attachment counters for this scene frame.
+    FrameProfiler::Counters performanceCounters() const;
+
     // Exports a debug graph and keeps the scene usable if writing fails.
     void exportGraph(const std::filesystem::path& path);
 

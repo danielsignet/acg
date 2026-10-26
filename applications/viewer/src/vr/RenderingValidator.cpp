@@ -67,6 +67,11 @@ void RenderingValidator::validatePerformance(){
                 app.m_bufferPreviews == previews && !app.m_frozenEye,
             "Performance inspection preserves lights, culling, previews and the live camera");
     const auto& shadows = app.m_shadowRenderer->getStats();
+    const auto averages = app.m_profiler.summarize();
+    require(averages.counterSamples == 1 &&
+                averages.counters[static_cast<std::size_t>(FrameProfiler::Counter::ColorDraws)] ==
+                    app.m_renderer->getStats().draws,
+            "The performance view averages the actual rendered scene counters");
     require(shadows.boundsTested == shadows.draws + shadows.rejected &&
                 app.m_deferred->getScreenDraws() == 3 &&
                 app.m_renderer->getStats().visitedNodes > 0,

@@ -282,6 +282,50 @@ void run(const std::filesystem::path& path){
         }
     }
     box->setVisible(true);
+    // Ambient illumination is independent of direct shadow maps, including mesh contacts.
+    const auto sunDiffuse = sun->getDiffuse(), pointDiffuse = point->getDiffuse();
+    const auto sunAmbient = sun->getAmbient(), pointAmbient = point->getAmbient();
+    sun->setDiffuse({0, 0, 0});
+    point->setDiffuse({0, 0, 0});
+    sun->setAmbient({0.2f, 0.2f, 0.2f});
+    point->setAmbient({0.2f, 0.2f, 0.2f});
+    state->setLightEnabled(0, true);
+    state->setLightEnabled(1, true);
+    const auto ambientOnly = render(false, false);
+    for (bool filtered :{false, true}){
+        check(changed(ambientOnly, render(true, false, nullptr, filtered)) == 0,
+              "Shadow maps do not put mesh facets or contact seams into ambient lighting");
+    }
+    sun->setDiffuse(sunDiffuse);
+    point->setDiffuse(pointDiffuse);
+    sun->setAmbient(sunAmbient);
+    point->setAmbient(pointAmbient);
+    // The adjacent ground must not create sawtooth self-shadows on a sunlit box face.
+    const auto originalView = camera->getView();
+    camera->setLookAt({3, 2, 6},{0, 0.5f, 0});
+    state->setLightEnabled(0, true);
+    state->setLightEnabled(1, false);
+    const auto contactReference = render(false, false);
+    const auto contactVP = camera->getProjection() * camera->getView();
+    for (bool filtered :{false, true}){
+        const auto contactShadowed = render(true, false, nullptr, filtered);
+        int maximumError = 0;
+        for (float y :{0.05f, 0.1f, 0.2f, 0.4f}){
+            for (unsigned column = 0; column < 60; ++column){
+                const auto clip = contactVP * glm::vec4(-0.8f + column * 1.6f / 59, y, 1, 1);
+                const auto ndc = glm::vec3(clip) / clip.w;
+                const auto x = static_cast<int>((ndc.x * 0.5f + 0.5f) * width);
+                const auto row = static_cast<int>((ndc.y * 0.5f + 0.5f) * height);
+                const auto index = (row * width + x) * 3;
+                const int error =
+                    static_cast<int>(contactReference[index]) - contactShadowed[index];
+                maximumError = std::max(maximumError, error);
+            }
+        }
+        std::cout << "Box contact shadow error: " << maximumError << '\n';
+        check(maximumError <= 2, "Sunlit box faces stay free of ground-contact shadow seams");
+    }
+    camera->setView(originalView);
     for (unsigned selected = 0; selected < 3; ++selected){
         state->setLightEnabled(0, selected != 1);
         state->setLightEnabled(1, selected != 0);

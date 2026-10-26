@@ -77,6 +77,8 @@ void run(const std::filesystem::path& path){
     const auto positions = deferred.getGBuffer().read(vr::GBuffer::Position);
     unsigned darkened = 0;
     float minimum = 1;
+    float contactVisibility = 0, surroundingVisibility = 0;
+    unsigned contactPixels = 0, surroundingPixels = 0;
     for (std::size_t i = 0; i < values.size(); i += 4){
         const float visibility = values[i + 3];
         check(std::isfinite(visibility) && visibility >= 0 && visibility <= 1,
@@ -87,11 +89,29 @@ void run(const std::filesystem::path& path){
             minimum = std::min(minimum, visibility);
             check(std::abs(values[i] - 0.7f) < 0.002f,
                   "AO resolve preserves the material's original ambient RGB");
+            if (std::abs(positions[i + 1]) < 0.001f){
+                const glm::vec2 offset = glm::max(
+                    glm::abs(glm::vec2(positions[i], positions[i + 2])) - 1.0f, glm::vec2(0));
+                const float distance = glm::length(offset);
+                if (distance > 0.05f && distance < 0.6f){
+                    contactVisibility += visibility;
+                    ++contactPixels;
+                } else if (distance > 1.8f){
+                    surroundingVisibility += visibility;
+                    ++surroundingPixels;
+                }
+            }
         }
         darkened += static_cast<int>(original[i]) - occluded[i] > 2;
     }
     check(minimum < 0.9f && darkened > 30,
           "A box resting on a floor produces visible contact occlusion");
+    std::cout << "Contact visibility: " << contactVisibility / contactPixels
+              << "; surrounding floor: " << surroundingVisibility / surroundingPixels << '\n';
+    check(contactPixels > 100 && contactVisibility / contactPixels < 0.8f,
+          "Contact occlusion remains clearly visible across a band around the box");
+    check(surroundingPixels > 100 && surroundingVisibility / surroundingPixels > 0.98f,
+          "AO leaves the floor beyond its world-space radius unoccluded");
     check(deferred.getScreenDraws() == 5, "Enabled AO uses one sampling and one resolve pass");
     deferred.setView(vr::BufferView::Occlusion);
     const auto debug = render();
@@ -109,6 +129,17 @@ void run(const std::filesystem::path& path){
     for (std::size_t i = 3; i < flat.size(); i += 4){
         check(flat[i] > 0.98f, "An isolated flat floor does not occlude itself");
     }
+    const auto originalView = camera->getView();
+    for (const auto& eye :{glm::vec3(0, 0.3f, 8), glm::vec3(0, 3, 25)}){
+        camera->setLookAt(eye,{0, 0, 0});
+        render();
+        const auto grazing = ambient(deferred);
+        for (std::size_t i = 3; i < grazing.size(); i += 4){
+            check(grazing[i] > 0.98f,
+                  "Distant and grazing flat surfaces retain clean AO without depth stripes");
+        }
+    }
+    camera->setView(originalView);
     object->setVisible(true);
     state->setLighting(false);
     deferred.setAmbientOcclusion(false);

@@ -3,7 +3,7 @@ in vec2 texCoord;
 out vec4 fragmentColor;
 uniform sampler2D uPosition, uNormal;
 uniform mat4 uView, uProjection;
-uniform vec3 uSamples[32];
+uniform vec3 uSamples[64];
 
 // Samples a normal-oriented hemisphere in view space using world-space surface buffers.
 void main(){
@@ -23,9 +23,9 @@ void main(){
     }
     tangent = normalize(tangent);
     mat3 basis = mat3(tangent, cross(normal, tangent), normal);
-    const float radius = 0.9, bias = 0.025;
+    const float radius = 1.5, bias = 0.025;
     float blocked = 0.0;
-    for (int i = 0; i < 32; ++i){
+    for (int i = 0; i < 64; ++i){
         vec3 samplePosition = position + basis * uSamples[i] * radius;
         vec4 clip = uProjection * vec4(samplePosition, 1.0);
         if (clip.w <= 0.0){
@@ -39,10 +39,15 @@ void main(){
         if (observed.w == 0.0){
             continue;
         }
-        float depth = (uView * vec4(observed.xyz, 1.0)).z;
-        float separation = abs(position.z - depth);
+        vec3 observedPosition = (uView * vec4(observed.xyz, 1.0)).xyz;
+        // Reject the receiver's own plane despite nearest-texel depth quantization.
+        if (dot(normal, observedPosition - position) <= bias){
+            continue;
+        }
+        float depth = observedPosition.z;
+        float separation = length(position - observedPosition);
         float range = 1.0 - smoothstep(radius * 0.5, radius, separation);
         blocked += depth >= samplePosition.z + bias ? range : 0.0;
     }
-    fragmentColor = vec4(vec3(clamp(1.0 - blocked / 32.0, 0.0, 1.0)), 1.0);
+    fragmentColor = vec4(vec3(clamp(1.0 - blocked / 64.0, 0.0, 1.0)), 1.0);
 }

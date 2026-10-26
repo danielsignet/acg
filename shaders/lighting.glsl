@@ -28,12 +28,15 @@ float sunVisibility(vec3 position, vec3 normal){
     if (any(lessThan(p, vec3(0))) || any(greaterThan(p, vec3(1)))){
         return 1.0;
     }
-    float bias = 0.00004;
     vec3 plane = uSunPlane * normal;
     vec2 gradient = abs(plane.z) > 1e-6 ? -plane.xy / plane.z : vec2(0);
     vec2 texel = 1.0 / vec2(textureSize(uSunShadow, 0));
     float visible = 0.0;
     int radius = uShadowPCF ? 1 : 0;
+    // Cover the filter footprint where adjacent faces invalidate plane extrapolation.
+    vec3 lightDirection = normalize(uLights[uSunShadowIndex].position.xyz);
+    float grazing = clamp(2.0 * (1.0 - abs(dot(normal, lightDirection))), 0.0, 1.0);
+    float bias = 0.00004 + dot(abs(gradient), texel) * (float(radius) + 0.5) * grazing * grazing;
     for (int y = -radius; y <= radius; ++y){
         for (int x = -radius; x <= radius; ++x){
             vec2 uv = (floor((p.xy + vec2(x, y) * texel) / texel) + 0.5) * texel;
@@ -173,10 +176,10 @@ vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Materia
                 }
             }
             result +=
-                attenuation * visibility *
+                attenuation *
                 (surface.rgb * uLights[i].ambient * ambientVisibility +
-                 surface.rgb * uLights[i].diffuse * diffuse +
-                 material.specular * uLights[i].specular * specular);
+                 visibility * (surface.rgb * uLights[i].diffuse * diffuse +
+                               material.specular * uLights[i].specular * specular));
         }
         if (toon){
             result *= smoothstep(0.05, 0.3, abs(dot(n, viewDirection)));

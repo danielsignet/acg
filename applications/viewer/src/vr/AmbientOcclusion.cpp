@@ -12,11 +12,13 @@ AmbientOcclusion::AmbientOcclusion(const std::filesystem::path& root){
     m_resolveProgram =
         std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "ssao-resolve.fs");
     m_sampleProgram->use();
-    constexpr unsigned samples = 32;
+    constexpr unsigned samples = 64;
     for (unsigned i = 0; i < samples; ++i){
         const float t = (static_cast<float>(i) + 0.5f) / samples;
         const float angle = static_cast<float>(i) * 2.39996323f;
-        const float z = 0.15f + 0.85f * t;
+        // Decouple elevation from radius so distant samples also reach nearby side walls.
+        const float elevation = (static_cast<float>((i * 13) % samples) + 0.5f) / samples;
+        const float z = 0.05f + 0.95f * elevation;
         const float radial = std::sqrt(1 - z * z);
         const float scale = 0.12f + 0.88f * t * t;
         m_sampleProgram->set("uSamples[" + std::to_string(i) + "]",
@@ -65,7 +67,6 @@ void AmbientOcclusion::render(const Camera& camera, const GBuffer& gbuffer){
     m_resolveProgram->set("uNormal", 1);
     m_resolveProgram->set("uRawAO", 2);
     m_resolveProgram->set("uAmbient", 3);
-    m_resolveProgram->set("uView", camera.getView());
     m_raw->getTexture()->apply(2);
     gbuffer.get(GBuffer::Ambient)->apply(3);
     m_resolved->bind();

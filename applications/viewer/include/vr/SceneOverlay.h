@@ -19,7 +19,10 @@ public:
     void click(Application& application, float x, float y);
 
 private:
-    // Draws measured pipeline timings, frame history and submission/culling counters.
+    // Shares the reset button bounds between drawing and click handling.
+    static glm::vec4 performanceResetRectangle();
+
+    // Draws a compact CPU/GPU percentage breakdown and essential scene counters.
     void drawPerformance(const Application& application);
 
     // Draws the application title and current rendering statistics.

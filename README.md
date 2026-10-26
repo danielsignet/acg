@@ -45,7 +45,7 @@ WSL requires a graphical session such as WSLg.
 | L or Flashlight | Toggle the camera-mounted flashlight |
 | Arrows / Page Up / Page Down | Move the lights along X/Z and Y |
 | C or Culling | Toggle frustum and portal culling |
-| F1 | Show/hide performance: CPU/GPU pass timings, frame history, draws, triangles and culling |
+| F1 | Show/hide performance: CPU/GPU time and percentage breakdown; Reset averages clears measurements after changing settings |
 | F | Freeze/resume the culling camera and show/hide its debug volumes |
 | View | Switch between patio and house |
 | Space | Reset the camera |

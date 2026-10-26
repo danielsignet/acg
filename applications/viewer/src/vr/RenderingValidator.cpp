@@ -76,6 +76,25 @@ void RenderingValidator::validatePerformance(){
                 app.m_deferred->getScreenDraws() == 3 &&
                 app.m_renderer->getStats().visitedNodes > 0,
             "Profiler counters describe actual shadow rejection and screen submissions");
+    app.handleKey(GLFW_KEY_J);
+    app.handleClick(450, 90);
+    require(app.m_profiler.getEnabled() && app.m_profiler.getHistory().empty() &&
+                !app.m_shadowsEnabled && app.m_pointLights == lights &&
+                app.m_frustumCulling == culling,
+            "Reset averages button clears measurements without changing render settings");
+    app.m_profiler.beginFrame(0.02);
+    app.render();
+    app.m_profiler.endFrame();
+    const auto withoutShadows = app.m_profiler.summarize();
+    require(
+        withoutShadows.samples == 1 &&
+            withoutShadows
+                    .counters[static_cast<std::size_t>(FrameProfiler::Counter::ShadowDraws)] == 0 &&
+            withoutShadows
+                    .counters[static_cast<std::size_t>(FrameProfiler::Counter::ShadowPasses)] == 0,
+        "Fresh averages reflect shadows disabled without mixing the previous configuration");
+    app.handleKey(GLFW_KEY_J);
+    app.handleClick(450, 90);
     app.resize(960, 600);
     app.render();
     app.reload();

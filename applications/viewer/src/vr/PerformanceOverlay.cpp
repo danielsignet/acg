@@ -1,145 +1,132 @@
+#include <vr/Application.h>
+#include <vr/SceneOverlay.h>
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
-#include <vr/Application.h>
-#include <vr/SceneOverlay.h>
 
 namespace vr{
 namespace{
-// Formats measured milliseconds and memory without unstable decimal widths.
+constexpr float panelWidth = 584;
+constexpr float panelHeight = 416;
+const std::array<glm::vec4, FrameProfiler::SliceCount> colors{{{1, 0.72f, 0.3f, 1},
+                                                               {0.76f, 0.6f, 1, 1},
+                                                               {0.3f, 0.95f, 0.8f, 1},
+                                                               {0.4f, 0.75f, 1, 1},
+                                                               {1, 0.55f, 0.7f, 1},
+                                                               {0.65f, 0.9f, 0.4f, 1},
+                                                               {0.65f, 0.72f, 0.8f, 1},
+                                                               {0.9f, 0.92f, 0.95f, 1}}};
+
+// Formats the few timing and percentage values shown in the compact view.
 std::string decimal(double value, int precision = 2){
     std::ostringstream text;
     text << std::fixed << std::setprecision(precision) << value;
     return text.str();
 }
 
-// Groups whole and fractional counts using the same formatting in both columns.
-std::string count(double value, int precision = 0){
-    auto text = decimal(value, precision);
-    const auto point = text.find('.');
-    const auto digits = point == std::string::npos ? text.size() : point;
-    for (int i = static_cast<int>(digits) - 3; i > 0; i -= 3){
-        text.insert(static_cast<std::size_t>(i), ",");
+// Keeps scene counts short enough to compare without distracting from timings.
+std::string compact(double value){
+    if (value >= 1e6){
+        return decimal(value / 1e6, 2) + "M";
     }
-    return text;
+    if (value >= 1000){
+        return decimal(value / 1000, 1) + "k";
+    }
+    return decimal(value, 0);
 }
 } // namespace
 
-// Draws measured pipeline timings, frame history and submission/culling counters.
+// Shares the reset button bounds between drawing and click handling.
+glm::vec4 SceneOverlay::performanceResetRectangle(){
+    return{16 + panelWidth - 164, HeaderHeight + 20, 148, 28};
+}
+
+// Draws a compact CPU/GPU percentage breakdown and essential scene counters.
 void SceneOverlay::drawPerformance(const Application& app){
     const auto& profiler = app.m_profiler;
-    const auto timings = profiler.summarize();
-    const auto& scene = app.m_renderer->getStats();
-    const float width = static_cast<float>(app.m_width);
+    const auto summary = profiler.summarize();
+    const auto slices = FrameProfiler::breakdown(summary);
     const float top = HeaderHeight + 12.0f;
-    const float bottom = static_cast<float>(app.m_height - FooterHeight - 8);
-    const float middle = width * 0.5f;
-    const float row = std::clamp((bottom - top - 142) / FrameProfiler::StageCount, 16.0f, 24.0f);
-    const float font = row < 20 ? 12.0f : 14.0f;
-    const glm::vec4 foreground(0.95f, 0.98f, 1, 1), muted(0.8f, 0.86f, 0.92f, 1);
-    const glm::vec4 cyan(0.32f, 1, 0.85f, 1), gold(1, 0.85f, 0.5f, 1);
+    const glm::vec4 foreground(0.94f, 0.97f, 1, 1), muted(0.8f, 0.86f, 0.92f, 1);
     const auto text = [&](const std::string& value, float x, float y, float size,
                           const glm::vec4& color){
         m_text.draw(value, x + 1, y + 1, size,{0, 0, 0, 0.96f});
         m_text.draw(value, x, y, size, color);
     };
-    m_text.rectangle(16, top, width - 32, bottom - top,{0.025f, 0.045f, 0.065f, 0.28f});
-    text("PERFORMANCE", 32, top + 8, 20, foreground);
-    text("F1 / Esc: close", width - 155, top + 12, 12, muted);
-    const auto fps = timings.frameMs > 0 ? 1000 / timings.frameMs : 0;
-    const auto currentMs =
-        profiler.getHistory().empty() ? 0 : profiler.getHistory().back().intervalMs;
-    const auto currentFps = currentMs > 0 ? 1000 / currentMs : 0;
-    text("FPS " + decimal(currentFps, 1) + " / avg " + decimal(fps, 1) + "   |   frame " +
-             decimal(currentMs) + " / avg " + decimal(timings.frameMs) + " ms   |   P95 " +
-             decimal(timings.p95Ms) + " ms   |   " + std::to_string(app.m_width) + " x " +
-             std::to_string(app.m_height) + "   |   VSync " + (app.m_vsync ? "ON" : "OFF"),
-         32, top + 37, 12, cyan);
+    m_text.rectangle(16, top, panelWidth, panelHeight,{0.025f, 0.045f, 0.065f, 0.28f});
+    text("PERFORMANCE", 32, top + 10, 18, foreground);
+    const auto reset = performanceResetRectangle();
+    m_text.rectangle(reset.x, reset.y, reset.z, reset.w,{0.08f, 0.2f, 0.24f, 0.8f});
+    text("Reset averages", reset.x + 17, reset.y + 5, 12, foreground);
+    const auto fps = summary.frameMs > 0 ? decimal(1000 / summary.frameMs, 1) : "...";
+    text("AVG  " + fps + " FPS   |   frame " + decimal(summary.frameMs) + " ms   |   P95 " +
+             decimal(summary.p95Ms) + " ms",
+         32, top + 44, 13, foreground);
 
-    text("PIPELINE", 32, top + 66, 12, muted);
-    text("CPU ms: now / avg", middle - 226, top + 66, 10, cyan);
-    text("GPU ms: now / avg", middle - 112, top + 66, 10, gold);
-    const auto& descriptions = FrameProfiler::descriptions();
-    const auto renderStage = static_cast<std::size_t>(FrameProfiler::Stage::Render);
-    for (std::size_t i = 0; i < descriptions.size(); ++i){
-        const float y = top + 86 + static_cast<float>(i) * row;
-        const bool aggregate = i == 0 || i == renderStage;
-        if (aggregate){
-            m_text.rectangle(26, y - 2, middle - 42, row,{0.065f, 0.105f, 0.14f, 0.25f});
+    const double cpuTotal = summary.cpu[static_cast<std::size_t>(FrameProfiler::Stage::Frame)];
+    const double gpuTotal = summary.gpu[static_cast<std::size_t>(FrameProfiler::Stage::Render)];
+    const auto bar = [&](float y, bool gpu){
+        const bool available = gpu ? summary.gpuSamples > 0 : summary.samples > 0;
+        const auto time = available ? decimal(gpu ? gpuTotal : cpuTotal) + " ms"
+                          : gpu && !profiler.getGpuSupported() ? "N/A"
+                                                               : "...";
+        text(std::string(gpu ? "GPU  " : "CPU  ") + time, 32, y - 2, 11, foreground);
+        constexpr float left = 128, width = panelWidth - 144;
+        m_text.rectangle(left, y, width, 13,{0.05f, 0.08f, 0.12f, 0.35f});
+        float x = left;
+        if (available){
+            for (std::size_t i = 0; i < slices.size(); ++i){
+                const auto& slice = slices[i];
+                const float fraction =
+                    static_cast<float>(gpu ? slice.gpuPercent : slice.cpuPercent);
+                const float segment = std::min(width * fraction / 100, left + width - x);
+                if (segment > 0){
+                    m_text.rectangle(x, y, segment, 13, colors[i]);
+                    x += segment;
+                }
+            }
         }
-        const auto& description = descriptions[i];
-        text(description.name, 32, y, font, aggregate ? foreground : muted);
-        text(timings.samples ? decimal(timings.latestCpu[i]) + " / " + decimal(timings.cpu[i])
+    };
+    bar(top + 76, false);
+    bar(top + 100, true);
+
+    text("WHERE THE TIME GOES", 32, top + 126, 10, muted);
+    text("CPU ms / %", 350, top + 126, 10, muted);
+    text("GPU ms / %", 468, top + 126, 10, muted);
+    for (std::size_t i = 0; i < slices.size(); ++i){
+        const auto& slice = slices[i];
+        const float y = top + 148 + static_cast<float>(i) * 20;
+        m_text.rectangle(32, y + 3, 8, 8, colors[i]);
+        text(slice.name, 48, y, 12, foreground);
+        text(summary.samples ? decimal(slice.cpuMs) + " / " + decimal(slice.cpuPercent, 1) + "%"
                              : "...",
-             middle - 226, y, font, cyan);
-        const auto gpu = !description.gpu              ? "-"
+             350, y, 12, colors[i]);
+        const bool cpuOnly = i == 1 || i == 6;
+        const auto gpu = cpuOnly                       ? "-"
                          : !profiler.getGpuSupported() ? "N/A"
-                         : !timings.gpuSamples
+                         : !summary.gpuSamples
                              ? "..."
-                             : decimal(timings.latestGpu[i]) + " / " + decimal(timings.gpu[i]);
-        text(gpu, middle - 112, y, font, gold);
+                             : decimal(slice.gpuMs) + " / " + decimal(slice.gpuPercent, 1) + "%";
+        text(gpu, 468, y, 12, colors[i]);
     }
 
-    text("SCENE / CULLING", middle + 16, top + 66, 12, muted);
-    text("Now", width - 192, top + 66, 12, foreground);
-    text("Avg", width - 99, top + 66, 12, cyan);
-    const float counterRow =
-        std::clamp((bottom - top - 168) / FrameProfiler::CounterCount, 13.0f, 22.0f);
-    const float counterFont = counterRow < 20 ? 11.0f : 13.0f;
-    const auto& counters = profiler.getCounters();
-    const auto& names = FrameProfiler::counterNames();
-    for (std::size_t i = 0; i < names.size(); ++i){
-        const float y = top + 86 + static_cast<float>(i) * counterRow;
-        const int precision =
-            i == static_cast<std::size_t>(FrameProfiler::Counter::GBufferMiB) ? 1 : 0;
-        text(names[i], middle + 16, y, counterFont, muted);
-        text(count(counters[i], precision), width - 192, y, counterFont, foreground);
-        text(timings.counterSamples ? count(timings.counters[i], 1) : "...", width - 99, y,
-             counterFont, cyan);
-    }
-    const float stateTop = top + 92 + FrameProfiler::CounterCount * counterRow;
-    text(std::string("Frustum ") + (app.m_frustumCulling ? "ON" : "OFF") + " | Portals " +
-             (app.m_portalCulling ? "ON" : "OFF") + " | Frozen " + (app.m_frozenEye ? "YES" : "NO"),
-         middle + 16, stateTop, 10, muted);
-    std::string levels;
-    for (const auto& entry : scene.lodLevels){
-        if (!levels.empty()){
-            levels += ", ";
-        }
-        levels += std::to_string(entry.second);
-    }
-    text("Origin: " + app.m_portalResult.origin.substr(0, 20) +
-             " | Rooms: " + std::to_string(app.m_scene->getPortalGraph().getCells().size()) +
-             " | LOD: " + (levels.empty() ? "-" : levels.substr(0, 20)),
-         middle + 16, stateTop + 14, 10, muted);
-
-    // Keep the chart legible even at the minimum supported window size.
-    const float chartTop = top + 86 + FrameProfiler::StageCount * row + 5;
-    const float chartHeight = std::max(8.0f, bottom - chartTop - 39);
-    const float chartWidth = middle - 48;
-    const float limit = std::max(33.34f, static_cast<float>(timings.p95Ms * 1.2));
-    m_text.rectangle(32, chartTop, chartWidth, chartHeight,{0.04f, 0.075f, 0.1f, 0.25f});
-    const float barWidth = chartWidth / FrameProfiler::HistorySize;
-    std::vector<glm::vec4> fast, slow;
-    std::size_t index = 0;
-    for (const auto& sample : profiler.getHistory()){
-        const float height =
-            std::min(chartHeight, static_cast<float>(sample.intervalMs) / limit * chartHeight);
-        (sample.intervalMs > 16.67 ? slow : fast)
-            .push_back({32 + static_cast<float>(index++) * barWidth,
-                        chartTop + chartHeight - height, std::max(1.0f, barWidth - 1), height});
-    }
-    m_text.rectangles(fast, cyan);
-    m_text.rectangles(slow, gold);
-    const float budget = chartTop + chartHeight * (1 - 16.67f / limit);
-    m_text.rectangle(32, budget, chartWidth, 1,{0.4f, 0.55f, 0.65f, 0.8f});
-    text("120 frames | line: 16.67 ms (60 FPS)", 34, bottom - 35, 10, muted);
-    text("GPU delay: " + std::to_string(timings.gpuLag) +
-             " frames | skipped: " + std::to_string(timings.skipped) +
-             " | avg: " + std::to_string(timings.samples) + "/120 frames",
-         middle + 16, bottom - 35, 10, muted);
-    text("Nested totals overlap. GPU is elapsed time; CPU includes driver work. Triangles "
-         "are submitted, before GPU clipping; scene counts exclude HUD/debug/quads.",
-         32, bottom - 17, 10, muted);
+    const auto value = [&](FrameProfiler::Counter counter){
+        return summary.counters[static_cast<std::size_t>(counter)];
+    };
+    using Counter = FrameProfiler::Counter;
+    text("Avg draws: " + compact(value(Counter::ColorDraws)) + " color + " +
+             compact(value(Counter::ShadowDraws)) +
+             " shadow   |   Triangles: " + compact(value(Counter::TotalTriangles)),
+         32, top + 320, 11, muted);
+    text("Culling: " + compact(value(Counter::FrustumRejected) + value(Counter::PortalRejected)) +
+             " subtrees cut   |   Rooms: " + decimal(value(Counter::VisibleRooms), 1) + "/" +
+             std::to_string(app.m_scene->getPortalGraph().getCells().size()) + "   |   Shadows " +
+             (app.m_shadowsEnabled ? "ON" : "OFF"),
+         32, top + 340, 11, muted);
+    text("Averaging " + std::to_string(summary.samples) +
+             "/120 frames. Reset after changing settings.",
+         32, top + 372, 11, foreground);
+    text("CPU: whole frame incl. swap. GPU: elapsed render time incl. gaps. F1 / Esc: close.", 32,
+         top + 393, 9, muted);
 }
 } // namespace vr

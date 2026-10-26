@@ -1,20 +1,10 @@
 #include <algorithm>
 #include <cmath>
+#include <initializer_list>
 #include <vector>
 #include <vr/FrameProfiler.h>
 
 namespace vr{
-// Names each numeric counter in the same order as its history values.
-const std::array<const char*, FrameProfiler::CounterCount>& FrameProfiler::counterNames(){
-    static const std::array<const char*, CounterCount> names{
-        {"Color draws", "Color triangles", "Transparent draws", "Shadow draws", "Shadow triangles",
-         "Shadow passes", "Scene draws, all passes", "Scene triangles, all passes",
-         "Screen-quad draws", "Active lights", "Visited scene nodes", "Camera bounds tested",
-         "Frustum subtrees cut", "Portal subtrees cut", "Shadow bounds tested", "Shadow bounds cut",
-         "Rooms visible", "Portals tested", "G-buffer + depth (MiB)"}};
-    return names;
-}
-
 // Names the measured stages and identifies CPU-only work.
 const std::array<FrameProfiler::Description, FrameProfiler::StageCount>&
 FrameProfiler::descriptions(){
@@ -64,12 +54,58 @@ void FrameProfiler::setEnabled(bool enabled){
         }
     }
     m_enabled = enabled;
+    resetAverages();
+}
+
+// Resets between frames without changing settings or waiting for GPU results.
+void FrameProfiler::resetAverages(){
     m_active = false;
     m_recording = nullptr;
     m_history.clear();
     m_current ={};
     m_skipped = 0;
-    // Preserve pending queries across toggles until their results become available.
+    // Unique frame IDs prevent pending results from entering the new history.
+}
+
+// Groups nonoverlapping scopes and accounts for remaining time without counting totals twice.
+std::array<FrameProfiler::Slice, FrameProfiler::SliceCount>
+FrameProfiler::breakdown(const Summary& summary){
+    std::array<Slice, SliceCount> slices{{{"Shadows"},
+                                          {"Visibility"},
+                                          {"G-buffer geometry"},
+                                          {"Lighting / transparency"},
+                                          {"Post-processing / output"},
+                                          {"HUD / debug"},
+                                          {"Swap / VSync wait"},
+                                          {"Other / gaps"}}};
+    const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
+        for (const auto stage : stages){
+            const auto index = static_cast<std::size_t>(stage);
+            slices[slice].cpuMs += summary.cpu[index];
+            slices[slice].gpuMs += summary.gpu[index];
+        }
+    };
+    add(0,{Stage::Shadows});
+    add(1,{Stage::Portals, Stage::Lights, Stage::Culling});
+    add(2,{Stage::Geometry});
+    add(3,{Stage::Lighting, Stage::Transparency});
+    add(4,{Stage::Bloom, Stage::DepthOfField, Stage::Composite, Stage::Present});
+    add(5,{Stage::Debug, Stage::Overlay});
+    add(6,{Stage::Swap});
+    const double cpu = summary.cpu[static_cast<std::size_t>(Stage::Frame)];
+    const double gpu = summary.gpu[static_cast<std::size_t>(Stage::Render)];
+    double measuredCpu = 0, measuredGpu = 0;
+    for (const auto& slice : slices){
+        measuredCpu += slice.cpuMs;
+        measuredGpu += slice.gpuMs;
+    }
+    slices.back().cpuMs = std::max(0.0, cpu - measuredCpu);
+    slices.back().gpuMs = std::max(0.0, gpu - measuredGpu);
+    for (auto& slice : slices){
+        slice.cpuPercent = cpu > 0 ? slice.cpuMs / cpu * 100 : 0;
+        slice.gpuPercent = gpu > 0 ? slice.gpuMs / gpu * 100 : 0;
+    }
+    return slices;
 }
 
 // Copies only results whose last timestamp is already available.

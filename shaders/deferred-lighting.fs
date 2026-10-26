@@ -21,6 +21,7 @@ void main(){
     vec3 radiance =
         shadeSurface(position.xyz, normalize(texture(uGNormal, texCoord).xyz), normalize(plane.xyz),
                      vec4(material.diffuse, 1.0), material, emissive.rgb, (flags & 1) != 0,
-                     (flags & 8) != 0, (flags & 4) != 0, int(round(plane.a)));
+                     (flags & 8) != 0, (flags & 4) != 0, int(round(plane.a)),
+                     texture(uGAmbient, texCoord).a);
     fragmentColor = vec4(radiance, 1.0);
 }

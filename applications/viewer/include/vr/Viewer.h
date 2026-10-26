@@ -36,6 +36,7 @@ private:
     bool m_hidden = false;
     bool m_validate = false;
     bool m_performance = false;
+    bool m_forward = false, m_noAO = false;
     bool m_lodDemoCallback = false;
     bool m_inside = false;
     bool m_noCulling = false;

@@ -27,7 +27,7 @@ void main(){
     gNormal = vec4(normal, 0.0);
     gAlbedo = vec4(surface.rgb, 1.0);
     gSpecular = vec4(uMaterial.specular, uMaterial.shininess);
-    gAmbient = vec4(uMaterial.ambient, 0.0);
+    gAmbient = vec4(uMaterial.ambient, 1.0);
     gEmissive = vec4(uEmissive, float(flags));
     gPlane = vec4(plane, float(uLightMask));
 }

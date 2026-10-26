@@ -76,11 +76,17 @@ void RenderVisitor::drawRenderList(const Camera& camera){
                 }
             });
     } else{
-        for (const auto* item : opaque){
-            drawInstance(*item);
+        {
+            FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Forward);
+            for (const auto* item : opaque){
+                drawInstance(*item);
+            }
         }
-        for (const auto* item : transparent){
-            drawInstance(*item);
+        {
+            FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Transparency);
+            for (const auto* item : transparent){
+                drawInstance(*item);
+            }
         }
     }
     glDepthMask(GL_TRUE);

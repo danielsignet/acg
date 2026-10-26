@@ -12,6 +12,7 @@ add_library(vrlib STATIC
     src/vr/ColorTarget.cpp
     src/vr/ScreenQuad.cpp
     src/vr/DeferredRenderer.cpp
+    src/vr/AmbientOcclusion.cpp
     src/vr/FrameProfiler.cpp
     src/vr/PerformanceOverlay.cpp
     src/vr/Node.cpp
@@ -108,6 +109,8 @@ set(VIEWER_RESOURCES
     shaders/gbuffer.fs
     shaders/screen-quad.vs
     shaders/deferred-lighting.fs
+    shaders/ssao.fs
+    shaders/ssao-resolve.fs
     shaders/post-process.fs
     shaders/gbuffer-view.fs
     shaders/text.vs

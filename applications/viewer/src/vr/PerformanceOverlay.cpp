@@ -15,6 +15,7 @@ const std::array<glm::vec4, FrameProfiler::SliceCount> colors{{{1, 0.72f, 0.3f, 
                                                                {1, 0.55f, 0.7f, 1},
                                                                {0.65f, 0.9f, 0.4f, 1},
                                                                {0.65f, 0.72f, 0.8f, 1},
+                                                               {1, 0.5f, 0.2f, 1},
                                                                {0.9f, 0.92f, 0.95f, 1}}};
 
 // Formats the few timing and percentage values shown in the compact view.
@@ -54,7 +55,8 @@ void SceneOverlay::drawPerformance(const Application& app){
         m_text.draw(value, x, y, size, color);
     };
     m_text.rectangle(16, top, panelWidth, panelHeight,{0.025f, 0.045f, 0.065f, 0.28f});
-    text("PERFORMANCE", 32, top + 10, 18, foreground);
+    text(app.m_deferredEnabled ? "PERFORMANCE / DEFERRED" : "PERFORMANCE / FORWARD", 32, top + 10,
+         16, foreground);
     const auto reset = performanceResetRectangle();
     m_text.rectangle(reset.x, reset.y, reset.z, reset.w,{0.08f, 0.2f, 0.24f, 0.8f});
     text("Reset averages", reset.x + 17, reset.y + 5, 12, foreground);
@@ -95,7 +97,7 @@ void SceneOverlay::drawPerformance(const Application& app){
     text("GPU ms / %", 468, top + 126, 10, muted);
     for (std::size_t i = 0; i < slices.size(); ++i){
         const auto& slice = slices[i];
-        const float y = top + 148 + static_cast<float>(i) * 20;
+        const float y = top + 148 + static_cast<float>(i) * 18;
         m_text.rectangle(32, y + 3, 8, 8, colors[i]);
         text(slice.name, 48, y, 12, foreground);
         text(summary.samples ? decimal(slice.cpuMs) + " / " + decimal(slice.cpuPercent, 1) + "%"

@@ -28,6 +28,7 @@ FramebufferImage RenderingValidator::captureScene() const{
 void RenderingValidator::run(){
     const bool previews = m_application.m_bufferPreviews;
     m_application.m_bufferPreviews = false;
+    validateAmbientOcclusion();
     validateDeferred();
     validatePerformance();
     validateShadows();
@@ -73,7 +74,7 @@ void RenderingValidator::validatePerformance(){
                     app.m_renderer->getStats().draws,
             "The performance view averages the actual rendered scene counters");
     require(shadows.boundsTested == shadows.draws + shadows.rejected &&
-                app.m_deferred->getScreenDraws() == 3 &&
+                app.m_deferred->getScreenDraws() == 5 &&
                 app.m_renderer->getStats().visitedNodes > 0,
             "Profiler counters describe actual shadow rejection and screen submissions");
     app.handleKey(GLFW_KEY_J);
@@ -108,6 +109,49 @@ void RenderingValidator::validatePerformance(){
     app.resize(width, height);
     app.render();
     OpenGL::check("Performance controls");
+}
+
+// Checks AO, its diagnostic view and the independent forward/deferred switch.
+void RenderingValidator::validateAmbientOcclusion(){
+    auto& app = m_application;
+    using Action = Controls::Action;
+    const auto lights = app.m_pointLights;
+    const bool ao = app.m_ambientOcclusionEnabled;
+    app.render();
+    const auto enabled = captureScene();
+    app.handleKey(GLFW_KEY_O);
+    app.render();
+    require(!app.m_deferred->getAmbientOcclusion() &&
+                captureScene().countChangedPixels(enabled, 0) > 100,
+            "O toggles visible ambient occlusion independently of light switches");
+    app.handleClick(690, 28);
+    require(app.m_ambientOcclusionEnabled == ao, "AO button and O share the same switch");
+    app.handleKey(GLFW_KEY_Z);
+    app.handleKey(GLFW_KEY_A);
+    app.render();
+    require(app.m_bufferView == BufferView::Occlusion && captureScene().hash() != enabled.hash(),
+            "AO is available as a separate shader view");
+    app.handleKey(GLFW_KEY_F2);
+    app.render();
+    require(!app.m_deferredEnabled && app.m_bufferView == BufferView::Lit &&
+                !app.m_deferred->getPreviews() && app.m_renderer->getStats().draws > 0 &&
+                app.performanceCounters()[static_cast<std::size_t>(
+                    FrameProfiler::Counter::ScreenDraws)] == 0,
+            "F2 uses the existing forward path without running deferred screen passes");
+    const bool bloom = app.m_bloomEnabled;
+    app.handleKey(GLFW_KEY_B);
+    require(app.m_bloomEnabled == bloom,
+            "Inactive deferred effects preserve their settings in forward mode");
+    app.reload();
+    require(!app.m_deferredEnabled && app.m_ambientOcclusionEnabled == ao,
+            "Reload preserves renderer and AO selections");
+    app.handleClick(110, 28);
+    app.render();
+    require(app.m_deferredEnabled && app.m_deferred->getAmbientOcclusion() == ao &&
+                app.m_pointLights == lights,
+            "Renderer button restores deferred rendering and its settings");
+    std::cout
+        << "Ambient occlusion controls passed: toggle, isolated view, renderer switch and reload\n";
 }
 
 // Checks public buffer controls, post effects, resize and reload persistence.
@@ -160,7 +204,7 @@ void RenderingValidator::validateDeferred(){
                 app.m_deferred->getView() == BufferView::Specular && app.m_deferred->getBloom() &&
                 app.m_deferred->getDepthOfField(),
             "Reload preserves the selected buffer and each independent post effect");
-    app.handleClick(650, 28);
+    app.handleClick(580, 28);
     app.execute(Action::Bloom);
     app.execute(Action::PhongShader);
     const int width = app.m_width, height = app.m_height;
@@ -663,7 +707,9 @@ void RenderingValidator::validateControls(){
     const auto lights = app.m_pointLights;
     app.handleKey(GLFW_KEY_Z);
     require(app.m_shaderMenuOpen, "Z opens the shading menu");
-    app.handleClick(440, static_cast<float>(app.m_height - SceneOverlay::FooterHeight - 280));
+    app.handleClick(
+        440, static_cast<float>(app.m_height - SceneOverlay::FooterHeight - 8 -
+                                32 * static_cast<int>(Controls::getShaderOptions().size()) + 48));
     app.render();
     require(app.m_shadingMode == ShadingMode::Toon && !app.m_shaderMenuOpen &&
                 app.m_renderer->getShadingMode() == ShadingMode::Toon &&

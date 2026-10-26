@@ -45,6 +45,8 @@ WSL requires a graphical session such as WSLg.
 | L or Flashlight | Toggle the camera-mounted flashlight |
 | Arrows / Page Up / Page Down | Move the lights along X/Z and Y |
 | C or Culling | Toggle frustum and portal culling |
+| F2 or renderer button | Switch between deferred and forward; AO, post effects and G-buffer views use deferred |
+| O or AO | Toggle screen-space ambient occlusion; Z then A shows AO alone |
 | F1 | Show/hide performance: CPU/GPU time and percentage breakdown; Reset averages clears measurements after changing settings |
 | F | Freeze/resume the culling camera and show/hide its debug volumes |
 | View | Switch between patio and house |

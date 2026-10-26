@@ -56,6 +56,11 @@ void breakdownTests(){
     check(slices[6].cpuPercent == 20 && slices[6].gpuPercent == 0 && slices.back().cpuMs == 7 &&
               slices.back().gpuMs == 4,
           "Swap remains CPU-only and unmeasured work stays in Other / gaps");
+    time(Stage::Occlusion, 2, 1);
+    const auto withAO = Profiler::breakdown(summary);
+    check(withAO[7].cpuMs == 2 && withAO[7].gpuMs == 1 && withAO.back().cpuMs == 5 &&
+              withAO.back().gpuMs == 3,
+          "Ambient occlusion has its own share without being counted again in post-processing");
     for (const auto& slice : Profiler::breakdown({})){
         check(slice.cpuPercent == 0 && slice.gpuPercent == 0,
               "Empty histories produce finite, empty charts");

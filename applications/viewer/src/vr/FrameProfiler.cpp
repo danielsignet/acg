@@ -24,7 +24,9 @@ FrameProfiler::descriptions(){
                                                              {"Present / previews", true},
                                                              {"Debug volumes", true},
                                                              {"HUD / performance view", true},
-                                                             {"Swap / VSync wait", false}}};
+                                                             {"Swap / VSync wait", false},
+                                                             {"Forward surfaces", true},
+                                                             {"Ambient occlusion", true}}};
     return stages;
 }
 
@@ -77,6 +79,7 @@ FrameProfiler::breakdown(const Summary& summary){
                                           {"Post-processing / output"},
                                           {"HUD / debug"},
                                           {"Swap / VSync wait"},
+                                          {"Ambient occlusion"},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
@@ -88,10 +91,11 @@ FrameProfiler::breakdown(const Summary& summary){
     add(0,{Stage::Shadows});
     add(1,{Stage::Portals, Stage::Lights, Stage::Culling});
     add(2,{Stage::Geometry});
-    add(3,{Stage::Lighting, Stage::Transparency});
+    add(3,{Stage::Lighting, Stage::Forward, Stage::Transparency});
     add(4,{Stage::Bloom, Stage::DepthOfField, Stage::Composite, Stage::Present});
     add(5,{Stage::Debug, Stage::Overlay});
     add(6,{Stage::Swap});
+    add(7,{Stage::Occlusion});
     const double cpu = summary.cpu[static_cast<std::size_t>(Stage::Frame)];
     const double gpu = summary.gpu[static_cast<std::size_t>(Stage::Render)];
     double measuredCpu = 0, measuredGpu = 0;

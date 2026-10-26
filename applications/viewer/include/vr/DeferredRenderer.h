@@ -1,5 +1,6 @@
 #pragma once
 #include "FrameProfiler.h"
+#include "AmbientOcclusion.h"
 #include "ColorTarget.h"
 #include "GBuffer.h"
 #include "LightCollector.h"
@@ -10,7 +11,7 @@
 namespace vr{
 class DeferredRenderer final{
 public:
-    static constexpr unsigned PreviewCount = GBuffer::Count + 1;
+    static constexpr unsigned PreviewCount = GBuffer::Count + 2;
 
     // Loads the geometry, lighting, post-processing and buffer-preview programs.
     explicit DeferredRenderer(const std::filesystem::path& root);
@@ -37,6 +38,16 @@ public:
         return m_view;
     }
 
+    // Enables screen-space ambient occlusion of ambient lighting.
+    void setAmbientOcclusion(bool enabled){
+        m_ambientOcclusion = enabled;
+    }
+
+    // Reports whether ambient occlusion is enabled.
+    bool getAmbientOcclusion() const{
+        return m_ambientOcclusion;
+    }
+
     // Enables highlight extraction and the independently blurred bloom chain.
     void setBloom(bool enabled){
         m_bloom = enabled;
@@ -57,7 +68,7 @@ public:
         return m_depthOfField;
     }
 
-    // Shows or hides the eight screen-aligned diagnostic thumbnails.
+    // Shows or hides the surface and AO diagnostic thumbnails.
     void setPreviews(bool enabled){
         m_previews = enabled;
     }
@@ -76,6 +87,8 @@ public:
     glm::ivec4 previewRectangle(unsigned index) const;
     // Returns the latest geometry buffers for numerical diagnostics.
     const GBuffer& getGBuffer() const;
+    // Returns ambient RGB with AO in alpha, reusing the existing lighting sampler.
+    const std::shared_ptr<Texture>& getAmbientBuffer() const;
 
 private:
     FrameProfiler* m_profiler = nullptr;
@@ -93,10 +106,12 @@ private:
     // Runs a separable Gaussian filter without sampling from its output attachment.
     void blur(const std::shared_ptr<Texture>& source,
               std::array<std::unique_ptr<ColorTarget>, 2>& targets, unsigned passes);
-    // Presents the selected output and optionally the eight G-buffer thumbnails.
+    // Presents the selected output and optionally the surface and AO thumbnails.
     void present(const Camera& camera, GLuint framebuffer, const GLint* viewport);
     std::shared_ptr<Program> m_geometryProgram, m_lightingProgram, m_postProgram, m_viewProgram;
     ScreenQuad m_quad;
+    std::unique_ptr<AmbientOcclusion> m_occlusion;
+    bool m_ambientOcclusion = false;
     std::unique_ptr<GBuffer> m_gbuffer;
     std::unique_ptr<ColorTarget> m_color, m_composite;
     std::array<std::unique_ptr<ColorTarget>, 2> m_blur, m_bloomBlur;

@@ -33,6 +33,8 @@ public:
         Hud,
         Performance,
         ResetAverages,
+        Renderer,
+        AmbientOcclusion,
         HouseView,
         PortalCulling,
         TransparentWalls,
@@ -53,7 +55,8 @@ public:
         DepthBuffer,
         AmbientBuffer,
         EmissiveBuffer,
-        PlaneBuffer
+        PlaneBuffer,
+        OcclusionBuffer
     };
 
     struct Binding{
@@ -72,7 +75,7 @@ public:
     };
 
     // Shares shader and buffer choices between menu rendering and keyboard selection.
-    static constexpr const std::array<ShaderOption, 10>& getShaderOptions(){
+    static constexpr const std::array<ShaderOption, 11>& getShaderOptions(){
         return m_shaderOptions;
     }
 
@@ -88,14 +91,14 @@ public:
 
     // Returns the human-readable name of a displayed surface attachment.
     static const char* bufferName(BufferView view){
-        constexpr std::array<const char*, 9> names{{"Lit", "Positions", "Normals", "Albedo",
-                                                    "Specular", "Depth", "Ambient", "Emissive",
-                                                    "Geom normals"}};
+        constexpr std::array<const char*, 10> names{{"Lit", "Positions", "Normals", "Albedo",
+                                                     "Specular", "Depth", "Ambient", "Emissive",
+                                                     "Geom normals", "Occlusion"}};
         return names.at(static_cast<unsigned>(view));
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 17>& getBindings(){
+    static const std::array<Binding, 19>& getBindings(){
         return m_bindings;
     }
 
@@ -128,7 +131,7 @@ public:
     }
 
 private:
-    inline static constexpr std::array<ShaderOption, 10> m_shaderOptions{
+    inline static constexpr std::array<ShaderOption, 11> m_shaderOptions{
         {{Action::PhongShader, ShadingMode::Phong, BufferView::Lit, GLFW_KEY_1, "1  Phong"},
          {Action::ToonShader, ShadingMode::Toon, BufferView::Lit, GLFW_KEY_2, "2  Toon"},
          {Action::PositionBuffer, ShadingMode::Phong, BufferView::Position, GLFW_KEY_3,
@@ -142,10 +145,14 @@ private:
          {Action::EmissiveBuffer, ShadingMode::Phong, BufferView::Emissive, GLFW_KEY_9,
           "9  Emissive"},
          {Action::PlaneBuffer, ShadingMode::Phong, BufferView::Plane, GLFW_KEY_0,
-          "0  Geom normals"}}};
+          "0  Geom normals"},
+         {Action::OcclusionBuffer, ShadingMode::Phong, BufferView::Occlusion, GLFW_KEY_A,
+          "A  Occlusion"}}};
 
-    inline static constexpr std::array<Binding, 17> m_bindings{
-        {{Action::Performance, GLFW_KEY_F1, "F1", "Performance"},
+    inline static constexpr std::array<Binding, 19> m_bindings{
+        {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
+         {Action::AmbientOcclusion, GLFW_KEY_O, "O", "Ambient occlusion"},
+         {Action::Performance, GLFW_KEY_F1, "F1", "Performance"},
          {Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},
          {Action::ResetView, GLFW_KEY_SPACE, "Space", "Reset view"},
          {Action::ReloadScene, GLFW_KEY_R, "R", "Reload scene"},

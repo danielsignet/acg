@@ -14,12 +14,14 @@ struct ToolbarButton{
 };
 
 constexpr ToolbarButton shaderButton{Action::ShaderMenu, 418, 168};
-constexpr ToolbarButton shadowButton{Action::Shadows, 348, 148};
-constexpr ToolbarButton flashlightButton{Action::Flashlight, 180, 152};
+constexpr ToolbarButton shadowButton{Action::Shadows, 316, 124};
+constexpr ToolbarButton rendererButton{Action::Renderer, 78, 88};
+constexpr ToolbarButton aoButton{Action::AmbientOcclusion, 656, 96};
+constexpr ToolbarButton flashlightButton{Action::Flashlight, 180, 124};
 constexpr float shaderRowHeight = 32;
 constexpr float shaderMenuTop = -8 - shaderRowHeight * Controls::getShaderOptions().size();
-constexpr ToolbarButton bloomButton{Action::Bloom, 512, 112};
-constexpr ToolbarButton dofButton{Action::DepthOfField, 636, 112};
+constexpr ToolbarButton bloomButton{Action::Bloom, 452, 90};
+constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
 
@@ -47,7 +49,8 @@ void SceneOverlay::draw(const Application& application){
         drawFocus(application);
         drawLabels(application);
     }
-    if (application.m_bufferPreviews && !application.m_profiler.getEnabled()){
+    if (application.m_deferredEnabled && application.m_bufferPreviews &&
+        !application.m_profiler.getEnabled()){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
             const auto rect = application.m_deferred->previewRectangle(i);
             const bool selected = application.m_bufferView == static_cast<BufferView>(i + 1);
@@ -66,7 +69,7 @@ void SceneOverlay::draw(const Application& application){
 
 // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
 void SceneOverlay::click(Application& app, float x, float y){
-    for (const auto& button :{bloomButton, dofButton}){
+    for (const auto& button :{bloomButton, dofButton, aoButton, rendererButton}){
         if (x >= button.x && x <= button.x + button.width && y >= 12 && y <= 44){
             app.execute(button.action);
             return;
@@ -101,7 +104,7 @@ void SceneOverlay::click(Application& app, float x, float y){
             }
         }
     }
-    if (app.m_bufferPreviews && !app.m_profiler.getEnabled()){
+    if (app.m_deferredEnabled && app.m_bufferPreviews && !app.m_profiler.getEnabled()){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
             const auto rect = app.m_deferred->previewRectangle(i);
             if (x >= rect.x && x < rect.x + rect.z && y >= rect.y - 22 && y < rect.y + rect.w){
@@ -144,16 +147,31 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(shadowButton.x, 12, shadowButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
     m_text.draw(std::string("Shadows: ") + (app.m_shadowsEnabled ? "ON" : "OFF") + " [J]",
                 shadowButton.x + 10, 21, 12,{0.7f, 0.9f, 0.84f, 1});
-    for (const auto& button :{bloomButton, dofButton}){
-        const bool enabled =
-            button.action == Action::Bloom ? app.m_bloomEnabled : app.m_depthOfFieldEnabled;
-        const std::string name = button.action == Action::Bloom ? "Bloom" : "DoF";
-        const std::string key = button.action == Action::Bloom ? "B" : "V";
+    m_text.rectangle(rendererButton.x, 12, rendererButton.width, 32,{0.09f, 0.16f, 0.2f, 1});
+    m_text.draw(app.m_deferredEnabled ? "Deferred [F2]" : "Forward [F2]", rendererButton.x + 8, 21,
+                10,{0.7f, 0.9f, 0.84f, 1});
+    for (const auto& button :{bloomButton, dofButton, aoButton}){
+        const bool enabled = button.action == Action::Bloom ? app.m_bloomEnabled
+                             : button.action == Action::AmbientOcclusion
+                                 ? app.m_ambientOcclusionEnabled
+                                 : app.m_depthOfFieldEnabled;
+        const std::string name = button.action == Action::Bloom              ? "Bloom"
+                                 : button.action == Action::AmbientOcclusion ? "AO"
+                                                                             : "DoF";
+        const std::string key = button.action == Action::Bloom              ? "B"
+                                : button.action == Action::AmbientOcclusion ? "O"
+                                                                            : "V";
         m_text.rectangle(button.x, 12, button.width, 32,
-                         enabled ? glm::vec4(0.14f, 0.22f, 0.27f, 1)
-                                 : glm::vec4(0.09f, 0.13f, 0.18f, 1));
-        m_text.draw(name + ": " + (enabled ? "ON" : "OFF") + " [" + key + "]", button.x + 8, 21, 11,
-                    {0.7f, 0.9f, 0.84f, 1});
+                         app.m_deferredEnabled && enabled ? glm::vec4(0.14f, 0.22f, 0.27f, 1)
+                                                          : glm::vec4(0.09f, 0.13f, 0.18f, 1));
+        m_text.draw(name + ": " +
+                        (!app.m_deferredEnabled ? "--"
+                         : enabled              ? "ON"
+                                                : "OFF") +
+                        " [" + key + "]",
+                    button.x + 8, 21, 11,
+                    app.m_deferredEnabled ? glm::vec4(0.7f, 0.9f, 0.84f, 1)
+                                          : glm::vec4(0.4f, 0.48f, 0.56f, 1));
     }
     std::ostringstream info;
     info << stats.draws << " draws | " << std::fixed << std::setprecision(0)
@@ -163,7 +181,8 @@ void SceneOverlay::drawHeader(const Application& app){
 
 // Marks the optical center used by automatic depth-of-field focusing.
 void SceneOverlay::drawFocus(const Application& app){
-    if (!app.m_depthOfFieldEnabled || app.m_bufferView != BufferView::Lit){
+    if (!app.m_deferredEnabled || !app.m_depthOfFieldEnabled ||
+        app.m_bufferView != BufferView::Lit){
         return;
     }
     const float x = app.m_width * 0.5f, y = app.m_height * 0.5f;

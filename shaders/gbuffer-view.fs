@@ -27,6 +27,8 @@ void main(){
                 color = texture(uAmbient, texCoord).rgb;
             } else if (uViewMode == 7){
                 color = texture(uEmissive, texCoord).rgb;
+            } else if (uViewMode == 9){
+                color = vec3(texture(uAmbient, texCoord).a);
             } else if (uViewMode == 8){
                 color = normalize(texture(uPlane, texCoord).xyz) * 0.5 + 0.5;
             } else{

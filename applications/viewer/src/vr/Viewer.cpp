@@ -26,7 +26,11 @@ bool Viewer::parseOptions(int argc, char** argv){
             }
             return std::string(argv[++i]);
         };
-        if (option == "--performance"){
+        if (option == "--forward"){
+            m_forward = true;
+        } else if (option == "--no-ao"){
+            m_noAO = true;
+        } else if (option == "--performance"){
             m_performance = true;
         } else if (option == "--hidden"){
             m_hidden = true;
@@ -44,8 +48,9 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_noBufferPreviews = true;
         } else if (option == "--buffer"){
             const auto view = next();
-            const std::array<std::string, 6> names{
-                {"lit", "positions", "normals", "albedo", "specular", "depth"}};
+            const std::array<std::string, 10> names{{"lit", "positions", "normals", "albedo",
+                                                     "specular", "depth", "ambient", "emissive",
+                                                     "plane", "ao"}};
             const auto found = std::find(names.begin(), names.end(), view);
             if (found == names.end()){
                 throw std::invalid_argument("Unknown buffer view: " + view);
@@ -78,8 +83,9 @@ bool Viewer::parseOptions(int argc, char** argv){
             std::cout << "viewer [--root path] [--scene file] [--frames N] [--hidden] [--validate] "
                          "[--lod-demo] [--inside] [--no-culling] "
                          "[--portal-demo] [--no-portals] [--solid-walls] [--no-shadows] "
-                         "[--buffer lit|positions|normals|albedo|specular|depth] [--bloom] [--dof] "
-                         "[--no-buffer-previews] [--performance] "
+                         "[--buffer lit|positions|normals|albedo|specular|depth|"
+                         "ambient|emissive|plane|ao] [--bloom] [--dof] "
+                         "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
                          "[--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
@@ -192,6 +198,12 @@ int Viewer::run(int argc, char** argv){
         m_application->execute(
             static_cast<Controls::Action>(static_cast<unsigned>(Controls::Action::PositionBuffer) +
                                           static_cast<unsigned>(m_bufferView) - 1));
+    }
+    if (m_noAO){
+        m_application->execute(Controls::Action::AmbientOcclusion);
+    }
+    if (m_forward){
+        m_application->execute(Controls::Action::Renderer);
     }
     if (m_performance){
         m_application->execute(Controls::Action::Performance);

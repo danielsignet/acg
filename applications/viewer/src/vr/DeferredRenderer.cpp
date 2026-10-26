@@ -106,9 +106,9 @@ void DeferredRenderer::light(const Camera& camera, const State& state,
 
 // Runs a separable Gaussian filter without sampling from its output attachment.
 void DeferredRenderer::blur(const std::shared_ptr<Texture>& source,
-                            std::array<std::unique_ptr<ColorTarget>, 2>& targets){
+                            std::array<std::unique_ptr<ColorTarget>, 2>& targets, unsigned passes){
     auto input = source;
-    for (unsigned pass = 0; pass < 6; ++pass){
+    for (unsigned pass = 0; pass < passes; ++pass){
         const unsigned output = pass % 2;
         targets[output]->bind();
         input->apply(0);
@@ -134,10 +134,10 @@ void DeferredRenderer::postProcess(const Camera& camera){
         m_color->getTexture()->apply(0);
         m_postProgram->set("uPass", 1);
         m_quad.draw();
-        blur(m_bloomBlur[1]->getTexture(), m_bloomBlur);
+        blur(m_bloomBlur[1]->getTexture(), m_bloomBlur, 6);
     }
     if (m_depthOfField){
-        blur(m_color->getTexture(), m_blur);
+        blur(m_color->getTexture(), m_blur, 2);
     }
     m_composite->bind();
     m_color->getTexture()->apply(0);

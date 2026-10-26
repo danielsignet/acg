@@ -35,11 +35,13 @@ void main(){
         fragmentColor = vec4(result, 1.0);
         return;
     }
-    if (uDofEnabled){
+    // An empty center pixel has no surface to focus on.
+    if (uDofEnabled && texture(uDepth, vec2(0.5)).r < 1.0){
         float focus = viewDepth(vec2(0.5));
         float distance = viewDepth(texCoord);
-        float coc =
-            smoothstep(max(0.75, focus * 0.08), max(3.0, focus * 0.5), abs(distance - focus));
+        float sharpRange = max(2.0, focus * 0.2);
+        float blurRange = max(8.0, focus * 1.1);
+        float coc = 0.65 * smoothstep(sharpRange, blurRange, abs(distance - focus));
         color = mix(color, texture(uBlur, texCoord).rgb, coc);
     }
     if (uBloomEnabled){

@@ -76,7 +76,7 @@ private:
     void postProcess(const Camera& camera);
     // Runs a separable Gaussian filter without sampling from its output attachment.
     void blur(const std::shared_ptr<Texture>& source,
-              std::array<std::unique_ptr<ColorTarget>, 2>& targets);
+              std::array<std::unique_ptr<ColorTarget>, 2>& targets, unsigned passes);
     // Presents the selected output and optionally the eight G-buffer thumbnails.
     void present(const Camera& camera, GLuint framebuffer, const GLint* viewport);
     std::shared_ptr<Program> m_geometryProgram, m_lightingProgram, m_postProgram, m_viewProgram;

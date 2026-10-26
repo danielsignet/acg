@@ -22,6 +22,9 @@ private:
     // Draws the application title and current rendering statistics.
     void drawHeader(const Application& application);
 
+    // Marks the optical center used by automatic depth-of-field focusing.
+    void drawFocus(const Application& application);
+
     // Projects the demonstration labels into the current camera view.
     void drawLabels(const Application& application);
 

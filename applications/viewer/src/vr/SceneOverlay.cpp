@@ -41,6 +41,7 @@ const char* shaderName(ShadingMode mode){
 void SceneOverlay::draw(const Application& application){
     m_text.begin(application.m_width, application.m_height);
     drawHeader(application);
+    drawFocus(application);
     drawLabels(application);
     if (application.m_bufferPreviews){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
@@ -144,6 +145,21 @@ void SceneOverlay::drawHeader(const Application& app){
     info << stats.draws << " draws | " << std::fixed << std::setprecision(0)
          << app.m_framesPerSecond << " FPS";
     m_text.draw(info.str(), static_cast<float>(app.m_width) - 185, 20, 12,{0.7f, 0.8f, 0.88f, 1});
+}
+
+// Marks the optical center used by automatic depth-of-field focusing.
+void SceneOverlay::drawFocus(const Application& app){
+    if (!app.m_depthOfFieldEnabled || app.m_bufferView != BufferView::Lit){
+        return;
+    }
+    const float x = app.m_width * 0.5f, y = app.m_height * 0.5f;
+    const std::array<glm::vec4, 4> marks{
+        {{x - 9, y - 1, 5, 2},{x + 4, y - 1, 5, 2},{x - 1, y - 9, 2, 5},{x - 1, y + 4, 2, 5}}};
+    for (const auto& mark : marks){
+        m_text.rectangle(mark.x - 1, mark.y - 1, mark.z + 2, mark.w + 2,
+                         {0.02f, 0.03f, 0.04f, 0.8f});
+        m_text.rectangle(mark.x, mark.y, mark.z, mark.w,{0.95f, 0.95f, 0.9f, 0.9f});
+    }
 }
 
 // Projects the demonstration labels into the current camera view.

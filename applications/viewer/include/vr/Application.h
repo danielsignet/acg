@@ -1,5 +1,6 @@
 #pragma once
 #include "Animation.h"
+#include "FrameProfiler.h"
 #include "Controls.h"
 #include "DebugLines.h"
 #include "DeferredRenderer.h"
@@ -104,6 +105,7 @@ private:
     // Draws doorway, eye and bounding-volume references from the observer camera.
     void drawVisibilityDebug(const Camera& camera, const glm::mat4& observerViewProjection);
 
+    FrameProfiler m_profiler;
     GLFWwindow* m_window;
     std::filesystem::path m_root;
     std::filesystem::path m_sceneFile;
@@ -134,6 +136,7 @@ private:
     double m_mouseX = 0;
     double m_mouseY = 0;
     double m_frameTimeSeconds = 0;
+    double m_lastFrameTime = 0;
     unsigned m_frameCount = 0;
     int m_width = 1280;
     int m_height = 800;
@@ -148,6 +151,7 @@ private:
     bool m_debugBounds = false;
     bool m_roofEnabled = true;
     bool m_showHud = true;
+    bool m_vsync = true;
     bool m_houseView = false;
     bool m_portalCulling = true;
     bool m_transparentWalls = true;

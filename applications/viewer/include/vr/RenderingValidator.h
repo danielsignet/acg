@@ -15,6 +15,9 @@ public:
     void run();
 
 private:
+    // Checks performance controls, counters and overlay isolation from the scene.
+    void validatePerformance();
+
     // Reports an unmet rendering-validation requirement.
     static void require(bool condition, const std::string& message);
 

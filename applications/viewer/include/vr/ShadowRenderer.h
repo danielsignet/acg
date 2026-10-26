@@ -7,6 +7,7 @@
 namespace vr{
 struct ShadowStats{
     unsigned passes = 0;
+    unsigned boundsTested = 0, rejected = 0;
     unsigned draws = 0;
     std::size_t triangles = 0;
     double cpuMs = 0;

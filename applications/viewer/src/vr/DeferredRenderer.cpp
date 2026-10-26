@@ -70,14 +70,25 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
     GLint framebuffer = 0, viewport[4]{};
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &framebuffer);
     glGetIntegerv(GL_VIEWPORT, viewport);
-    m_gbuffer->begin();
-    opaque(m_geometryProgram);
-    light(camera, state, lights);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    transparent();
+    m_screenDraws = 0;
+    {
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Geometry);
+        m_gbuffer->begin();
+        opaque(m_geometryProgram);
+    }
+    {
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Lighting);
+        light(camera, state, lights);
+    }
+    {
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Transparency);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        transparent();
+    }
     screenPass();
     postProcess(camera);
+    FrameProfiler::Scope presentPass(m_profiler, FrameProfiler::Stage::Present);
     present(camera, static_cast<GLuint>(framebuffer), viewport);
 }
 
@@ -101,7 +112,7 @@ void DeferredRenderer::light(const Camera& camera, const State& state,
     for (unsigned i = 0; i < lights.size(); ++i){
         lights[i].node->apply(*m_lightingProgram, i, lights[i].model, true);
     }
-    m_quad.draw();
+    drawQuad();
 }
 
 // Runs a separable Gaussian filter without sampling from its output attachment.
@@ -113,7 +124,7 @@ void DeferredRenderer::blur(const std::shared_ptr<Texture>& source,
         targets[output]->bind();
         input->apply(0);
         m_postProgram->set("uPass", output == 0 ? 2 : 3);
-        m_quad.draw();
+        drawQuad();
         input = targets[output]->getTexture();
     }
 }
@@ -130,15 +141,18 @@ void DeferredRenderer::postProcess(const Camera& camera){
     m_postProgram->set("uInverseProjection", glm::inverse(camera.getProjection()));
     m_postProgram->set("uEye", camera.getPosition());
     if (m_bloom){
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Bloom);
         m_bloomBlur[1]->bind();
         m_color->getTexture()->apply(0);
         m_postProgram->set("uPass", 1);
-        m_quad.draw();
+        drawQuad();
         blur(m_bloomBlur[1]->getTexture(), m_bloomBlur, 6);
     }
     if (m_depthOfField){
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::DepthOfField);
         blur(m_color->getTexture(), m_blur, 2);
     }
+    FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Composite);
     m_composite->bind();
     m_color->getTexture()->apply(0);
     m_blur[1]->getTexture()->apply(1);
@@ -149,7 +163,7 @@ void DeferredRenderer::postProcess(const Camera& camera){
     m_postProgram->set("uPass", 0);
     m_postProgram->set("uBloomEnabled", m_bloom);
     m_postProgram->set("uDofEnabled", m_depthOfField);
-    m_quad.draw();
+    drawQuad();
 }
 
 // Presents the selected output and optionally the eight G-buffer thumbnails.
@@ -177,7 +191,7 @@ void DeferredRenderer::present(const Camera& camera, GLuint framebuffer, const G
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);
     glDepthMask(GL_TRUE);
-    m_quad.draw();
+    drawQuad();
     if (m_previews){
         glDisable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
@@ -186,9 +200,15 @@ void DeferredRenderer::present(const Camera& camera, GLuint framebuffer, const G
             glViewport(viewport[0] + rect.x, viewport[1] + m_height - rect.y - rect.w, rect.z,
                        rect.w);
             m_viewProgram->set("uViewMode", static_cast<int>(i + 1));
-            m_quad.draw();
+            drawQuad();
         }
     }
+}
+
+// Draws and counts one screen-aligned quad.
+void DeferredRenderer::drawQuad(){
+    m_quad.draw();
+    ++m_screenDraws;
 }
 
 // Returns a thumbnail rectangle in top-left framebuffer coordinates.

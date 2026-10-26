@@ -108,9 +108,11 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
         glPolygonOffset(1.1f, 2);
     }
     for (const auto& node : m_casters){
+        ++m_stats.boundsTested;
         const auto bound = node.geometry->getBound().transformed(node.model);
         if (frustum.classify(bound) == Visibility::Outside ||
             (cone && cone->classify(bound) == Visibility::Outside)){
+            ++m_stats.rejected;
             continue;
         }
         m_depthProgram->set("uModel", node.model);

@@ -26,16 +26,22 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
 
 // Collects lights before culling so off-screen lights still affect visible geometry.
 void RenderVisitor::collectLights(Node& root){
+    FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Lights);
     m_lights = vr::collectLights(root, m_camera->getPosition());
+    for (unsigned i = 0; i < m_lights.size(); ++i){
+        m_stats.lights += m_lights[i].node->getEnabled() && m_globalState.getLightEnabled(i);
+    }
 }
 
 // Builds the visible render list and records culling statistics.
 void RenderVisitor::collectGeometry(Node& root, const Camera& camera,
                                     const glm::mat4& viewProjection, const PortalResult* portals){
+    FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Culling);
     const auto start = std::chrono::steady_clock::now();
     m_culler.collect(root, viewProjection, camera.getPosition(), m_culling, portals);
     m_stats.cullCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+    m_stats.visitedNodes = m_culler.getStats().visitedNodes;
     m_stats.boundsTested = m_culler.getStats().boundsTested;
     m_stats.subtreesRejected = m_culler.getStats().subtreesRejected;
     m_stats.lodLevels = m_culler.getStats().lodLevels;

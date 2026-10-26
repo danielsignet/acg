@@ -1,4 +1,5 @@
 #pragma once
+#include "FrameProfiler.h"
 #include "ColorTarget.h"
 #include "GBuffer.h"
 #include "LightCollector.h"
@@ -20,6 +21,11 @@ public:
                 const std::vector<PositionedLight>& lights,
                 const std::function<void(const std::shared_ptr<Program>&)>& opaque,
                 const std::function<void()>& transparent);
+
+    // Attaches the optional frame profiler without transferring ownership.
+    void setProfiler(FrameProfiler* profiler){
+        m_profiler = profiler;
+    }
 
     // Selects the final lit image or one independently displayed G-buffer channel.
     void setView(BufferView view){
@@ -61,12 +67,22 @@ public:
         return m_previews;
     }
 
+    // Returns screen-quad submissions from the latest frame.
+    unsigned getScreenDraws() const{
+        return m_screenDraws;
+    }
+
     // Returns a thumbnail rectangle in top-left framebuffer coordinates.
     glm::ivec4 previewRectangle(unsigned index) const;
     // Returns the latest geometry buffers for numerical diagnostics.
     const GBuffer& getGBuffer() const;
 
 private:
+    FrameProfiler* m_profiler = nullptr;
+    // Draws and counts one screen-aligned quad.
+    void drawQuad();
+    unsigned m_screenDraws = 0;
+
     // Configures a screen pass without stale geometry rasterization state.
     static void screenPass();
     // Binds surface attachments and evaluates lights once per visible pixel.

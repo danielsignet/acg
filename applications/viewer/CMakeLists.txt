@@ -12,6 +12,8 @@ add_library(vrlib STATIC
     src/vr/ColorTarget.cpp
     src/vr/ScreenQuad.cpp
     src/vr/DeferredRenderer.cpp
+    src/vr/FrameProfiler.cpp
+    src/vr/PerformanceOverlay.cpp
     src/vr/Node.cpp
     src/vr/PortalVisibility.cpp
     src/vr/Application.cpp
@@ -88,10 +90,6 @@ set(VIEWER_RESOURCES
     models/5426_C3PO_Robot_Star_Wars.obj
     models/5426_C3PO_Robot_Star_Wars.mtl
     "models/Altair Model/altair.obj"
-    models/ResidentialBuildings/ResidentialBuildings004.fbx
-    models/ResidentialBuildings/ResidentialBuildings008.fbx
-    models/ResidentialBuildings/textures/Steel_C.jpg
-    "models/ResidentialBuildings/textures/REF 1.jpg"
     models/cow/cow_0.99.obj
     models/cow/cow_0.5.obj
     models/cow/cow_0.3.obj

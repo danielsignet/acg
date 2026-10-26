@@ -41,9 +41,13 @@ const char* shaderName(ShadingMode mode){
 void SceneOverlay::draw(const Application& application){
     m_text.begin(application.m_width, application.m_height);
     drawHeader(application);
-    drawFocus(application);
-    drawLabels(application);
-    if (application.m_bufferPreviews){
+    if (application.m_profiler.getEnabled()){
+        drawPerformance(application);
+    } else{
+        drawFocus(application);
+        drawLabels(application);
+    }
+    if (application.m_bufferPreviews && !application.m_profiler.getEnabled()){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
             const auto rect = application.m_deferred->previewRectangle(i);
             const bool selected = application.m_bufferView == static_cast<BufferView>(i + 1);
@@ -78,6 +82,9 @@ void SceneOverlay::click(Application& app, float x, float y){
         return;
     }
     const float bottom = static_cast<float>(app.m_height - FooterHeight);
+    if (app.m_profiler.getEnabled() && y > HeaderHeight && y < bottom){
+        return;
+    }
     if (app.m_shaderMenuOpen && x >= shaderButton.x && x <= shaderButton.x + shaderButton.width){
         for (std::size_t index = 0; index < shaderOptions.size(); ++index){
             const float top = bottom + shaderMenuTop + shaderRowHeight * static_cast<float>(index);
@@ -87,7 +94,7 @@ void SceneOverlay::click(Application& app, float x, float y){
             }
         }
     }
-    if (app.m_bufferPreviews){
+    if (app.m_bufferPreviews && !app.m_profiler.getEnabled()){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
             const auto rect = app.m_deferred->previewRectangle(i);
             if (x >= rect.x && x < rect.x + rect.z && y >= rect.y - 22 && y < rect.y + rect.w){
@@ -185,13 +192,13 @@ void SceneOverlay::drawFooter(const Application& app){
     drawToolbar(app, top);
     m_text.draw(
         "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: move lamps   F: freeze view   "
-        "G: buffers   Space: reset   R: reload   Esc: close",
+        "G: buffers   F1: performance   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     const auto& shadowStats = app.m_shadowRenderer->getStats();
     const auto status = app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
                         ", draws: " + std::to_string(shadowStats.draws);
     m_text.draw(status.substr(0, 160), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});
-    if (app.m_shaderMenuOpen){
+    if (app.m_shaderMenuOpen && !app.m_profiler.getEnabled()){
         drawShaderMenu(app, bottom);
     }
 }

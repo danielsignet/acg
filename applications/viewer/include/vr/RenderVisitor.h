@@ -1,4 +1,5 @@
 #pragma once
+#include "FrameProfiler.h"
 #include "CullVisitor.h"
 #include "LightCollector.h"
 #include "PathVisitor.h"
@@ -9,7 +10,7 @@ namespace vr{
 class DeferredRenderer;
 
 struct RenderStats{
-    unsigned draws = 0;
+    unsigned draws = 0, lights = 0, visitedNodes = 0;
     std::size_t triangles = 0;
     std::map<std::string, std::size_t> lodLevels;
     std::map<std::string, unsigned> roomDraws;
@@ -28,6 +29,11 @@ public:
     // Collects transformed lights and then draws the scene instances.
     void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr,
                 const PortalResult* portals = nullptr, DeferredRenderer* deferred = nullptr);
+
+    // Attaches the optional frame profiler without transferring ownership.
+    void setProfiler(FrameProfiler* profiler){
+        m_profiler = profiler;
+    }
 
     // Enables or disables hierarchical frustum rejection.
     void setCulling(bool enabled){
@@ -60,6 +66,7 @@ public:
     }
 
 private:
+    FrameProfiler* m_profiler = nullptr;
     // Collects lights before culling so off-screen lights still affect visible geometry.
     void collectLights(Node& root);
 

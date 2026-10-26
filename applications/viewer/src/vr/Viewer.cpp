@@ -199,6 +199,7 @@ int Viewer::run(int argc, char** argv){
     double previous = glfwGetTime();
     int frames = 0;
     while (!glfwWindowShouldClose(m_window)){
+        const double frameStart = glfwGetTime();
         glfwPollEvents();
         const double now = glfwGetTime();
         const double interval = now - previous;
@@ -231,7 +232,7 @@ int Viewer::run(int argc, char** argv){
                 glfwSwapBuffers(m_window);
             }
         }
-        profiler.endFrame();
+        profiler.endFrame(glfwGetTime() - frameStart);
         if (m_frameLimit && frames >= m_frameLimit){
             break;
         }

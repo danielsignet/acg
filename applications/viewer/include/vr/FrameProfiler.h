@@ -127,8 +127,8 @@ public:
 
     // Polls completed queries and starts recording a frame with its real interval.
     void beginFrame(double intervalSeconds);
-    // Stores CPU measurements and leaves GPU results pending until a later frame.
-    void endFrame();
+    // Stores this frame's wall time and leaves GPU results pending until a later frame.
+    void endFrame(double frameSeconds = 0);
     // Updates live scene counters and includes them in the active frame's history.
     void recordCounters(const Counters& counters);
 

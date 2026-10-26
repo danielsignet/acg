@@ -6,12 +6,16 @@
 #include <stdexcept>
 
 namespace vr{
-// Imports one model while preserving local transforms and shared meshes.
-std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path){
+// Preserves imported transforms, or merges an explicitly selected static variant.
+std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path, bool flatten){
     Assimp::Importer importer;
-    constexpr unsigned flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals |
-                               aiProcess_JoinIdenticalVertices | aiProcess_SortByPType |
-                               aiProcess_ValidateDataStructure;
+    unsigned flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals |
+                     aiProcess_JoinIdenticalVertices | aiProcess_SortByPType |
+                     aiProcess_ValidateDataStructure;
+    if (flatten){
+        flags |= aiProcess_PreTransformVertices | aiProcess_OptimizeMeshes |
+                 aiProcess_RemoveRedundantMaterials;
+    }
     const auto* scene = importer.ReadFile(path.string(), flags);
     if (!scene || !scene->mRootNode){
         throw std::runtime_error("Assimp: " + path.string() + ": " + importer.GetErrorString());
@@ -27,7 +31,7 @@ std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path){
     }
     auto root = readNode(*scene->mRootNode);
     std::cout << "Loaded " << path.filename().generic_string() << ": " << m_meshes.size()
-              << " meshes, hierarchy retained\n";
+              << (flatten ? " meshes, static import\n" : " meshes, hierarchy retained\n");
     return root;
 }
 
@@ -67,6 +71,10 @@ std::shared_ptr<Texture> ModelReader::readTexture(const aiString& name, const ai
     std::filesystem::path path(portableName);
     if (std::filesystem::is_regular_file(m_modelDirectory / path)){
         path = m_modelDirectory / path;
+    } else if (std::filesystem::is_regular_file(m_modelDirectory / "textures" / path.filename())){
+        path = m_modelDirectory / "textures" / path.filename();
+    } else if (std::filesystem::is_regular_file(m_modelDirectory / path.filename())){
+        path = m_modelDirectory / path.filename();
     }
     return m_reader.readTexture(path);
 }

@@ -9,8 +9,8 @@ public:
     explicit ModelReader(Reader& reader) : m_reader(reader){
     }
 
-    // Converts one imported scene into nodes without flattening its hierarchy.
-    std::shared_ptr<Node> read(const std::filesystem::path& path);
+    // Preserves hierarchy unless static mesh merging is explicitly requested.
+    std::shared_ptr<Node> read(const std::filesystem::path& path, bool flatten);
 
 private:
     // Reads material colors, shininess and an optional diffuse image.

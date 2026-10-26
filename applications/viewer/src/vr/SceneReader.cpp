@@ -134,8 +134,10 @@ void SceneReader::readAssets(Xml* root){
             if (std::string(asset->name()) != "model"){
                 throw std::runtime_error("Unknown asset element");
             }
-            m_reader.registerNode(required(asset, "id"),
-                                  m_reader.readModel(portablePath(required(asset, "file"))));
+            m_reader.registerNode(
+                required(asset, "id"),
+                m_reader.readModel(portablePath(required(asset, "file")),
+                                   boolean(attribute(asset, "flatten", "false"))));
         }
     }
 }
@@ -239,7 +241,7 @@ std::shared_ptr<Transform> SceneReader::readTransform(Xml* xml, const std::strin
     glm::mat4 matrix = glm::translate(glm::mat4(1), vec3(attribute(xml, "translate", "0 0 0")));
     const auto rotation = vec3(attribute(xml, "rotate", "0 0 0"));
     const auto scale = vec3(attribute(xml, "scale", "1 1 1"));
-    if (std::abs(scale.x * scale.y * scale.z) < 1e-8f){
+    if (glm::any(glm::lessThanEqual(glm::abs(scale), glm::vec3(1e-8f)))){
         throw std::runtime_error("Singular scale in XML");
     }
     matrix = glm::rotate(matrix, glm::radians(rotation.z), glm::vec3(0, 0, 1));

@@ -84,6 +84,14 @@ set(VIEWER_RESOURCES
     models/monkey.obj
     models/texturedBox.obj
     models/texturedBox.mtl
+    models/porsche_911_gt3.glb
+    models/5426_C3PO_Robot_Star_Wars.obj
+    models/5426_C3PO_Robot_Star_Wars.mtl
+    "models/Altair Model/altair.obj"
+    models/ResidentialBuildings/ResidentialBuildings004.fbx
+    models/ResidentialBuildings/ResidentialBuildings008.fbx
+    models/ResidentialBuildings/textures/Steel_C.jpg
+    "models/ResidentialBuildings/textures/REF 1.jpg"
     models/cow/cow_0.99.obj
     models/cow/cow_0.5.obj
     models/cow/cow_0.3.obj

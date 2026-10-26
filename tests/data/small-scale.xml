@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scene>
+  <transform name="miniature" scale="0.0005 0.0005 0.0005">
+    <instance ref="box" />
+  </transform>
+</scene>

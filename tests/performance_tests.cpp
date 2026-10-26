@@ -12,8 +12,59 @@ void check(bool value, const char* message){
     }
 }
 
+// Checks that charts compare disjoint work against the correct CPU and GPU totals.
+void breakdownTests(){
+    using Profiler = vr::FrameProfiler;
+    using Stage = Profiler::Stage;
+    Profiler::Summary summary;
+    const auto time = [&](Stage stage, double cpu, double gpu = 0){
+        const auto index = static_cast<std::size_t>(stage);
+        summary.cpu[index] = cpu;
+        summary.gpu[index] = gpu;
+    };
+    time(Stage::Frame, 100);
+    time(Stage::Render, 75, 40);
+    time(Stage::Update, 5);
+    time(Stage::Shadows, 40, 20);
+    time(Stage::Portals, 1);
+    time(Stage::Lights, 2);
+    time(Stage::Culling, 7);
+    time(Stage::Geometry, 10, 5);
+    time(Stage::Lighting, 4, 4);
+    time(Stage::Transparency, 1, 1);
+    time(Stage::Bloom, 2, 2);
+    time(Stage::DepthOfField, 1, 1);
+    time(Stage::Composite, 1, 1);
+    time(Stage::Present, 1, 1);
+    time(Stage::Debug, 1, 0.5);
+    time(Stage::Overlay, 2, 0.5);
+    time(Stage::Swap, 20);
+    const auto slices = Profiler::breakdown(summary);
+    double cpuPercent = 0, gpuPercent = 0;
+    for (const auto& slice : slices){
+        cpuPercent += slice.cpuPercent;
+        gpuPercent += slice.gpuPercent;
+        check(slice.cpuPercent >= 0 && slice.gpuPercent >= 0, "Chart shares are nonnegative");
+    }
+    check(std::abs(cpuPercent - 100) < 1e-8 && std::abs(gpuPercent - 100) < 1e-8,
+          "Each chart accounts for 100 percent without adding nested totals twice");
+    check(slices[0].cpuPercent == 40 && slices[0].gpuPercent == 50,
+          "CPU uses whole-frame time while GPU uses elapsed render time");
+    check(slices[1].cpuMs == 10 && slices[1].gpuMs == 0 && slices[3].cpuMs == 5 &&
+              slices[4].gpuMs == 5,
+          "Related disjoint stages form useful pipeline groups");
+    check(slices[6].cpuPercent == 20 && slices[6].gpuPercent == 0 && slices.back().cpuMs == 7 &&
+              slices.back().gpuMs == 4,
+          "Swap remains CPU-only and unmeasured work stays in Other / gaps");
+    for (const auto& slice : Profiler::breakdown({})){
+        check(slice.cpuPercent == 0 && slice.gpuPercent == 0,
+              "Empty histories produce finite, empty charts");
+    }
+}
+
 // Exercises nested timestamps, real frame intervals, bounded history and toggles.
 void run(){
+    breakdownTests();
     using Stage = vr::FrameProfiler::Stage;
     vr::FrameProfiler profiler;
     profiler.beginFrame(0.05);
@@ -93,6 +144,27 @@ void run(){
         check(rolling.counters[counter] == 1000 + counter * 0.25,
               "Every counter uses the same bounded averaging window");
     }
+    profiler.beginFrame(0.02);
+    {
+        vr::FrameProfiler::Scope renderScope(&profiler, Stage::Render);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+    profiler.endFrame();
+    glFinish();
+    const auto previousSequence = profiler.getHistory().back().sequence;
+    profiler.resetAverages();
+    check(profiler.getEnabled() && profiler.getHistory().empty() &&
+              profiler.summarize().counterSamples == 0,
+          "Reset clears averages while leaving profiling enabled");
+    profiler.beginFrame(0.012);
+    vr::FrameProfiler::Counters fresh{};
+    fresh.fill(7);
+    profiler.recordCounters(fresh);
+    profiler.endFrame();
+    const auto reset = profiler.summarize();
+    check(reset.samples == 1 && reset.gpuSamples == 0 && reset.frameMs == 12 &&
+              reset.counters == fresh && profiler.getHistory().back().sequence > previousSequence,
+          "Reset discards old counters, timings and delayed GPU results without reusing frame IDs");
     profiler.setEnabled(false);
     profiler.setEnabled(true);
     check(profiler.getHistory().empty(), "Reopening starts a fresh measurement window");

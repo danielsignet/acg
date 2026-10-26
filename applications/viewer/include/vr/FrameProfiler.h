@@ -80,6 +80,14 @@ public:
         std::uint64_t gpuLag = 0, skipped = 0;
     };
 
+    struct Slice{
+        const char* name;
+        double cpuMs = 0, gpuMs = 0;
+        double cpuPercent = 0, gpuPercent = 0;
+    };
+
+    static constexpr std::size_t SliceCount = 8;
+
     class Scope final{
     public:
         // Starts an optional scope; disabled profiling performs no GL calls.
@@ -104,6 +112,8 @@ public:
     FrameProfiler& operator=(const FrameProfiler&) = delete;
     // Starts a fresh measurement history when the view is opened or closed.
     void setEnabled(bool enabled);
+    // Resets between frames without changing settings or waiting for GPU results.
+    void resetAverages();
 
     // Reports whether the performance view is collecting measurements.
     bool getEnabled() const{
@@ -129,16 +139,16 @@ public:
 
     // Averages the bounded history and computes the 95th-percentile frame interval.
     Summary summarize() const;
+    // Groups nonoverlapping scopes and accounts for remaining time without counting totals twice.
+    static std::array<Slice, SliceCount> breakdown(const Summary& summary);
 
-    // Exposes chronological frame intervals for the history plot.
+    // Exposes completed frames in chronological order.
     const std::deque<Sample>& getHistory() const{
         return m_history;
     }
 
     // Names the measured stages and identifies CPU-only work.
     static const std::array<Description, StageCount>& descriptions();
-    // Names each numeric counter in the same order as its history values.
-    static const std::array<const char*, CounterCount>& counterNames();
 
 private:
     struct Queries{

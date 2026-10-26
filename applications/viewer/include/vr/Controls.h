@@ -32,6 +32,7 @@ public:
         Roof,
         Hud,
         Performance,
+        ResetAverages,
         HouseView,
         PortalCulling,
         TransparentWalls,

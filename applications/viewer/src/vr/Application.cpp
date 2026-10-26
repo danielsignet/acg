@@ -165,6 +165,9 @@ void Application::execute(Controls::Action action){
     if (action == Action::Performance){
         m_profiler.setEnabled(!m_profiler.getEnabled());
         m_shaderMenuOpen = false;
+    } else if (action == Action::ResetAverages){
+        m_profiler.resetAverages();
+        m_status = "Performance averages reset";
     } else if (action == Action::Bloom){
         m_bloomEnabled = !m_bloomEnabled;
         m_deferred->setBloom(m_bloomEnabled);

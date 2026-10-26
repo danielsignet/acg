@@ -82,6 +82,13 @@ void SceneOverlay::click(Application& app, float x, float y){
         return;
     }
     const float bottom = static_cast<float>(app.m_height - FooterHeight);
+    if (app.m_profiler.getEnabled()){
+        const auto reset = performanceResetRectangle();
+        if (x >= reset.x && x < reset.x + reset.z && y >= reset.y && y < reset.y + reset.w){
+            app.execute(Action::ResetAverages);
+            return;
+        }
+    }
     if (app.m_profiler.getEnabled() && y > HeaderHeight && y < bottom){
         return;
     }

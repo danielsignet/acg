@@ -124,11 +124,11 @@ float pointVisibility(vec3 position, vec3 normal, vec3 lightPosition, int slot){
 
 // Evaluates the same world-space lighting for forward and deferred surfaces.
 vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Material material,
-                  vec3 emissive, bool lighting, bool toon, bool receiveShadows, int lightMask){
+                  vec3 emissive, bool lighting, bool toon, bool receiveShadows, int lightMask, float ambientVisibility){
     vec3 viewDirection = normalize(uEye - position);
     vec3 result = surface.rgb;
     if (lighting){
-        result = material.ambient * surface.rgb * 0.6;
+        result = material.ambient * surface.rgb * 0.6 * ambientVisibility;
         for (int i = 0; i < uLightCount; ++i){
             if (!uLights[i].enabled || (lightMask & (1 << i)) == 0){
                 continue;
@@ -174,7 +174,8 @@ vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Materia
             }
             result +=
                 attenuation * visibility *
-                (surface.rgb * uLights[i].ambient + surface.rgb * uLights[i].diffuse * diffuse +
+                (surface.rgb * uLights[i].ambient * ambientVisibility +
+                 surface.rgb * uLights[i].diffuse * diffuse +
                  material.specular * uLights[i].specular * specular);
         }
         if (toon){

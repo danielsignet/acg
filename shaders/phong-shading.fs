@@ -12,7 +12,7 @@ void main(){
     vec3 normal, plane;
     surfaceNormals(normal, plane);
     vec3 radiance = shadeSurface(worldPosition, normal, plane, surface, uMaterial, uEmissive,
-                                 uLighting, uToon, uReceiveShadows, uLightMask);
+                                 uLighting, uToon, uReceiveShadows, uLightMask, 1.0);
     fragmentColor = vec4(uLinearOutput ? radiance : displaySurface(radiance, worldPosition, uFog),
                          surface.a * uOpacity);
 }

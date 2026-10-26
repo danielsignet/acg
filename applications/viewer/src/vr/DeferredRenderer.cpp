@@ -8,6 +8,7 @@
 namespace vr{
 // Loads the geometry, lighting, post-processing and buffer-preview programs.
 DeferredRenderer::DeferredRenderer(const std::filesystem::path& root){
+    m_occlusion = std::make_unique<AmbientOcclusion>(root);
     const auto shaders = root / "shaders";
     m_geometryProgram =
         std::make_shared<Program>(shaders / "phong-shading.vs", shaders / "gbuffer.fs");
@@ -37,6 +38,7 @@ void DeferredRenderer::resize(int width, int height){
         blurred[i] = std::make_unique<ColorTarget>(std::max(1, width / 2), std::max(1, height / 2));
         bloom[i] = std::make_unique<ColorTarget>(std::max(1, width / 2), std::max(1, height / 2));
     }
+    m_occlusion->resize(width, height);
     m_gbuffer = std::move(gbuffer);
     m_color = std::move(color);
     m_composite = std::move(composite);
@@ -76,6 +78,11 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
         m_gbuffer->begin();
         opaque(m_geometryProgram);
     }
+    if (m_ambientOcclusion){
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Occlusion);
+        m_occlusion->render(camera, *m_gbuffer);
+        m_screenDraws += 2;
+    }
     {
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Lighting);
         light(camera, state, lights);
@@ -104,7 +111,8 @@ void DeferredRenderer::light(const Camera& camera, const State& state,
     const std::array<const char*, GBuffer::Count> names{
         {"uGPosition", "uGNormal", "uGAlbedo", "uGSpecular", "uGAmbient", "uGEmissive", "uGPlane"}};
     for (unsigned i = 0; i < GBuffer::Count; ++i){
-        m_gbuffer->get(i)->apply(i);
+        const auto& texture = i == GBuffer::Ambient ? getAmbientBuffer() : m_gbuffer->get(i);
+        texture->apply(i);
         m_lightingProgram->set(names[i], static_cast<int>(i));
     }
     m_lightingProgram->set("uEye", camera.getPosition());
@@ -166,7 +174,7 @@ void DeferredRenderer::postProcess(const Camera& camera){
     drawQuad();
 }
 
-// Presents the selected output and optionally the eight G-buffer thumbnails.
+// Presents the selected output and optionally the surface and AO thumbnails.
 void DeferredRenderer::present(const Camera& camera, GLuint framebuffer, const GLint* viewport){
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
@@ -177,7 +185,7 @@ void DeferredRenderer::present(const Camera& camera, GLuint framebuffer, const G
     m_gbuffer->get(GBuffer::Albedo)->apply(3);
     m_gbuffer->get(GBuffer::Specular)->apply(4);
     m_gbuffer->getDepth()->apply(5);
-    m_gbuffer->get(GBuffer::Ambient)->apply(6);
+    getAmbientBuffer()->apply(6);
     m_gbuffer->get(GBuffer::Emissive)->apply(7);
     m_gbuffer->get(GBuffer::Plane)->apply(8);
     const std::array<const char*, 9> names{{"uColor", "uPosition", "uNormal", "uAlbedo",
@@ -228,5 +236,10 @@ const GBuffer& DeferredRenderer::getGBuffer() const{
         throw std::logic_error("G-buffer has not been initialized");
     }
     return *m_gbuffer;
+}
+
+// Returns ambient RGB with AO in alpha, reusing the existing lighting sampler.
+const std::shared_ptr<Texture>& DeferredRenderer::getAmbientBuffer() const{
+    return m_ambientOcclusion ? m_occlusion->getTexture() : getGBuffer().get(GBuffer::Ambient);
 }
 } // namespace vr

@@ -582,12 +582,16 @@ private:
         check(points, "Keys 1-5 identify the four colored lights and daylight");
         check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
               "L toggles the flashlight independently of F's culling inspection");
-        check(vr::Controls::getBindings().size() == 17 &&
+        check(vr::Controls::getBindings().size() == 19 &&
                   vr::Controls::find(GLFW_KEY_F1)->action == Action::Performance &&
                   !vr::Controls::find(GLFW_KEY_P) &&
                   vr::Controls::find(GLFW_KEY_V)->action == Action::DepthOfField &&
                   !vr::Controls::find(GLFW_KEY_F3),
-              "The compact shortcuts include the independent F1 performance view");
+              "The compact shortcuts include profiling, renderer selection and AO");
+        check(vr::Controls::find(GLFW_KEY_F2)->action == Action::Renderer &&
+                  vr::Controls::find(GLFW_KEY_O)->action == Action::AmbientOcclusion &&
+                  vr::Controls::findShader(GLFW_KEY_A)->view == vr::BufferView::Occlusion,
+              "Renderer, AO and the AO view have distinct controls");
         check(!vr::Controls::find(GLFW_KEY_UNKNOWN), "Unbound keys must not trigger an action");
     }
 };

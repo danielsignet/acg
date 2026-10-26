@@ -24,6 +24,9 @@ private:
     // Captures scene pixels while excluding HUD status bands.
     FramebufferImage captureScene() const;
 
+    // Checks AO, its diagnostic view and the independent forward/deferred switch.
+    void validateAmbientOcclusion();
+
     // Checks public buffer controls, post effects, resize and reload persistence.
     void validateDeferred();
 

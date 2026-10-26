@@ -48,6 +48,7 @@ void Application::reload(){
     deferred->resize(m_width, m_height);
     deferred->setView(m_bufferView);
     deferred->setBloom(m_bloomEnabled);
+    deferred->setAmbientOcclusion(m_ambientOcclusionEnabled);
     deferred->setDepthOfField(m_depthOfFieldEnabled);
     auto shadows = std::make_unique<ShadowRenderer>(m_root);
     shadows->attach(*scene);
@@ -162,7 +163,22 @@ void Application::handleClick(float x, float y){
 // Executes the shared action used by keyboard, toolbar and validation paths.
 void Application::execute(Controls::Action action){
     using Action = Controls::Action;
-    if (action == Action::Performance){
+    if (action == Action::Renderer){
+        m_deferredEnabled = !m_deferredEnabled;
+        m_bufferView = BufferView::Lit;
+        m_deferred->setView(m_bufferView);
+        m_shaderMenuOpen = false;
+        m_status = m_deferredEnabled
+                       ? "Deferred rendering"
+                       : "Forward rendering; AO, G-buffer views and post effects use Deferred [F2]";
+    } else if ((action == Action::AmbientOcclusion || action == Action::Bloom ||
+                action == Action::DepthOfField || action == Action::BufferPreviews) &&
+               !m_deferredEnabled){
+        m_status = "Switch to Deferred [F2] to use AO, G-buffer views and post effects";
+    } else if (action == Action::AmbientOcclusion){
+        m_ambientOcclusionEnabled = !m_ambientOcclusionEnabled;
+        m_deferred->setAmbientOcclusion(m_ambientOcclusionEnabled);
+    } else if (action == Action::Performance){
         m_profiler.setEnabled(!m_profiler.getEnabled());
         m_shaderMenuOpen = false;
     } else if (action == Action::ResetAverages){
@@ -176,7 +192,12 @@ void Application::execute(Controls::Action action){
         m_deferred->setDepthOfField(m_depthOfFieldEnabled);
     } else if (action == Action::BufferPreviews){
         m_bufferPreviews = !m_bufferPreviews;
-    } else if (action >= Action::PositionBuffer && action <= Action::PlaneBuffer){
+    } else if (action >= Action::PositionBuffer && action <= Action::OcclusionBuffer){
+        m_deferredEnabled = true;
+        if (action == Action::OcclusionBuffer){
+            m_ambientOcclusionEnabled = true;
+            m_deferred->setAmbientOcclusion(true);
+        }
         m_bufferView = static_cast<BufferView>(static_cast<unsigned>(action) -
                                                static_cast<unsigned>(Action::PositionBuffer) + 1);
         m_deferred->setView(m_bufferView);
@@ -352,8 +373,9 @@ void Application::render(){
         FrameProfiler::Scope portals(&m_profiler, FrameProfiler::Stage::Portals);
         updatePortalVisibility(camera, vp);
     }
-    m_deferred->setPreviews(m_showHud && m_bufferPreviews);
-    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult, m_deferred.get());
+    m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_bufferPreviews);
+    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult,
+                       m_deferredEnabled ? m_deferred.get() : nullptr);
     {
         FrameProfiler::Scope debug(&m_profiler, FrameProfiler::Stage::Debug);
         drawVisibilityDebug(camera, vp);
@@ -451,7 +473,7 @@ FrameProfiler::Counters Application::performanceCounters() const{
     set(Counter::ShadowPasses, shadows.passes);
     set(Counter::TotalDraws, scene.draws + shadows.draws);
     set(Counter::TotalTriangles, static_cast<double>(scene.triangles + shadows.triangles));
-    set(Counter::ScreenDraws, m_deferred->getScreenDraws());
+    set(Counter::ScreenDraws, m_deferredEnabled ? m_deferred->getScreenDraws() : 0);
     set(Counter::Lights, scene.lights);
     set(Counter::VisitedNodes, scene.visitedNodes);
     set(Counter::CameraBounds, scene.boundsTested);

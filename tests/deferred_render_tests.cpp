@@ -188,6 +188,52 @@ void run(const std::filesystem::path& path){
     deferred.setDepthOfField(false);
     check(changed(focused, render()) == 0,
           "Disabling both post effects restores the unprocessed lighting result");
+    // Empty sky must not select the far clip plane and blur all visible geometry.
+    object->setMatrix(glm::scale(glm::translate(glm::mat4(1),{2.3f, 0, 0}),{2, 2, 2}));
+    const auto noFocus = render();
+    check(sample(vr::GBuffer::Position).w == 0, "The sky-focus fixture has no center surface");
+    deferred.setDepthOfField(true);
+    check(changed(noFocus, render()) == 0,
+          "Aiming at empty background leaves the scene sharp instead of focusing on the far plane");
+    deferred.setDepthOfField(false);
+    object->setMatrix(glm::scale(glm::mat4(1),{2, 2, 2}));
+    auto nearby = box(root,{1.25f, 0, 2},{0.6f, 0.6f, 0.6f});
+    auto nearbyState = std::make_shared<vr::State>();
+    nearbyState->setLighting(false);
+    auto nearbyMaterial = std::make_shared<vr::Material>();
+    nearbyMaterial->setDiffuse({1, 1, 1});
+    nearbyState->setMaterial(nearbyMaterial);
+    std::vector<unsigned char> checker(4 * 4 * 4, 255);
+    for (unsigned y = 0; y < 4; ++y){
+        for (unsigned x = 0; x < 4; ++x){
+            for (unsigned channel = 0; channel < 3; ++channel){
+                checker[(y * 4 + x) * 4 + channel] = (x + y) % 2 ? 255 : 0;
+            }
+        }
+    }
+    nearbyState->setTexture(0, std::make_shared<vr::Texture>(4, 4, checker));
+    nearby->setState(nearbyState);
+    const auto nearbySharp = render();
+    const auto nearbyPositions = deferred.getGBuffer().read(vr::GBuffer::Position);
+    deferred.setDepthOfField(true);
+    const auto nearbyDof = render();
+    unsigned nearbyPixels = 0, blurredNearbyPixels = 0;
+    for (std::size_t i = 0; i < nearbyPositions.size(); i += 4){
+        if (nearbyPositions[i + 3] > 0 && nearbyPositions[i + 2] > 1.6f &&
+            nearbyPositions[i + 2] < 2.4f){
+            ++nearbyPixels;
+            for (unsigned channel = 0; channel < 3; ++channel){
+                if (std::abs(static_cast<int>(nearbySharp[i + channel]) - nearbyDof[i + channel]) >
+                    2){
+                    ++blurredNearbyPixels;
+                    break;
+                }
+            }
+        }
+    }
+    check(nearbyPixels > 100 && blurredNearbyPixels == 0,
+          "Textured surfaces within the broader focus band remain sharp, including their edges");
+    deferred.setDepthOfField(false);
     deferred.resize(197, 113);
     check(deferred.getGBuffer().get(vr::GBuffer::Position)->getWidth() == 197 &&
               deferred.getGBuffer().getDepth()->getHeight() == 113 &&

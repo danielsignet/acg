@@ -40,7 +40,7 @@ WSL requires a graphical session such as WSLg.
 | Z or Shader | Select Phong, Toon, positions, normals, albedo, specular or depth; use the mouse or 1-7 in the menu; 8/9/0 show ambient, emissive and geometric normals |
 | G | Show/hide G-buffer previews; click a preview to expand it, click again to return |
 | B or Bloom | Toggle bloom |
-| V or DoF | Toggle depth of field; focus follows the center of the view |
+| V or DoF | Toggle depth of field; aim the center marker at the surface to focus on |
 | J or Shadows | Toggle shadows |
 | L or Flashlight | Toggle the camera-mounted flashlight |
 | Arrows / Page Up / Page Down | Move the lights along X/Z and Y |

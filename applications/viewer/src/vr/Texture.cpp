@@ -82,6 +82,18 @@ std::shared_ptr<Texture> Texture::fromMemory(const unsigned char* bytes, int len
 // Uploads pixels on first use and binds the requested texture layer.
 void Texture::apply(unsigned layer) const{
     glActiveTexture(GL_TEXTURE0 + layer);
+    if (m_samples > 1){
+        if (!m_id){
+            glGenTextures(1, &m_id);
+            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id);
+            glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, m_samples,
+                                    m_depth ? GL_DEPTH_COMPONENT32F : m_renderFormat, m_width,
+                                    m_height, GL_TRUE);
+        } else{
+            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, m_id);
+        }
+        return;
+    }
     if (m_renderFormat){
         if (!m_id){
             glGenTextures(1, &m_id);
@@ -127,8 +139,13 @@ Texture::Texture(int width, int height, bool cube)
 }
 
 // Creates a lazy floating-point depth texture, with six faces for a cubemap.
-std::shared_ptr<Texture> Texture::depth(int width, int height, bool cube){
-    return std::shared_ptr<Texture>(new Texture(width, height, cube));
+std::shared_ptr<Texture> Texture::depth(int width, int height, bool cube, int samples){
+    if (samples < 1 || (cube && samples != 1)){
+        throw std::invalid_argument("Invalid depth sample count");
+    }
+    auto texture = std::shared_ptr<Texture>(new Texture(width, height, cube));
+    texture->m_samples = samples;
+    return texture;
 }
 
 // Allocates the depth image or its six faces on first use.
@@ -160,7 +177,7 @@ void Texture::uploadDepth() const{
 
 // Creates a nearest or linearly sampled color attachment without CPU pixel storage.
 std::shared_ptr<vr::Texture> vr::Texture::colorTarget(int width, int height, GLenum format,
-                                                      bool linear){
+                                                      bool linear, int samples){
     if (format != GL_RGBA8 && format != GL_RGBA16F && format != GL_RGBA32F){
         throw std::invalid_argument("Unsupported color attachment format");
     }
@@ -168,5 +185,9 @@ std::shared_ptr<vr::Texture> vr::Texture::colorTarget(int width, int height, GLe
     texture->m_depth = false;
     texture->m_renderFormat = format;
     texture->m_linearTarget = linear;
+    if (samples < 1){
+        throw std::invalid_argument("Invalid color sample count");
+    }
+    texture->m_samples = samples;
     return texture;
 }

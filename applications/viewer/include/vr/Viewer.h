@@ -42,6 +42,7 @@ private:
     bool m_noCulling = false;
     bool m_bloom = false, m_depthOfField = false, m_noBufferPreviews = false;
     BufferView m_bufferView = BufferView::Lit;
+    AntialiasingMode m_antialiasingMode = AntialiasingMode::Off;
     bool m_noShadows = false;
     bool m_portalDemo = false, m_noPortals = false, m_solidWalls = false;
     int m_frameLimit = 0;

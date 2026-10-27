@@ -20,6 +20,8 @@ private:
     GLboolean m_colorMask[4]{}, m_depthMask = GL_TRUE;
     bool m_depthTestEnabled = false, m_blendEnabled = false, m_cullFaceEnabled = false,
          m_scissorEnabled = false, m_polygonOffsetEnabled = false;
+    bool m_multisampleEnabled = false, m_sampleShadingEnabled = false;
+    GLfloat m_minSampleShading = 0;
     GLfloat m_polygonOffsetFactor = 0, m_polygonOffsetUnits = 0;
     GLdouble m_clearDepth = 1;
 };

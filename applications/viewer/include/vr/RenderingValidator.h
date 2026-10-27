@@ -15,6 +15,8 @@ public:
     void run();
 
 private:
+    // Checks the shared AA button, average reset and persistence across renderer and scene changes.
+    void validateAntialiasing();
     // Checks normal-map comparison, shared menu controls and reload persistence.
     void validateNormalMapping();
 

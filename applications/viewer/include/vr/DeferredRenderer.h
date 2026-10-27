@@ -2,6 +2,7 @@
 #include "FrameProfiler.h"
 #include "AmbientOcclusion.h"
 #include "DepthOfField.h"
+#include "Antialiasing.h"
 #include "ColorTarget.h"
 #include "GBuffer.h"
 #include "LightCollector.h"
@@ -19,6 +20,16 @@ public:
     explicit DeferredRenderer(const std::filesystem::path& root);
     // Replaces viewport-sized attachments only after all replacements are complete.
     void resize(int width, int height);
+    // Selects Off, display-space FXAA or four-sample deferred/forward rendering.
+    void setAntialiasing(AntialiasingMode mode);
+
+    // Returns the selected scene antialiasing technique.
+    AntialiasingMode getAntialiasing() const{
+        return m_antialiasingMode;
+    }
+
+    // Applies the selected technique around an existing forward draw callback.
+    void renderForward(const std::function<void()>& draw);
     // Renders opaque surfaces, screen-space lighting, transparency and post effects.
     void render(const Camera& camera, const State& state,
                 const std::vector<PositionedLight>& lights,
@@ -108,6 +119,8 @@ private:
 
     // Configures a screen pass without stale geometry rasterization state.
     static void screenPass();
+    // Resolves one coherent nearest surface for AO, post effects and diagnostic views.
+    void resolveGeometry();
     // Binds surface attachments and evaluates lights once per visible pixel.
     void light(const Camera& camera, const State& state,
                const std::vector<PositionedLight>& lights);
@@ -119,11 +132,16 @@ private:
     // Presents the selected output and optionally the surface and AO thumbnails.
     void present(const Camera& camera, GLuint framebuffer, const GLint* viewport);
     std::shared_ptr<Program> m_geometryProgram, m_lightingProgram, m_postProgram, m_viewProgram;
+    std::shared_ptr<Program> m_multisampleLighting, m_resolveProgram, m_ambientProgram;
+    std::unique_ptr<Antialiasing> m_antialiasing;
+    AntialiasingMode m_antialiasingMode = AntialiasingMode::Off;
     ScreenQuad m_quad;
     std::unique_ptr<AmbientOcclusion> m_occlusion;
     std::unique_ptr<DepthOfField> m_dof;
     bool m_ambientOcclusion = false;
     std::unique_ptr<GBuffer> m_gbuffer;
+    std::unique_ptr<GBuffer> m_multisampleBuffer;
+    std::unique_ptr<ColorTarget> m_multisampleColor;
     std::unique_ptr<ColorTarget> m_color, m_composite;
     std::array<std::unique_ptr<ColorTarget>, 2> m_bloomBlur;
     int m_width = 0, m_height = 0;

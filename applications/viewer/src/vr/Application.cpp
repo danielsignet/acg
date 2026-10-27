@@ -46,6 +46,7 @@ void Application::reload(){
     auto deferred = std::make_unique<DeferredRenderer>(m_root);
     deferred->setProfiler(&m_profiler);
     deferred->resize(m_width, m_height);
+    deferred->setAntialiasing(m_antialiasingMode);
     deferred->setView(m_bufferView);
     deferred->setBloom(m_bloomEnabled);
     deferred->setAmbientOcclusion(m_ambientOcclusionEnabled);
@@ -188,6 +189,17 @@ void Application::execute(Controls::Action action){
         m_status = m_deferredEnabled
                        ? "Deferred rendering"
                        : "Forward rendering; AO, G-buffer views and post effects use Deferred [F2]";
+    } else if (action == Action::Antialiasing){
+        try{
+            const auto next = nextAntialiasing(m_antialiasingMode);
+            m_deferred->setAntialiasing(next);
+            m_antialiasingMode = next;
+            m_profiler.resetAverages();
+            m_status = std::string("Antialiasing: ") + antialiasingName(next) +
+                       "; averages reset. Cycle: Off > FXAA > MSAA 4x";
+        } catch (const std::exception& error){
+            m_status = error.what();
+        }
     } else if (action == Action::Subdivision){
         if (!m_target){
             m_status = "Aim at a model to subdivide it";
@@ -410,6 +422,8 @@ void Application::render(){
     glDepthMask(GL_TRUE);
     glDisable(GL_BLEND);
     glFrontFace(GL_CCW);
+    glDisable(GL_MULTISAMPLE);
+    glDisable(GL_SAMPLE_SHADING);
     glCullFace(GL_BACK);
     glClearColor(0.035f, 0.052f, 0.078f, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -427,16 +441,23 @@ void Application::render(){
     }
     m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_bufferPreviews &&
                             !m_profiler.getEnabled());
-    m_renderer->render(
-        *m_scene->getRoot(), camera, frozen, &m_portalResult,
-        m_deferredEnabled ? m_deferred.get() : nullptr, [&]{
-            FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
-            m_target =
-                pickModel(m_renderer->getRenderList(), camera.getPosition(),
-                          glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f));
-            m_deferred->setFocusDistance(m_target ? std::optional<float>(m_target->distance)
-                                                  : std::nullopt);
-        });
+    const auto draw = [&]{
+        m_renderer->render(
+            *m_scene->getRoot(), camera, frozen, &m_portalResult,
+            m_deferredEnabled ? m_deferred.get() : nullptr, [&]{
+                FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
+                m_target =
+                    pickModel(m_renderer->getRenderList(), camera.getPosition(),
+                              glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f));
+                m_deferred->setFocusDistance(m_target ? std::optional<float>(m_target->distance)
+                                                      : std::nullopt);
+            });
+    };
+    if (m_deferredEnabled){
+        draw();
+    } else{
+        m_deferred->renderForward(draw);
+    }
     {
         FrameProfiler::Scope debug(&m_profiler, FrameProfiler::Stage::Debug);
         if (m_target && m_showHud && !m_profiler.getEnabled()){
@@ -538,7 +559,7 @@ FrameProfiler::Counters Application::performanceCounters() const{
     set(Counter::ShadowPasses, shadows.passes);
     set(Counter::TotalDraws, scene.draws + shadows.draws);
     set(Counter::TotalTriangles, static_cast<double>(scene.triangles + shadows.triangles));
-    set(Counter::ScreenDraws, m_deferredEnabled ? m_deferred->getScreenDraws() : 0);
+    set(Counter::ScreenDraws, m_deferred->getScreenDraws());
     set(Counter::Lights, scene.lights);
     set(Counter::VisitedNodes, scene.visitedNodes);
     set(Counter::CameraBounds, scene.boundsTested);
@@ -552,7 +573,9 @@ FrameProfiler::Counters Application::performanceCounters() const{
             return m_portalResult.visible(cell.id);
         })));
     set(Counter::PortalsTested, m_portalResult.portalsTested);
-    set(Counter::GBufferMiB, static_cast<double>(m_width) * m_height * 64 / (1024 * 1024));
+    const int surfaceCopies = m_antialiasingMode == AntialiasingMode::Msaa ? 5 : 1;
+    set(Counter::GBufferMiB,
+        static_cast<double>(m_width) * m_height * 64 * surfaceCopies / (1024 * 1024));
     set(Counter::LodFadeDraws,
         std::count_if(m_renderer->getRenderList().begin(), m_renderer->getRenderList().end(),
                       [](const auto& item){

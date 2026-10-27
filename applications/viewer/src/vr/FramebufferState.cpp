@@ -16,6 +16,9 @@ FramebufferState::FramebufferState(){
     m_cullFaceEnabled = glIsEnabled(GL_CULL_FACE);
     m_scissorEnabled = glIsEnabled(GL_SCISSOR_TEST);
     m_polygonOffsetEnabled = glIsEnabled(GL_POLYGON_OFFSET_FILL);
+    m_multisampleEnabled = glIsEnabled(GL_MULTISAMPLE);
+    m_sampleShadingEnabled = glIsEnabled(GL_SAMPLE_SHADING);
+    glGetFloatv(GL_MIN_SAMPLE_SHADING_VALUE, &m_minSampleShading);
     glGetFloatv(GL_POLYGON_OFFSET_FACTOR, &m_polygonOffsetFactor);
     glGetFloatv(GL_POLYGON_OFFSET_UNITS, &m_polygonOffsetUnits);
 }
@@ -41,6 +44,9 @@ FramebufferState::~FramebufferState(){
     restore(GL_CULL_FACE, m_cullFaceEnabled);
     restore(GL_SCISSOR_TEST, m_scissorEnabled);
     restore(GL_POLYGON_OFFSET_FILL, m_polygonOffsetEnabled);
+    restore(GL_MULTISAMPLE, m_multisampleEnabled);
+    restore(GL_SAMPLE_SHADING, m_sampleShadingEnabled);
+    glMinSampleShading(m_minSampleShading);
     glPolygonOffset(m_polygonOffsetFactor, m_polygonOffsetUnits);
     glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(m_polygonMode[0]));
 }

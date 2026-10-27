@@ -17,7 +17,7 @@ public:
     };
 
     // Allocates floating-point surface data and a shared camera depth texture.
-    GBuffer(int width, int height);
+    GBuffer(int width, int height, int samples = 1);
     // Releases the framebuffer before its attachment textures.
     ~GBuffer();
     // Prevents copying framebuffer ownership.
@@ -26,6 +26,8 @@ public:
     GBuffer& operator=(const GBuffer&) = delete;
     // Binds and clears every surface attachment for a new geometry pass.
     void begin() const;
+    // Binds all surface outputs, or one attachment for an alpha-only AO update.
+    void bind(unsigned attachment = Count) const;
     // Returns a surface attachment for lighting, previews or diagnostics.
     const std::shared_ptr<Texture>& get(unsigned attachment) const;
 

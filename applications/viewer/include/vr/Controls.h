@@ -49,6 +49,7 @@ public:
         Bloom,
         DepthOfField,
         BufferPreviews,
+        Antialiasing,
         PositionBuffer,
         NormalBuffer,
         AlbedoBuffer,

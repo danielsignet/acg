@@ -7,8 +7,14 @@
 #include <stdexcept>
 
 namespace vr{
+namespace{
+constexpr std::array<const char*, GBuffer::Count> surfaceNames{
+    {"uGPosition", "uGNormal", "uGAlbedo", "uGSpecular", "uGAmbient", "uGEmissive", "uGPlane"}};
+}
+
 // Loads the geometry, lighting, post-processing and buffer-preview programs.
 DeferredRenderer::DeferredRenderer(const std::filesystem::path& root){
+    m_antialiasing = std::make_unique<Antialiasing>(root);
     m_occlusion = std::make_unique<AmbientOcclusion>(root);
     m_dof = std::make_unique<DepthOfField>(root);
     const auto shaders = root / "shaders";
@@ -16,6 +22,12 @@ DeferredRenderer::DeferredRenderer(const std::filesystem::path& root){
         std::make_shared<Program>(shaders / "phong-shading.vs", shaders / "gbuffer.fs");
     m_lightingProgram =
         std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "deferred-lighting.fs");
+    m_multisampleLighting = std::make_shared<Program>(shaders / "screen-quad.vs",
+                                                      shaders / "deferred-lighting-msaa.fs");
+    m_resolveProgram =
+        std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "gbuffer-resolve.fs");
+    m_ambientProgram =
+        std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "msaa-ambient.fs");
     m_postProgram =
         std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "post-process.fs");
     m_viewProgram =
@@ -35,6 +47,12 @@ void DeferredRenderer::resize(int width, int height){
     auto gbuffer = std::make_unique<GBuffer>(width, height);
     auto color = std::make_unique<ColorTarget>(width, height, gbuffer->getDepth());
     auto composite = std::make_unique<ColorTarget>(width, height);
+    std::unique_ptr<GBuffer> multisample;
+    std::unique_ptr<ColorTarget> multisampleColor;
+    if (m_antialiasingMode == AntialiasingMode::Msaa){
+        multisample = std::make_unique<GBuffer>(width, height, 4);
+        multisampleColor = std::make_unique<ColorTarget>(width, height, multisample->getDepth());
+    }
     std::array<std::unique_ptr<ColorTarget>, 2> bloom;
     for (unsigned i = 0; i < 2; ++i){
         bloom[i] = std::make_unique<ColorTarget>(std::max(1, width / 2), std::max(1, height / 2));
@@ -44,21 +62,66 @@ void DeferredRenderer::resize(int width, int height){
     m_gbuffer = std::move(gbuffer);
     m_color = std::move(color);
     m_composite = std::move(composite);
+    m_multisampleBuffer = std::move(multisample);
+    m_multisampleColor = std::move(multisampleColor);
     m_bloomBlur = std::move(bloom);
     m_width = width;
     m_height = height;
+    m_antialiasing->configure(width, height, m_antialiasingMode);
+}
+
+// Selects Off, display-space FXAA or four-sample deferred/forward rendering.
+void DeferredRenderer::setAntialiasing(AntialiasingMode mode){
+    if (mode == m_antialiasingMode){
+        return;
+    }
+    std::unique_ptr<GBuffer> buffer;
+    std::unique_ptr<ColorTarget> color;
+    if (mode == AntialiasingMode::Msaa){
+        GLint colorSamples = 0, depthSamples = 0;
+        glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &colorSamples);
+        glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &depthSamples);
+        if (std::min(colorSamples, depthSamples) < 4){
+            throw std::runtime_error("MSAA 4x requires four color and depth texture samples");
+        }
+        if (m_width > 0 && m_height > 0){
+            buffer = std::make_unique<GBuffer>(m_width, m_height, 4);
+            color = std::make_unique<ColorTarget>(m_width, m_height, buffer->getDepth());
+        }
+    }
+    m_multisampleColor = std::move(color);
+    m_multisampleBuffer = std::move(buffer);
+    m_antialiasingMode = mode;
+    m_antialiasing->configure(m_width, m_height, mode);
+}
+
+// Applies the selected technique around an existing forward draw callback.
+void DeferredRenderer::renderForward(const std::function<void()>& draw){
+    m_antialiasing->renderForward(draw, m_profiler);
+    m_screenDraws = m_antialiasing->getScreenDraws();
 }
 
 // Configures a screen pass without stale geometry rasterization state.
 void DeferredRenderer::screenPass(){
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    glDisable(GL_BLEND);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    Antialiasing::screenPass();
+}
+
+// Resolves one coherent nearest surface for AO, post effects and diagnostic views.
+void DeferredRenderer::resolveGeometry(){
+    FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::GBufferResolve);
+    m_gbuffer->begin();
+    screenPass();
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
+    glDepthMask(GL_TRUE);
+    m_resolveProgram->use();
+    for (unsigned i = 0; i < GBuffer::Count; ++i){
+        m_multisampleBuffer->get(i)->apply(i);
+        m_resolveProgram->set(surfaceNames[i], static_cast<int>(i));
+    }
+    m_multisampleBuffer->getDepth()->apply(GBuffer::Count);
+    m_resolveProgram->set("uDepth", static_cast<int>(GBuffer::Count));
+    drawQuad();
 }
 
 // Renders opaque surfaces, screen-space lighting, transparency and post effects.
@@ -74,15 +137,38 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &framebuffer);
     glGetIntegerv(GL_VIEWPORT, viewport);
     m_screenDraws = 0;
+    glDisable(GL_SAMPLE_SHADING);
+    glDisable(GL_MULTISAMPLE);
+    const bool multisample = m_multisampleBuffer != nullptr;
     {
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Geometry);
-        m_gbuffer->begin();
+        (multisample ? m_multisampleBuffer : m_gbuffer)->begin();
+        if (multisample){
+            glEnable(GL_MULTISAMPLE);
+            glEnable(GL_SAMPLE_SHADING);
+            glMinSampleShading(1.0f);
+        }
         opaque(m_geometryProgram);
+    }
+    glDisable(GL_SAMPLE_SHADING);
+    if (multisample){
+        resolveGeometry();
     }
     if (m_ambientOcclusion){
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Occlusion);
         m_occlusion->render(camera, *m_gbuffer);
         m_screenDraws += 4;
+        if (multisample){
+            // Reuse ambient alpha so lighting still fits the existing sixteen sampler units.
+            screenPass();
+            m_multisampleBuffer->bind(GBuffer::Ambient);
+            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+            m_ambientProgram->use();
+            getAmbientBuffer()->apply(0);
+            m_ambientProgram->set("uAmbient", 0);
+            drawQuad();
+            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        }
     }
     {
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Lighting);
@@ -94,8 +180,20 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
         glDepthFunc(GL_LESS);
         transparent();
     }
+    if (multisample){
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Antialiasing);
+        m_multisampleColor->resolveTo(*m_color);
+    }
     screenPass();
     postProcess(camera);
+    std::shared_ptr<Texture> output = m_composite->getTexture();
+    if (m_antialiasingMode == AntialiasingMode::Fxaa && m_view == BufferView::Lit){
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Antialiasing);
+        output = m_antialiasing->filter(output);
+        m_screenDraws += m_antialiasing->getScreenDraws();
+    }
+    // Bind the filtered display image separately from all unfiltered diagnostic attachments.
+    output->apply(0);
     FrameProfiler::Scope presentPass(m_profiler, FrameProfiler::Stage::Present);
     present(camera, static_cast<GLuint>(framebuffer), viewport);
 }
@@ -103,23 +201,25 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
 // Binds surface attachments and evaluates lights once per visible pixel.
 void DeferredRenderer::light(const Camera& camera, const State& state,
                              const std::vector<PositionedLight>& lights){
-    m_color->bind();
+    const bool multisample = m_multisampleBuffer != nullptr;
+    (multisample ? m_multisampleColor : m_color)->bind();
+    const auto& program = multisample ? m_multisampleLighting : m_lightingProgram;
     auto lighting = state;
-    lighting.setProgram(m_lightingProgram);
+    lighting.setProgram(program);
     lighting.apply();
     screenPass();
-    state.applyShadowMaps(*m_lightingProgram, GBuffer::Count);
-    const std::array<const char*, GBuffer::Count> names{
-        {"uGPosition", "uGNormal", "uGAlbedo", "uGSpecular", "uGAmbient", "uGEmissive", "uGPlane"}};
+    state.applyShadowMaps(*program, GBuffer::Count);
     for (unsigned i = 0; i < GBuffer::Count; ++i){
-        const auto& texture = i == GBuffer::Ambient ? getAmbientBuffer() : m_gbuffer->get(i);
+        const auto& texture = multisample             ? m_multisampleBuffer->get(i)
+                              : i == GBuffer::Ambient ? getAmbientBuffer()
+                                                      : m_gbuffer->get(i);
         texture->apply(i);
-        m_lightingProgram->set(names[i], static_cast<int>(i));
+        program->set(surfaceNames[i], static_cast<int>(i));
     }
-    m_lightingProgram->set("uEye", camera.getPosition());
-    m_lightingProgram->set("uLightCount", static_cast<int>(lights.size()));
+    program->set("uEye", camera.getPosition());
+    program->set("uLightCount", static_cast<int>(lights.size()));
     for (unsigned i = 0; i < lights.size(); ++i){
-        lights[i].node->apply(*m_lightingProgram, i, lights[i].model, true);
+        lights[i].node->apply(*program, i, lights[i].model, true);
     }
     drawQuad();
 }
@@ -193,7 +293,6 @@ void DeferredRenderer::present(const Camera& camera, GLuint framebuffer, const G
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
     glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     m_viewProgram->use();
-    m_composite->getTexture()->apply(0);
     m_gbuffer->get(GBuffer::Position)->apply(1);
     m_gbuffer->get(GBuffer::Normal)->apply(2);
     m_gbuffer->get(GBuffer::Albedo)->apply(3);

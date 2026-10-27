@@ -7,7 +7,7 @@
 namespace vr{
 namespace{
 constexpr float panelWidth = 584;
-constexpr float panelHeight = 432;
+constexpr float panelHeight = 396;
 const std::array<glm::vec4, FrameProfiler::SliceCount> colors{{{1, 0.72f, 0.3f, 1},
                                                                {0.76f, 0.6f, 1, 1},
                                                                {0.3f, 0.95f, 0.8f, 1},
@@ -42,7 +42,7 @@ std::string compact(double value){
 
 // Shares the reset button bounds between drawing and click handling.
 glm::vec4 SceneOverlay::performanceResetRectangle(){
-    return{16 + panelWidth - 164, HeaderHeight + 20, 148, 28};
+    return{16 + panelWidth - 164, HeaderHeight + 56, 148, 28};
 }
 
 // Draws a compact CPU/GPU percentage breakdown and essential scene counters.
@@ -50,7 +50,7 @@ void SceneOverlay::drawPerformance(const Application& app){
     const auto& profiler = app.m_profiler;
     const auto summary = profiler.summarize();
     const auto slices = FrameProfiler::breakdown(summary);
-    const float top = HeaderHeight + 12.0f;
+    const float top = HeaderHeight + 48.0f;
     const glm::vec4 foreground(0.94f, 0.97f, 1, 1), muted(0.8f, 0.86f, 0.92f, 1);
     const auto text = [&](const std::string& value, float x, float y, float size,
                           const glm::vec4& color){
@@ -100,7 +100,7 @@ void SceneOverlay::drawPerformance(const Application& app){
     text("GPU ms / %", 468, top + 126, 10, muted);
     for (std::size_t i = 0; i < slices.size(); ++i){
         const auto& slice = slices[i];
-        const float y = top + 148 + static_cast<float>(i) * 15;
+        const float y = top + 148 + static_cast<float>(i) * 13;
         m_text.rectangle(32, y + 3, 8, 8, colors[i]);
         text(i == 2 && !app.m_deferredEnabled ? "Opaque geometry (forward)" : slice.name, 48, y, 11,
              foreground);
@@ -122,24 +122,28 @@ void SceneOverlay::drawPerformance(const Application& app){
     text("Avg draws: " + compact(value(Counter::ColorDraws)) + " color + " +
              compact(value(Counter::ShadowDraws)) + " shadow + " +
              compact(value(Counter::ScreenDraws)) + " fullscreen",
-         32, top + 338, 11, muted);
+         32, top + 310, 11, muted);
     text("Triangles: " + compact(value(Counter::ColorTriangles)) + " color + " +
              compact(value(Counter::ShadowTriangles)) +
              " shadow  |  Shadow views: " + compact(value(Counter::ShadowPasses)),
-         32, top + 354, 11, muted);
+         32, top + 326, 11, muted);
     text("Culled: " + compact(value(Counter::FrustumRejected) + value(Counter::PortalRejected)) +
              " camera subtrees / " + compact(value(Counter::ShadowRejected)) +
              " shadow instances  |  LOD fade: " + compact(value(Counter::LodFadeDraws)) + " draws",
-         32, top + 370, 11, muted);
+         32, top + 342, 11, muted);
     text(app.m_lastSubdivision.empty() ? "Last subdivision: none"
                                        : "Last subdivision: " + app.m_lastSubdivision + " / " +
                                              decimal(app.m_lastSubdivisionMs) +
                                              " ms CPU (mesh uploads included in draw passes)",
-         32, top + 386, 10, foreground);
+         32, top + 358, 10, foreground);
+    text("AA: " + std::string(antialiasingName(app.m_antialiasingMode)) +
+             " | filter / resolve GPU: " +
+             decimal(summary.gpu[static_cast<std::size_t>(FrameProfiler::Stage::Antialiasing)] +
+                     summary.gpu[static_cast<std::size_t>(FrameProfiler::Stage::GBufferResolve)]) +
+             " ms (geometry / lighting cost above)",
+         32, top + 374, 10, foreground);
     text("Average window: " + std::to_string(summary.samples) + " frames / " +
              decimal(summary.frameMs * summary.samples / 1000, 1) + " s. Reset after changes.",
-         32, top + 402, 11, foreground);
-    text("CPU: whole frame incl. swap. GPU: elapsed render time incl. gaps. F1 / Esc: close.", 32,
-         top + 420, 9, muted);
+         32, top + 386, 9, foreground);
 }
 } // namespace vr

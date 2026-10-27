@@ -23,6 +23,8 @@ constexpr float shaderMenuTop = -8 - shaderRowHeight * Controls::getShaderOption
 constexpr ToolbarButton bloomButton{Action::Bloom, 452, 90};
 constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
 constexpr ToolbarButton multiviewButton{Action::BufferPreviews, 764, 156};
+constexpr ToolbarButton aaButton{Action::Antialiasing, 12, 144};
+constexpr float aaTop = 64;
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
 
@@ -72,6 +74,10 @@ void SceneOverlay::draw(const Application& application){
 
 // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
 void SceneOverlay::click(Application& app, float x, float y){
+    if (x >= aaButton.x && x <= aaButton.x + aaButton.width && y >= aaTop && y <= aaTop + 28){
+        app.execute(aaButton.action);
+        return;
+    }
     for (const auto& button :{bloomButton, dofButton, aoButton, rendererButton, multiviewButton}){
         if (x >= button.x && x <= button.x + button.width && y >= 12 && y <= 44){
             app.execute(button.action);
@@ -147,6 +153,9 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(0, 0, static_cast<float>(app.m_width), HeaderHeight,
                      {0.025f, 0.04f, 0.065f, 0.96f});
     m_text.draw("ACG", 24, 12, 22,{0.94f, 0.96f, 1, 1});
+    m_text.rectangle(aaButton.x, aaTop, aaButton.width, 28,{0.07f, 0.14f, 0.19f, 0.85f});
+    m_text.draw(std::string("AA: ") + antialiasingName(app.m_antialiasingMode) + "  >",
+                aaButton.x + 10, aaTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
     m_text.rectangle(flashlightButton.x, 12, flashlightButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
     m_text.draw(std::string("Flashlight: ") + (app.m_flashlight->getEnabled() ? "ON" : "OFF") +
                     " [L]",

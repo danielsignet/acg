@@ -14,6 +14,7 @@ add_library(vrlib STATIC
     src/vr/DeferredRenderer.cpp
     src/vr/DepthOfField.cpp
     src/vr/AmbientOcclusion.cpp
+    src/vr/Antialiasing.cpp
     src/vr/FrameProfiler.cpp
     src/vr/PerformanceOverlay.cpp
     src/vr/Node.cpp
@@ -117,6 +118,11 @@ set(VIEWER_RESOURCES
     shaders/gbuffer.fs
     shaders/screen-quad.vs
     shaders/deferred-lighting.fs
+    shaders/deferred-lighting-msaa.fs
+    shaders/deferred-lighting.glsl
+    shaders/gbuffer-resolve.fs
+    shaders/msaa-ambient.fs
+    shaders/antialiasing.fs
     shaders/ssao.fs
     shaders/ssao-resolve.fs
     shaders/post-process.fs

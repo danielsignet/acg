@@ -32,6 +32,8 @@ public:
         Events,
         Picking,
         Subdivision,
+        GBufferResolve,
+        Antialiasing,
         Count
     };
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);

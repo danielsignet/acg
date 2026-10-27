@@ -14,12 +14,13 @@ FrameProfiler::descriptions(){
          {"Portal traversal", false},{"Light collection", false},
          {"Scene graph culling", false},{"G-buffer geometry", true},
          {"Deferred lighting", true},{"Transparent surfaces", true},
-         {"Bloom (7 draws)", true},{"DoF (2 draws)", true},
+         {"Bloom (7 draws)", true},{"DoF (3 draws)", true},
          {"Composite / tone map", true},{"Present / previews", true},
          {"Debug volumes", true},{"HUD / performance view", true},
          {"Swap / VSync wait", false},{"Forward surfaces", true},
          {"Ambient occlusion", true},{"Window events / commands", false},
-         {"Model raycast / BVH", false},{"CPU subdivision", false}}};
+         {"Model raycast / BVH", false},{"CPU subdivision", false},
+         {"MSAA surface resolve", true},{"AA filter / color resolve", true}}};
     return stages;
 }
 
@@ -88,7 +89,8 @@ FrameProfiler::breakdown(const Summary& summary){
     add(1,{Stage::Portals, Stage::Lights, Stage::Culling});
     add(2,{Stage::Geometry, Stage::Forward});
     add(3,{Stage::Lighting, Stage::Transparency});
-    add(4,{Stage::Bloom, Stage::DepthOfField, Stage::Composite, Stage::Present});
+    add(4,{Stage::Bloom, Stage::DepthOfField, Stage::Composite, Stage::Present,
+            Stage::GBufferResolve, Stage::Antialiasing});
     add(5,{Stage::Debug, Stage::Overlay});
     add(6,{Stage::Swap});
     add(7,{Stage::Occlusion});

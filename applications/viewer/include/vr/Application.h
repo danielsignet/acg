@@ -138,6 +138,7 @@ private:
     ShadingMode m_shadingMode = ShadingMode::Phong;
     bool m_shaderMenuOpen = false;
     BufferView m_bufferView = BufferView::Lit;
+    AntialiasingMode m_antialiasingMode = AntialiasingMode::Off;
     bool m_deferredEnabled = true, m_ambientOcclusionEnabled = true;
     bool m_bloomEnabled = false, m_depthOfFieldEnabled = false, m_bufferPreviews = true;
     glm::vec3 m_position{0};

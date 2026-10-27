@@ -40,6 +40,7 @@ WSL requires a graphical session such as WSLg.
 | Z or Shader | Select Phong with normal maps (1), plain Phong (N), Toon (2), or individual G-buffer views; use the mouse or menu keys 3-0 and A |
 | G or Multiview | Show/hide all G-buffer channel previews together; enables deferred rendering; click a preview to expand it, click again to return |
 | B or Bloom | Toggle bloom |
+| AA button | Cycle Off → FXAA → MSAA 4x in expected cost order; works in forward and deferred and resets performance averages |
 | V or DoF | Toggle depth of field; focus follows the surface under the crosshair, and no target leaves the image sharp |
 | J or Shadows | Toggle shadows |
 | L or Flashlight | Toggle the camera-mounted flashlight |

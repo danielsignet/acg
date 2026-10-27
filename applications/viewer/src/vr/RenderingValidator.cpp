@@ -32,6 +32,7 @@ void RenderingValidator::run(){
     validateAmbientOcclusion();
     validateDeferred();
     validatePerformance();
+    validateAntialiasing();
     validateShadows();
     validateControls();
     validateModelTargeting();
@@ -209,7 +210,7 @@ void RenderingValidator::validatePerformance(){
                 app.m_renderer->getStats().visitedNodes > 0,
             "Profiler counters describe actual shadow rejection and screen submissions");
     app.handleKey(GLFW_KEY_J);
-    app.handleClick(450, 90);
+    app.handleClick(450, 126);
     require(app.m_profiler.getEnabled() && app.m_profiler.getHistory().empty() &&
                 !app.m_shadowsEnabled && app.m_pointLights == lights &&
                 app.m_frustumCulling == culling,
@@ -226,7 +227,7 @@ void RenderingValidator::validatePerformance(){
                     .counters[static_cast<std::size_t>(FrameProfiler::Counter::ShadowPasses)] == 0,
         "Fresh averages reflect shadows disabled without mixing the previous configuration");
     app.handleKey(GLFW_KEY_J);
-    app.handleClick(450, 90);
+    app.handleClick(450, 126);
     app.resize(960, 600);
     app.render();
     app.reload();
@@ -927,6 +928,43 @@ void RenderingValidator::validateFlashlight(){
         }
     }
     app.resetView();
+}
+
+// Checks the shared AA button, average reset and persistence across renderer and scene changes.
+void RenderingValidator::validateAntialiasing(){
+    auto& app = m_application;
+    const bool profiled = app.m_profiler.getEnabled();
+    const int width = app.m_width, height = app.m_height;
+    const bool deferred = app.m_deferredEnabled;
+    const auto initial = app.m_antialiasingMode;
+    app.m_profiler.setEnabled(true);
+    app.m_profiler.beginFrame(0.016);
+    app.m_profiler.endFrame(0.016);
+    require(app.m_profiler.summarize().samples > 0, "AA reset starts with existing averages");
+    app.handleClick(50, 76);
+    require(app.m_antialiasingMode == nextAntialiasing(initial) &&
+                app.m_deferred->getAntialiasing() == app.m_antialiasingMode &&
+                app.m_profiler.summarize().samples == 0,
+            "The AA button advances the technique and clears averages");
+    app.render();
+    app.handleClick(50, 76);
+    const auto mode = app.m_antialiasingMode;
+    app.execute(Controls::Action::Renderer);
+    app.render();
+    require(app.m_antialiasingMode == mode, "Renderer switching retains the AA technique");
+    app.reload();
+    app.render();
+    require(app.m_deferred->getAntialiasing() == mode,
+            "Scene reload retains AA resources and mode");
+    app.resize(961, 601);
+    app.render();
+    app.resize(width, height);
+    app.handleClick(50, 76);
+    require(app.m_antialiasingMode == initial, "AA cycles Off, FXAA, MSAA 4x, then Off");
+    if (app.m_deferredEnabled != deferred){
+        app.execute(Controls::Action::Renderer);
+    }
+    app.m_profiler.setEnabled(profiled);
 }
 
 // Checks that toolbar clicks and compact shortcuts share the same application actions.

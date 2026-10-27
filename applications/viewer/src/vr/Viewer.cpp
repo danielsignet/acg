@@ -26,7 +26,15 @@ bool Viewer::parseOptions(int argc, char** argv){
             }
             return std::string(argv[++i]);
         };
-        if (option == "--forward"){
+        if (option == "--aa"){
+            const auto mode = next();
+            if (mode != "off" && mode != "fxaa" && mode != "msaa"){
+                throw std::invalid_argument("Unknown antialiasing mode: " + mode);
+            }
+            m_antialiasingMode = mode == "fxaa"   ? AntialiasingMode::Fxaa
+                                 : mode == "msaa" ? AntialiasingMode::Msaa
+                                                  : AntialiasingMode::Off;
+        } else if (option == "--forward"){
             m_forward = true;
         } else if (option == "--no-ao"){
             m_noAO = true;
@@ -86,6 +94,7 @@ bool Viewer::parseOptions(int argc, char** argv){
                          "[--buffer lit|positions|normals|albedo|specular|depth|"
                          "ambient|emissive|plane|ao] [--bloom] [--dof] "
                          "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
+                         "[--aa off|fxaa|msaa] "
                          "[--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
@@ -108,7 +117,7 @@ void Viewer::initialize(){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_VISIBLE, m_hidden ? GLFW_FALSE : GLFW_TRUE);
     m_window = glfwCreateWindow(1280, 800, Application::WindowTitle, nullptr, nullptr);
     if (!m_window){
@@ -163,6 +172,13 @@ int Viewer::run(int argc, char** argv){
     m_application->resize(width, height);
     if (m_validate){
         m_application->validate();
+    }
+    while (m_application->m_antialiasingMode != m_antialiasingMode){
+        const auto previousMode = m_application->m_antialiasingMode;
+        m_application->execute(Controls::Action::Antialiasing);
+        if (previousMode == m_application->m_antialiasingMode){
+            throw std::runtime_error(m_application->m_status);
+        }
     }
     if (m_lodDemoCallback){
         m_application->execute(Controls::Action::LodTour);

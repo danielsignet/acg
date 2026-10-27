@@ -27,11 +27,12 @@ public:
     static std::shared_ptr<Texture> fromMemory(const unsigned char* data, int length);
 
     // Creates a lazy floating-point depth texture, with six faces for a cubemap.
-    static std::shared_ptr<Texture> depth(int width, int height, bool cube = false);
+    static std::shared_ptr<Texture> depth(int width, int height, bool cube = false,
+                                          int samples = 1);
 
     // Creates a nearest or linearly sampled color attachment without CPU pixel storage.
     static std::shared_ptr<Texture> colorTarget(int width, int height, GLenum format = GL_RGBA16F,
-                                                bool linear = false);
+                                                bool linear = false, int samples = 1);
 
     // Returns the OpenGL texture identifier after upload.
     GLuint getId() const{
@@ -40,7 +41,14 @@ public:
 
     // Returns the sampler target for a color, depth or cubemap texture.
     GLenum getTarget() const{
-        return m_cube ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
+        return m_samples > 1 ? GL_TEXTURE_2D_MULTISAMPLE
+               : m_cube      ? GL_TEXTURE_CUBE_MAP
+                             : GL_TEXTURE_2D;
+    }
+
+    // Returns the number of coverage samples stored per pixel.
+    int getSamples() const{
+        return m_samples;
     }
 
     // Reports whether this resource stores depth rather than RGBA color.
@@ -80,6 +88,7 @@ private:
     bool m_cube = false;
     GLenum m_renderFormat = 0;
     bool m_linearTarget = false;
+    int m_samples = 1;
     std::vector<unsigned char> m_rgba;
     mutable GLuint m_id = 0;
 };

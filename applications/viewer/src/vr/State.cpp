@@ -25,6 +25,9 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uAlphaCutoff", 0.0f);
     s.setUniform("uTextureMix", 0.3f);
     s.setUniform("uMultiTexture", true);
+    s.setUniform("uNormalMapping", true);
+    s.setUniform("uNormalScale", 1.0f);
+    s.setUniform("uNormalY", 1.0f);
     return s;
 }
 
@@ -68,6 +71,9 @@ State State::merged(const State& local) const{
     for (const auto& entry : local.m_textures){
         result.m_textures[entry.first] = entry.second;
     }
+    if (local.m_normalMap){
+        result.m_normalMap = local.m_normalMap;
+    }
     for (const auto& entry : local.m_uniforms){
         result.m_uniforms[entry.first] = entry.second;
     }
@@ -96,6 +102,14 @@ void State::setTexture(unsigned layer, std::shared_ptr<Texture> texture){
         throw std::out_of_range("Texture unit");
     }
     m_textures[layer] = std::move(texture);
+}
+
+// Overrides the tangent-space normal texture; null explicitly removes an inherited map.
+void State::setNormalMap(std::shared_ptr<Texture> texture){
+    if (texture && (texture->isDepth() || texture->getTarget() != GL_TEXTURE_2D)){
+        throw std::invalid_argument("Normal map must be a 2D color texture");
+    }
+    m_normalMap = std::move(texture);
 }
 
 // Assigns a validated 2D or cubemap depth texture outside the material texture slots.
@@ -150,6 +164,15 @@ void State::apply() const{
         m_program->set("uTextures[" + std::to_string(i) + "]", static_cast<int>(i));
         m_program->set("uHasTexture[" + std::to_string(i) + "]", static_cast<bool>(texture));
     }
+    const auto normalMap = getNormalMap();
+    if (normalMap){
+        normalMap->apply(MaxTextures);
+    } else{
+        glActiveTexture(GL_TEXTURE0 + MaxTextures);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    m_program->set("uNormalMap", static_cast<int>(MaxTextures));
+    m_program->set("uHasNormalMap", static_cast<bool>(normalMap));
     for (const auto& value : m_uniforms){
         m_program->set(value.first, value.second);
     }

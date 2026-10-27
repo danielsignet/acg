@@ -211,7 +211,7 @@ void Application::execute(Controls::Action action){
             m_status = error.what();
         }
     } else if ((action == Action::AmbientOcclusion || action == Action::Bloom ||
-                action == Action::DepthOfField || action == Action::BufferPreviews) &&
+                action == Action::DepthOfField) &&
                !m_deferredEnabled){
         m_status = "Switch to Deferred [F2] to use AO, G-buffer views and post effects";
     } else if (action == Action::AmbientOcclusion){
@@ -230,7 +230,11 @@ void Application::execute(Controls::Action action){
         m_depthOfFieldEnabled = !m_depthOfFieldEnabled;
         m_deferred->setDepthOfField(m_depthOfFieldEnabled);
     } else if (action == Action::BufferPreviews){
-        m_bufferPreviews = !m_bufferPreviews;
+        const bool visible = m_deferredEnabled && m_bufferPreviews && !m_profiler.getEnabled();
+        m_bufferPreviews = !visible;
+        m_deferredEnabled = true;
+        m_profiler.setEnabled(false);
+        m_shaderMenuOpen = false;
     } else if (action >= Action::PositionBuffer && action <= Action::OcclusionBuffer){
         m_deferredEnabled = true;
         if (action == Action::OcclusionBuffer){
@@ -250,8 +254,11 @@ void Application::execute(Controls::Action action){
     } else if (action == Action::ShaderMenu){
         m_profiler.setEnabled(false);
         m_shaderMenuOpen = !m_shaderMenuOpen;
-    } else if (action == Action::PhongShader || action == Action::ToonShader){
-        m_shadingMode = action == Action::PhongShader ? ShadingMode::Phong : ShadingMode::Toon;
+    } else if (action == Action::PhongShader || action == Action::ToonShader ||
+               action == Action::UnmappedPhongShader){
+        m_shadingMode = action == Action::PhongShader  ? ShadingMode::Phong
+                        : action == Action::ToonShader ? ShadingMode::Toon
+                                                       : ShadingMode::UnmappedPhong;
         m_renderer->setShadingMode(m_shadingMode);
         m_bufferView = BufferView::Lit;
         m_deferred->setView(m_bufferView);
@@ -327,7 +334,7 @@ void Application::execute(Controls::Action action){
         }
         freezeLightOrbit(m_frozenFrustum.has_value());
         m_debugBounds = m_frozenFrustum.has_value();
-        m_status = m_frozenFrustum ? "View and light ring frozen: move to inspect; F resumes."
+        m_status = m_frozenFrustum ? "View and scene animation frozen: move to inspect; F resumes."
                                    : "Culling follows the live camera.";
     } else if (action == Action::DebugBounds){
         m_debugBounds = !m_debugBounds;
@@ -377,7 +384,8 @@ void Application::input(float delta){
 // Processes input, callbacks and frame-rate statistics.
 void Application::update(double time, double delta){
     input(static_cast<float>(delta));
-    m_updater.update(*m_scene->getRoot(),{time, delta, m_animationEnabled});
+    m_updater.update(*m_scene->getRoot(),
+                     {time, delta, m_animationEnabled && !m_frozenFrustum.has_value()});
     ++m_frameCount;
     m_frameTimeSeconds += m_lastFrameTime > 0 ? time - m_lastFrameTime : 0;
     m_lastFrameTime = time;
@@ -417,7 +425,8 @@ void Application::render(){
         FrameProfiler::Scope portals(&m_profiler, FrameProfiler::Stage::Portals);
         updatePortalVisibility(camera, vp);
     }
-    m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_bufferPreviews);
+    m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_bufferPreviews &&
+                            !m_profiler.getEnabled());
     m_renderer->render(
         *m_scene->getRoot(), camera, frozen, &m_portalResult,
         m_deferredEnabled ? m_deferred.get() : nullptr, [&]{

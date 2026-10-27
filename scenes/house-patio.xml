@@ -82,7 +82,7 @@
         <instance ref="box" />
       </transform>
       <transform name="plinthD" translate="-6 0.3 -5" scale="3 0.6 3">
-        <state diffuse="0.65 0.5 0.38">
+        <state diffuse="0.65 0.5 0.38" normalMap="textures/brick-normal.png" normalScale="0.8">
           <uniform name="uProcedural" type="int" value="1" />
         </state>
         <instance ref="box" />

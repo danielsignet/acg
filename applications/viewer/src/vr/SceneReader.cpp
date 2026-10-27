@@ -328,6 +328,10 @@ void SceneReader::readMaterial(Xml* xml, State& state){
 
 // Resolves texture layers and explicit removal of inherited textures.
 void SceneReader::readTextures(Xml* xml, State& state){
+    if (xml->first_attribute("normalMap")){
+        const auto path = attribute(xml, "normalMap");
+        state.setNormalMap(path == "none" ? nullptr : m_reader.readTexture(portablePath(path)));
+    }
     for (unsigned layer = 0; layer < State::MaxTextures; ++layer){
         const auto key = "texture" + std::to_string(layer);
         if (xml->first_attribute(key.c_str())){
@@ -340,6 +344,9 @@ void SceneReader::readTextures(Xml* xml, State& state){
 
 // Reads built-in and arbitrary typed shader-uniform overrides.
 void SceneReader::readUniforms(Xml* xml, State& state){
+    if (xml->first_attribute("normalScale")){
+        state.setUniform("uNormalScale", number(attribute(xml, "normalScale")));
+    }
     if (xml->first_attribute("opacity")){
         const auto opacity = number(attribute(xml, "opacity"));
         if (opacity < 0 || opacity > 1){

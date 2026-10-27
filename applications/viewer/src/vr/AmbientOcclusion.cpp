@@ -57,7 +57,8 @@ void AmbientOcclusion::render(const Camera& camera, const GBuffer& gbuffer){
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     gbuffer.get(GBuffer::Position)->apply(0);
-    gbuffer.get(GBuffer::Normal)->apply(1);
+    // AO follows real receiver planes, independently of normal-texture relief.
+    gbuffer.get(GBuffer::Plane)->apply(1);
     m_sampleProgram->use();
     m_sampleProgram->set("uPosition", 0);
     m_sampleProgram->set("uNormal", 1);

@@ -137,6 +137,7 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     }
     program.set("uLightMask", lightMask);
     program.set("uToon", m_shadingMode == ShadingMode::Toon);
+    program.set("uNormalMapping", m_shadingMode != ShadingMode::UnmappedPhong);
     program.set("uModel", model);
     program.set("uView", m_camera->getView());
     program.set("uProjection", m_camera->getProjection());
@@ -147,6 +148,7 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
         throw std::runtime_error("Singular model transform");
     }
     program.set("uNormal", glm::transpose(glm::inverse(linear)));
+    program.set("uTangentSign", orientation < 0 ? -1.0f : 1.0f);
     program.set("uEye", m_camera->getPosition());
     program.set("uLightCount", static_cast<int>(m_lights.size()));
     for (unsigned i = 0; i < m_lights.size(); ++i){

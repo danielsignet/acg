@@ -22,6 +22,7 @@ constexpr float shaderRowHeight = 32;
 constexpr float shaderMenuTop = -8 - shaderRowHeight * Controls::getShaderOptions().size();
 constexpr ToolbarButton bloomButton{Action::Bloom, 452, 90};
 constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
+constexpr ToolbarButton multiviewButton{Action::BufferPreviews, 764, 156};
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
 
@@ -35,7 +36,9 @@ constexpr std::array<ToolbarButton, 8> buttons{{{Action::PointRed, 78, 56},
                                                 {Action::Subdivision, 738, 180}}};
 
 const char* shaderName(ShadingMode mode){
-    return mode == ShadingMode::Phong ? "Phong" : "Toon";
+    return mode == ShadingMode::Phong  ? "Phong + NM"
+           : mode == ShadingMode::Toon ? "Toon"
+                                       : "Plain Phong";
 }
 } // namespace
 
@@ -69,7 +72,7 @@ void SceneOverlay::draw(const Application& application){
 
 // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
 void SceneOverlay::click(Application& app, float x, float y){
-    for (const auto& button :{bloomButton, dofButton, aoButton, rendererButton}){
+    for (const auto& button :{bloomButton, dofButton, aoButton, rendererButton, multiviewButton}){
         if (x >= button.x && x <= button.x + button.width && y >= 12 && y <= 44){
             app.execute(button.action);
             return;
@@ -110,8 +113,12 @@ void SceneOverlay::click(Application& app, float x, float y){
             if (x >= rect.x && x < rect.x + rect.z && y >= rect.y - 22 && y < rect.y + rect.w){
                 const auto view = static_cast<BufferView>(i + 1);
                 if (app.m_bufferView == view){
-                    app.execute(app.m_shadingMode == ShadingMode::Phong ? Action::PhongShader
-                                                                        : Action::ToonShader);
+                    for (const auto& option : shaderOptions){
+                        if (option.view == BufferView::Lit && option.mode == app.m_shadingMode){
+                            app.execute(option.action);
+                            break;
+                        }
+                    }
                 } else{
                     app.execute(
                         static_cast<Action>(static_cast<unsigned>(Action::PositionBuffer) + i));
@@ -150,33 +157,41 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(rendererButton.x, 12, rendererButton.width, 32,{0.09f, 0.16f, 0.2f, 1});
     m_text.draw(app.m_deferredEnabled ? "Deferred [F2]" : "Forward [F2]", rendererButton.x + 8, 21,
                 10,{0.7f, 0.9f, 0.84f, 1});
-    for (const auto& button :{bloomButton, dofButton, aoButton}){
-        const bool enabled = button.action == Action::Bloom ? app.m_bloomEnabled
-                             : button.action == Action::AmbientOcclusion
-                                 ? app.m_ambientOcclusionEnabled
-                                 : app.m_depthOfFieldEnabled;
-        const std::string name = button.action == Action::Bloom              ? "Bloom"
+    for (const auto& button :{bloomButton, dofButton, aoButton, multiviewButton}){
+        const bool multiview = button.action == Action::BufferPreviews;
+        const bool available = app.m_deferredEnabled || multiview;
+        const bool enabled =
+            multiview
+                ? app.m_deferredEnabled && app.m_bufferPreviews && !app.m_profiler.getEnabled()
+            : button.action == Action::Bloom            ? app.m_bloomEnabled
+            : button.action == Action::AmbientOcclusion ? app.m_ambientOcclusionEnabled
+                                                        : app.m_depthOfFieldEnabled;
+        const std::string name = multiview                                   ? "Multiview"
+                                 : button.action == Action::Bloom            ? "Bloom"
                                  : button.action == Action::AmbientOcclusion ? "AO"
                                                                              : "DoF";
-        const std::string key = button.action == Action::Bloom              ? "B"
+        const std::string key = multiview                                   ? "G"
+                                : button.action == Action::Bloom            ? "B"
                                 : button.action == Action::AmbientOcclusion ? "O"
                                                                             : "V";
         m_text.rectangle(button.x, 12, button.width, 32,
-                         app.m_deferredEnabled && enabled ? glm::vec4(0.14f, 0.22f, 0.27f, 1)
-                                                          : glm::vec4(0.09f, 0.13f, 0.18f, 1));
+                         available && enabled ? glm::vec4(0.14f, 0.22f, 0.27f, 1)
+                                              : glm::vec4(0.09f, 0.13f, 0.18f, 1));
         m_text.draw(name + ": " +
-                        (!app.m_deferredEnabled ? "--"
-                         : enabled              ? "ON"
-                                                : "OFF") +
+                        (!available ? "--"
+                         : enabled  ? "ON"
+                                    : "OFF") +
                         " [" + key + "]",
                     button.x + 8, 21, 11,
-                    app.m_deferredEnabled ? glm::vec4(0.7f, 0.9f, 0.84f, 1)
-                                          : glm::vec4(0.4f, 0.48f, 0.56f, 1));
+                    available ? glm::vec4(0.7f, 0.9f, 0.84f, 1) : glm::vec4(0.4f, 0.48f, 0.56f, 1));
     }
     std::ostringstream info;
     info << stats.draws << " draws | " << std::fixed << std::setprecision(0)
          << app.m_framesPerSecond << " FPS";
-    m_text.draw(info.str(), static_cast<float>(app.m_width) - 185, 20, 12,{0.7f, 0.8f, 0.88f, 1});
+    if (app.m_width - 185 >= multiviewButton.x + multiviewButton.width + 12){
+        m_text.draw(info.str(), static_cast<float>(app.m_width) - 185, 20, 12,
+                    {0.7f, 0.8f, 0.88f, 1});
+    }
 }
 
 // Marks the camera ray used by model targeting and depth-of-field focusing.
@@ -224,7 +239,7 @@ void SceneOverlay::drawFooter(const Application& app){
     m_text.draw("Lights", 20, top + 7, 13,{0.7f, 0.8f, 0.88f, 1});
     drawToolbar(app, top);
     m_text.draw(
-        "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: lamps   F: freeze view/lights   "
+        "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: lamps   F: freeze view/scene   "
         "G: buffers   F1: performance   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     const auto& shadowStats = app.m_shadowRenderer->getStats();

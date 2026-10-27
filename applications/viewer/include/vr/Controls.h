@@ -43,6 +43,7 @@ public:
         ShaderMenu,
         PhongShader,
         ToonShader,
+        UnmappedPhongShader,
         Shadows,
         Flashlight,
         Bloom,
@@ -76,7 +77,7 @@ public:
     };
 
     // Shares shader and buffer choices between menu rendering and keyboard selection.
-    static constexpr const std::array<ShaderOption, 11>& getShaderOptions(){
+    static constexpr const std::array<ShaderOption, 12>& getShaderOptions(){
         return m_shaderOptions;
     }
 
@@ -132,8 +133,9 @@ public:
     }
 
 private:
-    inline static constexpr std::array<ShaderOption, 11> m_shaderOptions{
-        {{Action::PhongShader, ShadingMode::Phong, BufferView::Lit, GLFW_KEY_1, "1  Phong"},
+    inline static constexpr std::array<ShaderOption, 12> m_shaderOptions{
+        {{Action::PhongShader, ShadingMode::Phong, BufferView::Lit, GLFW_KEY_1,
+          "1  Phong + normals"},
          {Action::ToonShader, ShadingMode::Toon, BufferView::Lit, GLFW_KEY_2, "2  Toon"},
          {Action::PositionBuffer, ShadingMode::Phong, BufferView::Position, GLFW_KEY_3,
           "3  Positions"},
@@ -148,7 +150,9 @@ private:
          {Action::PlaneBuffer, ShadingMode::Phong, BufferView::Plane, GLFW_KEY_0,
           "0  Geom normals"},
          {Action::OcclusionBuffer, ShadingMode::Phong, BufferView::Occlusion, GLFW_KEY_A,
-          "A  Occlusion"}}};
+          "A  Occlusion"},
+         {Action::UnmappedPhongShader, ShadingMode::UnmappedPhong, BufferView::Lit, GLFW_KEY_N,
+          "N  Phong (plain)"}}};
 
     inline static constexpr std::array<Binding, 19> m_bindings{
         {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
@@ -163,12 +167,12 @@ private:
          {Action::PointWhite, GLFW_KEY_4, "4", "Point White"},
          {Action::PointSun, GLFW_KEY_5, "5", "Sun"},
          {Action::Culling, GLFW_KEY_C, "C", "Culling"},
-         {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view/lights"},
+         {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view/scene"},
          {Action::ShaderMenu, GLFW_KEY_Z, "Z", "Shader"},
          {Action::Shadows, GLFW_KEY_J, "J", "Shadows"},
          {Action::Flashlight, GLFW_KEY_L, "L", "Flashlight"},
          {Action::Bloom, GLFW_KEY_B, "B", "Bloom"},
          {Action::DepthOfField, GLFW_KEY_V, "V", "Depth of field"},
-         {Action::BufferPreviews, GLFW_KEY_G, "G", "G-buffer previews"}}};
+         {Action::BufferPreviews, GLFW_KEY_G, "G", "Multiview"}}};
 };
 } // namespace vr

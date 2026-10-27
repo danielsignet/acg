@@ -1,6 +1,8 @@
 #include "ModelReader.h"
 #include <algorithm>
+#include <cctype>
 #include <assimp/Importer.hpp>
+#include <assimp/GltfMaterial.h>
 #include <assimp/postprocess.h>
 #include <iostream>
 #include <stdexcept>
@@ -21,6 +23,11 @@ std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path, bool 
         throw std::runtime_error("Assimp: " + path.string() + ": " + importer.GetErrorString());
     }
     m_modelDirectory = path.parent_path();
+    auto extension = path.extension().string();
+    std::transform(extension.begin(), extension.end(), extension.begin(),
+                   [](unsigned char c){ return static_cast<char>(std::tolower(c)); });
+    // Assimp flips glTF's V coordinates. Keep imported and regenerated tangent frames consistent.
+    m_normalY = extension == ".gltf" || extension == ".glb" ? -1.0f : 1.0f;
     m_materials.clear();
     for (unsigned index = 0; index < scene->mNumMaterials; ++index){
         m_materials.push_back(readMaterial(*scene->mMaterials[index], *scene));
@@ -57,6 +64,18 @@ std::shared_ptr<State> ModelReader::readMaterial(const aiMaterial& imported, con
     aiString image;
     if (imported.GetTexture(aiTextureType_DIFFUSE, 0, &image) == AI_SUCCESS){
         state->setTexture(0, readTexture(image, scene));
+    }
+    unsigned uvSet = 0;
+    if (imported.GetTexture(aiTextureType_NORMALS, 0, &image, nullptr, &uvSet) == AI_SUCCESS){
+        if (uvSet == 0){
+            state->setNormalMap(readTexture(image, scene));
+            float scale = 1;
+            imported.Get(AI_MATKEY_GLTF_TEXTURE_SCALE(aiTextureType_NORMALS, 0), scale);
+            state->setUniform("uNormalScale", scale);
+            state->setUniform("uNormalY", m_normalY);
+        } else{
+            std::cout << "Normal texture requires unsupported UV set " << uvSet << '\n';
+        }
     }
     return state;
 }
@@ -106,12 +125,20 @@ std::shared_ptr<Geometry> ModelReader::readMesh(const aiMesh& mesh) const{
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec2> textureCoordinates;
+    std::vector<glm::vec4> tangents;
     std::vector<unsigned> indices;
     for (unsigned index = 0; index < mesh.mNumVertices; ++index){
         const auto position = mesh.mVertices[index];
         positions.push_back({position.x, position.y, position.z});
         const auto normal = mesh.HasNormals() ? mesh.mNormals[index] : aiVector3D(0, 1, 0);
         normals.push_back({normal.x, normal.y, normal.z});
+        if (mesh.HasTangentsAndBitangents()){
+            const auto t = mesh.mTangents[index], b = mesh.mBitangents[index];
+            const glm::vec3 tangent(t.x, t.y, t.z), bitangent(b.x, b.y, b.z);
+            const float sign =
+                glm::dot(glm::cross(normals.back(), tangent), bitangent) < 0 ? -1.0f : 1.0f;
+            tangents.emplace_back(tangent, sign * m_normalY);
+        }
         textureCoordinates.push_back(
             mesh.HasTextureCoords(0)
                 ? glm::vec2(mesh.mTextureCoords[0][index].x, mesh.mTextureCoords[0][index].y)
@@ -128,7 +155,7 @@ std::shared_ptr<Geometry> ModelReader::readMesh(const aiMesh& mesh) const{
     }
     auto geometry = std::make_shared<Geometry>(mesh.mName.C_Str());
     geometry->setData(std::move(positions), std::move(indices), std::move(normals),
-                      std::move(textureCoordinates));
+                      std::move(textureCoordinates), std::move(tangents));
     if (mesh.mMaterialIndex < m_materials.size()){
         geometry->setState(m_materials[mesh.mMaterialIndex]);
     }

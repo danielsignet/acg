@@ -15,6 +15,9 @@ public:
     void run();
 
 private:
+    // Checks normal-map comparison, shared menu controls and reload persistence.
+    void validateNormalMapping();
+
     // Checks performance controls, counters and overlay isolation from the scene.
     void validatePerformance();
 

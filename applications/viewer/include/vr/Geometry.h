@@ -9,6 +9,7 @@ struct Vertex{
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoord;
+    glm::vec4 tangent{0};
 };
 
 class Geometry : public Node{
@@ -25,7 +26,8 @@ public:
 
     // Validates and stores local vertex attributes and triangle indices.
     void setData(std::vector<glm::vec3> vertices, std::vector<unsigned> indices,
-                 std::vector<glm::vec3> normals, std::vector<glm::vec2> texCoords ={});
+                 std::vector<glm::vec3> normals, std::vector<glm::vec2> texCoords ={},
+                 std::vector<glm::vec4> tangents ={});
 
     // Returns the mesh vertices in their local coordinate system.
     const std::vector<Vertex>& getVertices() const{
@@ -57,6 +59,9 @@ public:
     BoundingBox computeBound() const override;
 
 private:
+    // Generates UV tangents, splitting shared vertices where mirrored charts meet.
+    static void buildTangents(std::vector<Vertex>& vertices, std::vector<unsigned>& indices);
+
     // Binds the VAO and uploads changed vertices and indices for either draw path.
     void bind() const;
 

@@ -81,7 +81,7 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
     if (m_ambientOcclusion){
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Occlusion);
         m_occlusion->render(camera, *m_gbuffer);
-        m_screenDraws += 2;
+        m_screenDraws += 4;
     }
     {
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Lighting);

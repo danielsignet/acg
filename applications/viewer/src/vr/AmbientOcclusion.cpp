@@ -27,7 +27,7 @@ AmbientOcclusion::AmbientOcclusion(const std::filesystem::path& root){
     }
 }
 
-// Replaces the half-resolution AO and full-resolution resolve targets atomically.
+// Replaces the half-resolution AO/filter and full-resolution resolve targets atomically.
 void AmbientOcclusion::resize(int width, int height){
     if (width <= 0 || height <= 0 ||
         (m_resolved && getTexture()->getWidth() == width && getTexture()->getHeight() == height)){
@@ -35,12 +35,15 @@ void AmbientOcclusion::resize(int width, int height){
     }
     auto raw =
         std::make_unique<ColorTarget>(std::max(1, (width + 1) / 2), std::max(1, (height + 1) / 2));
+    auto filtered = std::make_unique<ColorTarget>(raw->getTexture()->getWidth(),
+                                                  raw->getTexture()->getHeight());
     auto resolved = std::make_unique<ColorTarget>(width, height);
     m_raw = std::move(raw);
+    m_filtered = std::move(filtered);
     m_resolved = std::move(resolved);
 }
 
-// Computes AO and filters it using surface depth and normals at discontinuities.
+// Computes AO, filters both axes, then upsamples while preserving surface edges.
 void AmbientOcclusion::render(const Camera& camera, const GBuffer& gbuffer){
     if (!m_resolved){
         throw std::logic_error("Ambient occlusion viewport has not been initialized");
@@ -67,8 +70,17 @@ void AmbientOcclusion::render(const Camera& camera, const GBuffer& gbuffer){
     m_resolveProgram->set("uNormal", 1);
     m_resolveProgram->set("uRawAO", 2);
     m_resolveProgram->set("uAmbient", 3);
-    m_raw->getTexture()->apply(2);
     gbuffer.get(GBuffer::Ambient)->apply(3);
+    m_resolveProgram->set("uPass", 0);
+    m_raw->getTexture()->apply(2);
+    m_filtered->bind();
+    m_quad.draw();
+    m_resolveProgram->set("uPass", 1);
+    m_filtered->getTexture()->apply(2);
+    m_raw->bind();
+    m_quad.draw();
+    m_resolveProgram->set("uPass", 2);
+    m_raw->getTexture()->apply(2);
     m_resolved->bind();
     m_quad.draw();
 }

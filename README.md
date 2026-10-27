@@ -49,7 +49,6 @@ WSL requires a graphical session such as WSLg.
 | O or AO | Toggle screen-space ambient occlusion; Z then A shows AO alone |
 | F1 | Show/hide performance: CPU/GPU time and percentage breakdown; Reset averages clears measurements after changing settings |
 | F | Freeze/resume the culling camera and show/hide its debug volumes |
-| View | Switch between patio and house |
 | Space | Reset the camera |
 | R | Reload the scene and shaders |
 | Esc | Close the performance view or menu, then the program |

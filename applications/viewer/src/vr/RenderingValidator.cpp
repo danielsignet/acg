@@ -73,8 +73,8 @@ void RenderingValidator::validatePerformance(){
                 averages.counters[static_cast<std::size_t>(FrameProfiler::Counter::ColorDraws)] ==
                     app.m_renderer->getStats().draws,
             "The performance view averages the actual rendered scene counters");
-    require(shadows.boundsTested == shadows.draws + shadows.rejected &&
-                app.m_deferred->getScreenDraws() == 5 &&
+    require(shadows.boundsTested == shadows.instances + shadows.rejected &&
+                app.m_deferred->getScreenDraws() == 7 &&
                 app.m_renderer->getStats().visitedNodes > 0,
             "Profiler counters describe actual shadow rejection and screen submissions");
     app.handleKey(GLFW_KEY_J);

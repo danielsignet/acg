@@ -25,14 +25,13 @@ constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
 
-constexpr std::array<ToolbarButton, 8> buttons{{{Action::PointRed, 78, 56},
+constexpr std::array<ToolbarButton, 7> buttons{{{Action::PointRed, 78, 56},
                                                 {Action::PointGreen, 142, 56},
                                                 {Action::PointBlue, 206, 56},
                                                 {Action::PointWhite, 270, 56},
                                                 {Action::PointSun, 334, 56},
                                                 shaderButton,
-                                                {Action::Culling, 602, 120},
-                                                {Action::HouseView, 738, 180}}};
+                                                {Action::Culling, 602, 120}}};
 
 const char* shaderName(ShadingMode mode){
     return mode == ShadingMode::Phong ? "Phong" : "Toon";
@@ -256,10 +255,6 @@ void SceneOverlay::drawToolbar(const Application& app, float top){
             if (enabled){
                 foreground ={0.3f, 0.9f, 0.78f, 1};
             }
-        } else{
-            text = app.m_frozenEye   ? "View: Observation"
-                   : app.m_houseView ? "View: House"
-                                     : "View: Patio";
         }
         m_text.rectangle(button.x, top, button.width, 32, background);
         m_text.draw(text, button.x + 7, top + 7, 11, foreground);

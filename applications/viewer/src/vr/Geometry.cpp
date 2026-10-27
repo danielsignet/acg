@@ -1,11 +1,15 @@
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <stdexcept>
 #include <vr/Geometry.h>
 
 namespace vr{
 // Releases the OpenGL buffers owned by this mesh.
 Geometry::~Geometry(){
+    if (m_instances){
+        glDeleteBuffers(1, &m_instances);
+    }
     if (m_ebo){
         glDeleteBuffers(1, &m_ebo);
     }
@@ -58,11 +62,8 @@ BoundingBox Geometry::computeBound() const{
     return bound;
 }
 
-// Uploads changed mesh data and draws its indexed triangles.
-void Geometry::draw() const{
-    if (m_indices.empty()){
-        return;
-    }
+// Binds the VAO and uploads changed vertices and indices for either draw path.
+void Geometry::bind() const{
     if (!m_vao){
         glGenVertexArrays(1, &m_vao);
         glGenBuffers(1, &m_vbo);
@@ -88,7 +89,43 @@ void Geometry::draw() const{
                               reinterpret_cast<void*>(offsetof(Vertex, texCoord)));
         m_dirty = false;
     }
+}
+
+// Uploads changed mesh data and draws its indexed triangles.
+void Geometry::draw() const{
+    if (m_indices.empty()){
+        return;
+    }
+    bind();
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(0);
+}
+
+// Streams model matrices and draws this mesh once for all supplied instances.
+void Geometry::drawInstanced(const std::vector<glm::mat4>& models) const{
+    if (m_indices.empty() || models.empty()){
+        return;
+    }
+    if (models.size() > static_cast<std::size_t>(std::numeric_limits<GLsizei>::max())){
+        throw std::length_error("Too many geometry instances");
+    }
+    bind();
+    if (!m_instances){
+        glGenBuffers(1, &m_instances);
+        glBindBuffer(GL_ARRAY_BUFFER, m_instances);
+        for (unsigned column = 0; column < 4; ++column){
+            const unsigned attribute = 3 + column;
+            glEnableVertexAttribArray(attribute);
+            glVertexAttribPointer(attribute, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                                  reinterpret_cast<void*>(column * sizeof(glm::vec4)));
+            glVertexAttribDivisor(attribute, 1);
+        }
+    }
+    glBindBuffer(GL_ARRAY_BUFFER, m_instances);
+    const auto bytes = static_cast<GLsizeiptr>(models.size() * sizeof(glm::mat4));
+    glBufferData(GL_ARRAY_BUFFER, bytes, models.data(), GL_STREAM_DRAW);
+    glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT,
+                            nullptr, static_cast<GLsizei>(models.size()));
     glBindVertexArray(0);
 }
 } // namespace vr

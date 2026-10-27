@@ -213,6 +213,125 @@ void wallLighting(const std::filesystem::path& path){
           "Multiple-light and flashlight rendering has valid GL state");
 }
 
+// Compares batched and individual depth/color output after scene and mesh changes.
+void instancing(const std::filesystem::path& path){
+    auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
+                                                 path / "shaders/phong-shading.fs");
+    vr::ShadowRenderer shadows(path, 512, 256);
+    vr::RenderVisitor renderer(program);
+    renderer.setCulling(false);
+    vr::Scene scene;
+    const auto root = scene.getRoot();
+    auto state = std::make_shared<vr::State>();
+    state->setUniform("uFog", false);
+    root->setState(state);
+    auto sun = std::make_shared<vr::Light>();
+    sun->setPosition({-1, 2, 1, 0});
+    root->addChild(sun);
+    auto point = std::make_shared<vr::Light>();
+    point->setPosition({4, 6, 3, 1});
+    root->addChild(point);
+    auto spot = std::make_shared<vr::Light>();
+    spot->setPosition({0, 7, 4, 1});
+    spot->setSpot({0, -1, -0.5f}, 20, 35);
+    spot->setRange(30);
+    root->addChild(spot);
+    const auto mesh = vr::GeometryFactory::createBox();
+    std::vector<std::shared_ptr<vr::Transform>> boxes;
+    for (int z = -2; z <= 2; ++z){
+        for (int x = -2; x <= 2; ++x){
+            boxes.push_back(place(root, mesh,{x * 2.0f, 0.6f, z * 2.0f},{0.9f, 1.2f, 0.8f}));
+        }
+    }
+    auto transparent = std::make_shared<vr::State>();
+    transparent->setBlend(true);
+    transparent->setUniform("uOpacity", 0.12f);
+    boxes.back()->setState(transparent);
+    place(root, vr::GeometryFactory::createGround(),{0, 0, 0},{1, 1, 1});
+    const auto panel = vr::GeometryFactory::createAlphaTestPanel();
+    std::vector<std::shared_ptr<vr::State>> cutouts;
+    std::vector<unsigned char> rgba(16, 255), reversed(16, 255);
+    for (unsigned i = 0; i < 4; ++i){
+        rgba[i * 4 + 3] = static_cast<unsigned char>(i * 85);
+        reversed[i * 4 + 3] = static_cast<unsigned char>((3 - i) * 85);
+    }
+    const auto texture = std::make_shared<vr::Texture>(2, 2, rgba);
+    const auto otherTexture = std::make_shared<vr::Texture>(2, 2, reversed);
+    for (unsigned i = 0; i < 6; ++i){
+        const auto node = place(root, panel,{-6.0f + i * 2.0f, 0, -6},{1, 1, 1});
+        auto local = std::make_shared<vr::State>();
+        local->setTexture(0, i < 4 ? texture : otherTexture);
+        local->setUniform("uAlphaCutoff", i < 2 ? 0.25f : 0.75f);
+        local->setCullFace(false);
+        node->setState(local);
+        cutouts.push_back(local);
+    }
+    const auto camera = scene.getCamera();
+    camera->setPerspective(55, static_cast<float>(width) / height, 0.1f, 90);
+    camera->setLookAt({11, 10, 16},{0, 0, 0});
+    const auto depth = [&]{
+        auto result = shadows.getSunTarget()->readDepth(0);
+        for (unsigned light = 0; light < 2; ++light){
+            for (unsigned face = 0; face < 6; ++face){
+                const auto data = shadows.getPointTarget(light)->readDepth(face);
+                result.insert(result.end(), data.begin(), data.end());
+            }
+        }
+        return result;
+    };
+    const auto render = [&](bool enabled){
+        shadows.setInstancing(enabled);
+        glViewport(0, 0, width, height);
+        glDepthMask(GL_TRUE);
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        glDisable(GL_SCISSOR_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        shadows.render(scene, camera->getPosition(), true, true);
+        renderer.render(*root, *camera, nullptr, nullptr, deferred.get());
+        check(glGetError() == GL_NO_ERROR,
+              "Instanced shadows and ordinary mesh draws share valid VAOs");
+        return pixels();
+    };
+    for (unsigned stage = 0; stage < 3; ++stage){
+        if (stage == 1){
+            boxes.front()->setMatrix(
+                glm::scale(glm::translate(glm::mat4(1),{-7, 2, 2}),{-0.7f, 2.0f, 1.3f}));
+            boxes[1]->setVisible(false);
+            cutouts[0]->setUniform("uAlphaCutoff", 0.6f);
+            spot->setSpot({0.4f, -1, -0.5f}, 20, 35);
+        } else if (stage == 2){
+            std::vector<glm::vec3> positions, normals;
+            std::vector<glm::vec2> uv;
+            for (const auto& vertex : mesh->getVertices()){
+                positions.push_back(vertex.position * glm::vec3(0.7f, 1.4f, 1));
+                normals.push_back(vertex.normal);
+                uv.push_back(vertex.texCoord);
+            }
+            mesh->setData(positions, mesh->getIndices(), normals, uv);
+        }
+        const auto referenceImage = render(false);
+        const auto referenceDepth = depth();
+        const auto individual = shadows.getStats();
+        const auto batchedImage = render(true);
+        const auto batched = shadows.getStats();
+        check(referenceDepth == depth(),
+              "Instancing preserves every directional, point and spot depth texel");
+        check(referenceImage == batchedImage,
+              "Instancing preserves the exact shaded scene including alpha cutouts");
+        check(batched.draws * 2 < individual.draws && batched.instances == individual.instances &&
+                  batched.triangles == individual.triangles && batched.passes == 13,
+              "Batching reduces draw calls while retaining all culled instances and triangles");
+        check(batched.boundsTested == batched.instances + batched.rejected &&
+                  batched.boundsTested == individual.boundsTested &&
+                  batched.rejected == individual.rejected,
+              "Light frustum and spotlight culling remain per instance");
+    }
+    shadows.render(scene, camera->getPosition(), false, true);
+    check(shadows.getStats().draws == 0 && shadows.getStats().instances == 0 &&
+              shadows.getCasters().empty(),
+          "Disabling shadows clears all cached instance and submission state");
+}
+
 void run(const std::filesystem::path& path){
     auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
                                                  path / "shaders/phong-shading.fs");
@@ -300,30 +419,33 @@ void run(const std::filesystem::path& path){
     point->setDiffuse(pointDiffuse);
     sun->setAmbient(sunAmbient);
     point->setAmbient(pointAmbient);
-    // The adjacent ground must not create sawtooth self-shadows on a sunlit box face.
+    // The adjacent ground must not create self-shadows at a lit box's contact edge.
     const auto originalView = camera->getView();
     camera->setLookAt({3, 2, 6},{0, 0.5f, 0});
-    state->setLightEnabled(0, true);
-    state->setLightEnabled(1, false);
-    const auto contactReference = render(false, false);
     const auto contactVP = camera->getProjection() * camera->getView();
-    for (bool filtered :{false, true}){
-        const auto contactShadowed = render(true, false, nullptr, filtered);
-        int maximumError = 0;
-        for (float y :{0.05f, 0.1f, 0.2f, 0.4f}){
-            for (unsigned column = 0; column < 60; ++column){
-                const auto clip = contactVP * glm::vec4(-0.8f + column * 1.6f / 59, y, 1, 1);
-                const auto ndc = glm::vec3(clip) / clip.w;
-                const auto x = static_cast<int>((ndc.x * 0.5f + 0.5f) * width);
-                const auto row = static_cast<int>((ndc.y * 0.5f + 0.5f) * height);
-                const auto index = (row * width + x) * 3;
-                const int error =
-                    static_cast<int>(contactReference[index]) - contactShadowed[index];
-                maximumError = std::max(maximumError, error);
+    for (unsigned selected = 0; selected < 2; ++selected){
+        state->setLightEnabled(0, selected == 0);
+        state->setLightEnabled(1, selected == 1);
+        const auto contactReference = render(false, false);
+        for (bool filtered :{false, true}){
+            const auto contactShadowed = render(true, false, nullptr, filtered);
+            int maximumError = 0;
+            for (float y :{0.005f, 0.01f, 0.025f, 0.05f, 0.1f, 0.2f, 0.4f}){
+                for (unsigned column = 0; column < 60; ++column){
+                    const auto clip = contactVP * glm::vec4(-0.8f + column * 1.6f / 59, y, 1, 1);
+                    const auto ndc = glm::vec3(clip) / clip.w;
+                    const auto x = static_cast<int>((ndc.x * 0.5f + 0.5f) * width);
+                    // Round above the contact edge so the sample stays on the vertical face.
+                    const auto row = static_cast<int>(std::ceil((ndc.y * 0.5f + 0.5f) * height));
+                    const auto index = (row * width + x) * 3;
+                    const int error =
+                        static_cast<int>(contactReference[index]) - contactShadowed[index];
+                    maximumError = std::max(maximumError, error);
+                }
             }
+            std::cout << "Box contact shadow error: " << maximumError << '\n';
+            check(maximumError <= 2, "Lit box faces stay free of ground-contact shadow seams");
         }
-        std::cout << "Box contact shadow error: " << maximumError << '\n';
-        check(maximumError <= 2, "Sunlit box faces stay free of ground-contact shadow seams");
     }
     camera->setView(originalView);
     for (unsigned selected = 0; selected < 3; ++selected){
@@ -471,6 +593,7 @@ void run(const std::filesystem::path& path){
     }
     portalReceivers(path);
     wallLighting(path);
+    instancing(path);
     // The reusable RTT attachment restores caller state even if drawing throws.
     glViewport(11, 13, 201, 177);
     glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE);

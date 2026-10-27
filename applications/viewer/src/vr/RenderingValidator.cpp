@@ -60,6 +60,8 @@ void RenderingValidator::validateModelTargeting(){
     app.render();
     require(app.m_target && app.m_target->instance->getName() == "monkey",
             "The center camera ray targets the visible model instance");
+    require(app.m_deferred->getFocusDistance() == std::optional<float>(app.m_target->distance),
+            "The highlighted surface supplies this frame's exact ray-hit focus distance");
     auto* target = app.m_target->instance;
     const auto original = captureScene();
     const float y = static_cast<float>(app.m_height - SceneOverlay::FooterHeight + 28);
@@ -91,6 +93,8 @@ void RenderingValidator::validateModelTargeting(){
     camera->setLookAt({0, 8, 12},{0, 30, 13});
     app.render();
     require(!app.m_target, "Aiming into empty space clears the highlighted model");
+    require(!app.m_deferred->getFocusDistance(),
+            "Empty-space targeting clears the previous DoF focus");
     app.handleClick(750, y);
     require(!target->getSubdivided(), "Subdivision without a targeted model changes no geometry");
     CullVisitor objects;
@@ -111,6 +115,8 @@ void RenderingValidator::validateModelTargeting(){
         app.render();
         require(app.m_target && app.m_target->instance == found->instance,
                 std::string("The crosshair selects ") + name);
+        require(app.m_deferred->getFocusDistance() == std::optional<float>(app.m_target->distance),
+                "Changing target updates its surface focus distance in the same frame");
         app.handleClick(750, y);
         app.render();
         require(found->instance->getSubdivided(),
@@ -129,6 +135,8 @@ void RenderingValidator::validateModelTargeting(){
     camera->setLookAt({30, 4, 10},{30, 0, 9.9f});
     app.render();
     require(!app.m_target, "The outdoor floor remains an unselectable ray occluder");
+    require(!app.m_deferred->getFocusDistance(),
+            "An unselectable floor cannot become a DoF target");
     camera->setView(originalView);
 }
 
@@ -280,10 +288,18 @@ void RenderingValidator::validateDeferred(){
     app.handleClick(530, 28);
     require(!app.m_bloomEnabled && !app.m_deferred->getBloom(),
             "Bloom button and shortcut share the same toggle");
+    const auto focusCamera = app.m_scene->getCamera();
+    const auto unfocusedView = focusCamera->getView();
+    focusCamera->setLookAt({-3.6f, 2.6f, 1.5f},{-4.8f, 2.4f, 0});
+    app.render();
+    const auto sharpTarget = captureScene();
     app.handleKey(GLFW_KEY_V);
     app.render();
-    require(app.m_deferred->getDepthOfField() && captureScene().countChangedPixels(lit) > 100,
-            "V enables visible depth of field outside the overlay");
+    require(app.m_deferred->getDepthOfField() && app.m_target &&
+                app.m_deferred->getFocusDistance() &&
+                captureScene().countChangedPixels(sharpTarget) > 100,
+            "V enables visible depth of field around the highlighted model");
+    focusCamera->setView(unfocusedView);
     app.execute(Action::Bloom);
     app.execute(Action::SpecularBuffer);
     app.reload();

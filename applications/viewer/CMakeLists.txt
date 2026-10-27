@@ -12,6 +12,7 @@ add_library(vrlib STATIC
     src/vr/ColorTarget.cpp
     src/vr/ScreenQuad.cpp
     src/vr/DeferredRenderer.cpp
+    src/vr/DepthOfField.cpp
     src/vr/AmbientOcclusion.cpp
     src/vr/FrameProfiler.cpp
     src/vr/PerformanceOverlay.cpp
@@ -117,6 +118,8 @@ set(VIEWER_RESOURCES
     shaders/ssao.fs
     shaders/ssao-resolve.fs
     shaders/post-process.fs
+    shaders/depth-of-field.fs
+    shaders/dof.glsl
     shaders/gbuffer-view.fs
     shaders/text.vs
     shaders/text.fs

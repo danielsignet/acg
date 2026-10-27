@@ -84,6 +84,7 @@ void run(const std::filesystem::path& path){
     const auto camera = scene.getCamera();
     camera->setPerspective(50, static_cast<float>(width) / height, 0.1f, 40);
     camera->setLookAt({0, 0, 6},{0, 0, 0});
+    std::function<void()> beforeDraw;
     const auto render = [&](bool useDeferred = true){
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glViewport(0, 0, width, height);
@@ -94,7 +95,8 @@ void run(const std::filesystem::path& path){
         glDisable(GL_BLEND);
         glClearColor(0.035f, 0.052f, 0.078f, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        renderer.render(*root, *camera, nullptr, nullptr, useDeferred ? &deferred : nullptr);
+        renderer.render(*root, *camera, nullptr, nullptr, useDeferred ? &deferred : nullptr,
+                        beforeDraw);
         check(glGetError() == GL_NO_ERROR, "Every deferred/forward pass has valid OpenGL state");
         return pixels();
     };
@@ -192,15 +194,27 @@ void run(const std::filesystem::path& path){
     deferred.setBloom(false);
     check(changed(bright, render()) == 0,
           "Disabling bloom exactly restores the original scene image");
-    box(root,{-2.7f, 0, -5},{3, 3, 2});
+    auto background = box(root,{-2.7f, 0, -5},{3, 3, 2});
     const auto focused = render();
     deferred.setDepthOfField(true);
+    check(changed(focused, render()) == 0,
+          "Without a target, DoF leaves even a populated center pixel sharp");
+    beforeDraw = [&]{
+        check(!renderer.getRenderList().empty() && renderer.getStats().draws == 0,
+              "Focus preparation receives this frame's render list before drawing");
+        deferred.setFocusDistance(5.0f);
+    };
     const auto dof = render();
+    beforeDraw ={};
     check(changed(focused, dof) > 100,
           "Depth of field blurs surfaces at different camera distances");
     const auto center = (height / 2 * width + width / 2) * 4;
     check(std::abs(static_cast<int>(focused[center]) - dof[center]) <= 2,
           "The central focus surface remains sharp when depth of field is enabled");
+    deferred.setFocusDistance(19.0f);
+    check(changed(dof, render()) > 100,
+          "Changing the targeted surface changes the rendered focus immediately");
+    deferred.setFocusDistance(5.0f);
     deferred.setBloom(true);
     check(changed(dof, render()) > 200,
           "Bloom and depth of field can be chained and enabled independently");
@@ -208,7 +222,8 @@ void run(const std::filesystem::path& path){
     deferred.setDepthOfField(false);
     check(changed(focused, render()) == 0,
           "Disabling both post effects restores the unprocessed lighting result");
-    // Empty sky must not select the far clip plane and blur all visible geometry.
+    // A missing target must not select the far clip plane or retain the previous model's focus.
+    deferred.setFocusDistance(std::nullopt);
     object->setMatrix(glm::scale(glm::translate(glm::mat4(1),{2.3f, 0, 0}),{2, 2, 2}));
     const auto noFocus = render();
     check(sample(vr::GBuffer::Position).w == 0, "The sky-focus fixture has no center surface");
@@ -217,42 +232,60 @@ void run(const std::filesystem::path& path){
           "Aiming at empty background leaves the scene sharp instead of focusing on the far plane");
     deferred.setDepthOfField(false);
     object->setMatrix(glm::scale(glm::mat4(1),{2, 2, 2}));
+    object->setVisible(false);
     auto nearby = box(root,{1.25f, 0, 2},{0.6f, 0.6f, 0.6f});
     auto nearbyState = std::make_shared<vr::State>();
     nearbyState->setLighting(false);
     auto nearbyMaterial = std::make_shared<vr::Material>();
     nearbyMaterial->setDiffuse({1, 1, 1});
     nearbyState->setMaterial(nearbyMaterial);
-    std::vector<unsigned char> checker(4 * 4 * 4, 255);
-    for (unsigned y = 0; y < 4; ++y){
-        for (unsigned x = 0; x < 4; ++x){
+    std::vector<unsigned char> checker(16 * 16 * 4, 255);
+    for (unsigned y = 0; y < 16; ++y){
+        for (unsigned x = 0; x < 16; ++x){
             for (unsigned channel = 0; channel < 3; ++channel){
-                checker[(y * 4 + x) * 4 + channel] = (x + y) % 2 ? 255 : 0;
+                checker[(y * 16 + x) * 4 + channel] = (x + y) % 2 ? 255 : 0;
             }
         }
     }
-    nearbyState->setTexture(0, std::make_shared<vr::Texture>(4, 4, checker));
+    nearbyState->setTexture(0, std::make_shared<vr::Texture>(16, 16, checker));
     nearby->setState(nearbyState);
-    const auto nearbySharp = render();
-    const auto nearbyPositions = deferred.getGBuffer().read(vr::GBuffer::Position);
+    background->setState(nearbyState);
+    const auto bothSharp = render();
+    const auto surfacePositions = deferred.getGBuffer().read(vr::GBuffer::Position);
+    deferred.setFocusDistance(3.7f);
     deferred.setDepthOfField(true);
-    const auto nearbyDof = render();
-    unsigned nearbyPixels = 0, blurredNearbyPixels = 0;
-    for (std::size_t i = 0; i < nearbyPositions.size(); i += 4){
-        if (nearbyPositions[i + 3] > 0 && nearbyPositions[i + 2] > 1.6f &&
-            nearbyPositions[i + 2] < 2.4f){
-            ++nearbyPixels;
-            for (unsigned channel = 0; channel < 3; ++channel){
-                if (std::abs(static_cast<int>(nearbySharp[i + channel]) - nearbyDof[i + channel]) >
-                    2){
-                    ++blurredNearbyPixels;
-                    break;
-                }
+    const auto nearFocused = render();
+    check(deferred.getScreenDraws() == 6,
+          "Profiling counts lighting, three DoF passes, composition and presentation");
+    deferred.setFocusDistance(10.0f);
+    const auto farFocused = render();
+    // Compare texture contrast inside each front face, excluding silhouette pixels.
+    const auto contrast = [&](const auto& image, bool nearSurface){
+        double sum = 0, squares = 0;
+        unsigned count = 0;
+        for (std::size_t i = 0; i < surfacePositions.size(); i += 4){
+            const float x = surfacePositions[i], y = surfacePositions[i + 1],
+                        z = surfacePositions[i + 2];
+            const bool inside =
+                nearSurface
+                    ? z > 2.29f && z < 2.31f && std::abs(x - 1.25f) < 0.23f && std::abs(y) < 0.23f
+                    : z > -4.01f && z < -3.99f && std::abs(x + 2.7f) < 1.3f && std::abs(y) < 1.3f;
+            if (surfacePositions[i + 3] > 0 && inside){
+                const double value = image[i];
+                sum += value;
+                squares += value * value;
+                ++count;
             }
         }
-    }
-    check(nearbyPixels > 100 && blurredNearbyPixels == 0,
-          "Textured surfaces within the broader focus band remain sharp, including their edges");
+        check(count > 100, "Both focus fixtures expose enough textured surface pixels");
+        return squares / count - (sum / count) * (sum / count);
+    };
+    check(contrast(nearFocused, true) > contrast(bothSharp, true) * 0.98 &&
+              contrast(farFocused, false) > contrast(bothSharp, false) * 0.98,
+          "Switching focus preserves the selected surface's actual texture contrast");
+    check(contrast(nearFocused, false) < contrast(bothSharp, false) * 0.7 &&
+              contrast(farFocused, true) < contrast(bothSharp, true) * 0.7,
+          "Near and far focus each visibly soften the other surface's texture");
     deferred.setDepthOfField(false);
     deferred.resize(197, 113);
     check(deferred.getGBuffer().get(vr::GBuffer::Position)->getWidth() == 197 &&

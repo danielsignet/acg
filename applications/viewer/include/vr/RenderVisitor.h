@@ -4,6 +4,7 @@
 #include "LightCollector.h"
 #include "PathVisitor.h"
 #include "RenderMode.h"
+#include <functional>
 #include <map>
 
 namespace vr{
@@ -26,9 +27,10 @@ public:
         : PathVisitor(State::defaults(program)), m_culler(State::defaults(program)){
     }
 
-    // Collects transformed lights and then draws the scene instances.
+    // Collects lights and geometry, invokes the optional preparation hook, then draws the scene.
     void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr,
-                const PortalResult* portals = nullptr, DeferredRenderer* deferred = nullptr);
+                const PortalResult* portals = nullptr, DeferredRenderer* deferred = nullptr,
+                const std::function<void()>& beforeDraw ={});
 
     // Attaches the optional frame profiler without transferring ownership.
     void setProfiler(FrameProfiler* profiler){

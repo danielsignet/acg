@@ -193,6 +193,12 @@ void SceneOverlay::drawFocus(const Application& app){
     }
     if (app.m_target){
         m_text.draw(app.m_target->instance->getName(), x + 14, y + 12, 12,{1, 0.82f, 0.35f, 1});
+        if (app.m_deferredEnabled && app.m_depthOfFieldEnabled){
+            std::ostringstream focus;
+            focus << "Focus: " << std::fixed << std::setprecision(1) << app.m_target->distance
+                  << " m";
+            m_text.draw(focus.str(), x + 14, y + 30, 11,{1, 0.82f, 0.35f, 1});
+        }
     }
 }
 

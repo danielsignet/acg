@@ -418,13 +418,16 @@ void Application::render(){
         updatePortalVisibility(camera, vp);
     }
     m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_bufferPreviews);
-    m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult,
-                       m_deferredEnabled ? m_deferred.get() : nullptr);
-    {
-        FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
-        m_target = pickModel(m_renderer->getRenderList(), camera.getPosition(),
-                             glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f));
-    }
+    m_renderer->render(
+        *m_scene->getRoot(), camera, frozen, &m_portalResult,
+        m_deferredEnabled ? m_deferred.get() : nullptr, [&]{
+            FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
+            m_target =
+                pickModel(m_renderer->getRenderList(), camera.getPosition(),
+                          glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f));
+            m_deferred->setFocusDistance(m_target ? std::optional<float>(m_target->distance)
+                                                  : std::nullopt);
+        });
     {
         FrameProfiler::Scope debug(&m_profiler, FrameProfiler::Stage::Debug);
         if (m_target && m_showHud && !m_profiler.getEnabled()){

@@ -43,6 +43,9 @@ void ShadowRenderer::attach(Scene& scene) const{
 void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled, bool filtered){
     m_stats ={};
     m_casters.clear();
+    m_batches.clear();
+    m_worldBounds.clear();
+    m_visibleModels.clear();
     const auto start = std::chrono::steady_clock::now();
     auto root = scene.getRoot();
     if (!root->getState()){
@@ -65,6 +68,7 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
     if (!bounds.valid()){
         return;
     }
+    prepareCasters();
     bool sunRendered = false;
     unsigned slot = 0;
     for (unsigned i = 0; i < lights.size(); ++i){
@@ -92,6 +96,32 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 }
 
+// Resolves depth-only batch state and world bounds once for this frame's casters.
+void ShadowRenderer::prepareCasters(){
+    m_worldBounds.reserve(m_casters.size());
+    for (std::size_t index = 0; index < m_casters.size(); ++index){
+        const auto& node = m_casters[index];
+        m_worldBounds.push_back(node.geometry->getBound().transformed(node.model));
+        const auto alpha = node.state.getUniforms().find("uAlphaCutoff");
+        float cutoff =
+            alpha == node.state.getUniforms().end() ? 0.0f : std::get<float>(alpha->second);
+        auto albedo = cutoff > 0 ? node.state.getTexture(0) : nullptr;
+        if (!albedo){
+            cutoff = 0;
+        }
+        const auto found =
+            std::find_if(m_batches.begin(), m_batches.end(), [&](const Batch& batch){
+                return batch.geometry == node.geometry && batch.albedo == albedo &&
+                       batch.alphaCutoff == cutoff;
+            });
+        if (found == m_batches.end()){
+            m_batches.push_back({node.geometry, std::move(albedo), cutoff,{index}});
+        } else{
+            found->casters.push_back(index);
+        }
+    }
+}
+
 // Renders only depth and alpha cutouts from one light camera.
 void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm::vec3& point,
                                    float farPlane, const Frustum* cone){
@@ -107,30 +137,43 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 2);
     }
-    for (const auto& node : m_casters){
-        ++m_stats.boundsTested;
-        const auto bound = node.geometry->getBound().transformed(node.model);
-        if (frustum.classify(bound) == Visibility::Outside ||
-            (cone && cone->classify(bound) == Visibility::Outside)){
-            ++m_stats.rejected;
+    for (const auto& batch : m_batches){
+        m_visibleModels.clear();
+        for (const auto index : batch.casters){
+            ++m_stats.boundsTested;
+            const auto& bound = m_worldBounds[index];
+            if (frustum.classify(bound) == Visibility::Outside ||
+                (cone && cone->classify(bound) == Visibility::Outside)){
+                ++m_stats.rejected;
+                continue;
+            }
+            m_visibleModels.push_back(m_casters[index].model);
+        }
+        if (m_visibleModels.empty()){
             continue;
         }
-        m_depthProgram->set("uModel", node.model);
-        const auto alpha = node.state.getUniforms().find("uAlphaCutoff");
-        m_depthProgram->set("uAlphaCutoff", alpha == node.state.getUniforms().end()
-                                                ? 0.0f
-                                                : std::get<float>(alpha->second));
-        const auto texture = node.state.getTexture(0);
-        m_depthProgram->set("uHasAlbedo", static_cast<bool>(texture));
-        if (texture){
-            texture->apply(0);
+        m_depthProgram->set("uAlphaCutoff", batch.alphaCutoff);
+        m_depthProgram->set("uHasAlbedo", static_cast<bool>(batch.albedo));
+        if (batch.albedo){
+            batch.albedo->apply(0);
         } else{
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
-        node.geometry->draw();
-        ++m_stats.draws;
-        m_stats.triangles += node.geometry->getTriangleCount();
+        const bool instanced = m_instancing && m_visibleModels.size() > 1;
+        m_depthProgram->set("uInstanced", instanced);
+        if (instanced){
+            batch.geometry->drawInstanced(m_visibleModels);
+            ++m_stats.draws;
+        } else{
+            for (const auto& model : m_visibleModels){
+                m_depthProgram->set("uModel", model);
+                batch.geometry->draw();
+                ++m_stats.draws;
+            }
+        }
+        m_stats.instances += static_cast<unsigned>(m_visibleModels.size());
+        m_stats.triangles += batch.geometry->getTriangleCount() * m_visibleModels.size();
     }
     ++m_stats.passes;
 }

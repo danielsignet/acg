@@ -125,8 +125,8 @@ void SceneOverlay::drawPerformance(const Application& app){
              std::to_string(app.m_scene->getPortalGraph().getCells().size()) + "   |   Shadows " +
              (app.m_shadowsEnabled ? "ON" : "OFF"),
          32, top + 340, 11, muted);
-    text("Averaging " + std::to_string(summary.samples) +
-             "/120 frames. Reset after changing settings.",
+    text("Average window: " + std::to_string(summary.samples) + " frames / " +
+             decimal(summary.frameMs * summary.samples / 1000, 1) + " s. Reset after changes.",
          32, top + 372, 11, foreground);
     text("CPU: whole frame incl. swap. GPU: elapsed render time incl. gaps. F1 / Esc: close.", 32,
          top + 393, 9, muted);

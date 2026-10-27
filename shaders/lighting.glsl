@@ -22,6 +22,11 @@ uniform bool uShadows, uReceiveShadows, uShadowPCF;
 uniform int uSunShadowIndex, uPointShadowSlot[8];
 uniform float uPointShadowFar[8];
 
+// Interpolates a three-texel PCF kernel over four texel centers per axis.
+float shadowFilterWeight(int offset, float fraction){
+    return offset == -1 ? 1.0 - fraction : offset == 2 ? fraction : 1.0;
+}
+
 float sunVisibility(vec3 position, vec3 normal){
     vec4 clip = uSunVP * vec4(position, 1.0);
     vec3 p = clip.xyz / clip.w * 0.5 + 0.5;
@@ -36,21 +41,27 @@ float sunVisibility(vec3 position, vec3 normal){
     // Cover the filter footprint where adjacent faces invalidate plane extrapolation.
     vec3 lightDirection = normalize(uLights[uSunShadowIndex].position.xyz);
     float grazing = clamp(2.0 * (1.0 - abs(dot(normal, lightDirection))), 0.0, 1.0);
-    float bias = 0.00004 + dot(abs(gradient), texel) * (float(radius) + 0.5) * grazing * grazing;
-    for (int y = -radius; y <= radius; ++y){
-        for (int x = -radius; x <= radius; ++x){
-            vec2 uv = (floor((p.xy + vec2(x, y) * texel) / texel) + 0.5) * texel;
+    float footprint = uShadowPCF ? 2.0 : 0.5;
+    float bias = 0.00004 + dot(abs(gradient), texel) * footprint * grazing * grazing;
+    vec2 center = p.xy / texel - 0.5;
+    vec2 fraction = fract(center);
+    int end = uShadowPCF ? 2 : 0;
+    for (int y = -radius; y <= end; ++y){
+        for (int x = -radius; x <= end; ++x){
+            vec2 uv = uShadowPCF ? (floor(center) + vec2(x, y) + 0.5) * texel
+                                : (floor(p.xy / texel) + 0.5) * texel;
+            float weight = shadowFilterWeight(x, fraction.x) * shadowFilterWeight(y, fraction.y);
             float reference = p.z + dot(gradient, uv - p.xy);
-            visible += reference - bias <= texture(uSunShadow, uv).r ? 1.0 : 0.0;
+            visible += reference - bias <= texture(uSunShadow, uv).r ? weight : 0.0;
         }
     }
     return visible / float((2 * radius + 1) * (2 * radius + 1));
 }
 
-vec3 cubeTexelDirection(vec3 direction, int slot){
+// Maps a ray to one cubemap face without changing its sampling position.
+vec2 cubeCoordinates(vec3 direction, out int face){
     vec3 a = abs(direction);
     vec2 uv;
-    int face;
     if (a.x >= a.y && a.x >= a.z){
         if (direction.x > 0.0){
             face = 0;
@@ -76,9 +87,11 @@ vec3 cubeTexelDirection(vec3 direction, int slot){
             uv = vec2(-direction.x, -direction.y) / a.z;
         }
     }
-    float size = float(textureSize(uPointShadows[slot], 0).x);
-    uv =
-        (clamp(floor((uv * 0.5 + 0.5) * size), vec2(0), vec2(size - 1.0)) + 0.5) / size * 2.0 - 1.0;
+    return uv;
+}
+
+// Allows filter taps to cross face boundaries using their actual world-space rays.
+vec3 cubeDirection(vec2 uv, int face){
     if (face == 0){
         return vec3(1, -uv.y, -uv.x);
     }
@@ -97,29 +110,43 @@ vec3 cubeTexelDirection(vec3 direction, int slot){
     return vec3(-uv.x, -uv.y, -1);
 }
 
+// Finds the stored texel center, including taps crossing into an adjacent face.
+vec3 cubeTexelDirection(vec3 direction, float size){
+    int face;
+    vec2 uv = cubeCoordinates(direction, face);
+    uv = (clamp(floor((uv * 0.5 + 0.5) * size), vec2(0), vec2(size - 1.0)) + 0.5) / size *
+             2.0 - 1.0;
+    return cubeDirection(uv, face);
+}
+
 float pointVisibility(vec3 position, vec3 normal, vec3 lightPosition, int slot){
     vec3 delta = position - lightPosition;
     float distanceToLight = length(delta);
-    if (distanceToLight >= uPointShadowFar[slot]){
+    if (distanceToLight < 0.0001 || distanceToLight >= uPointShadowFar[slot]){
         return 1.0;
     }
-    float bias = 0.01;
-    vec3 ray = normalize(delta);
-    vec3 axis = abs(ray.y) < 0.99 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-    vec3 tangent = normalize(cross(ray, axis)), bitangent = cross(ray, tangent);
-    float texelRadius = 2.0 * distanceToLight / float(textureSize(uPointShadows[slot], 0).x),
-          visible = 0.0;
+    float size = float(textureSize(uPointShadows[slot], 0).x), visible = 0.0;
+    // Scale contact-edge tolerance with the light-space footprint and receiver slope.
+    float cosine = clamp(abs(dot(normal, delta / max(distanceToLight, 0.0001))), 0.0, 1.0);
+    float slope = sqrt(1.0 - cosine * cosine) / max(cosine, 0.1);
+    float footprint = uShadowPCF ? 2.0 : 0.5;
+    float bias = 0.01 + 2.0 * distanceToLight / size * footprint * slope;
+    int face;
+    vec2 center = (cubeCoordinates(delta, face) * 0.5 + 0.5) * size - 0.5;
+    vec2 fraction = fract(center);
     int radius = uShadowPCF ? 1 : 0;
-    for (int y = -radius; y <= radius; ++y){
-        for (int x = -radius; x <= radius; ++x){
-            vec3 sampleRay = cubeTexelDirection(
-                delta + (tangent * float(x) + bitangent * float(y)) * texelRadius, slot);
+    int end = uShadowPCF ? 2 : 0;
+    for (int y = -radius; y <= end; ++y){
+        for (int x = -radius; x <= end; ++x){
+            vec2 uv = (floor(center) + vec2(x, y) + 0.5) / size * 2.0 - 1.0;
+            vec3 sampleRay = cubeTexelDirection(uShadowPCF ? cubeDirection(uv, face) : delta, size);
+            float weight = shadowFilterWeight(x, fraction.x) * shadowFilterWeight(y, fraction.y);
             float denominator = dot(normal, sampleRay), numerator = dot(normal, delta);
             float reference = abs(denominator) > 1e-6 && numerator * denominator > 0.0
                                   ? numerator / denominator * length(sampleRay)
                                   : distanceToLight;
             float stored = texture(uPointShadows[slot], sampleRay).r * uPointShadowFar[slot];
-            visible += reference - bias <= stored ? 1.0 : 0.0;
+            visible += reference - bias <= stored ? weight : 0.0;
         }
     }
     return visible / float((2 * radius + 1) * (2 * radius + 1));

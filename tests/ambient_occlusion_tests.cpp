@@ -112,7 +112,8 @@ void run(const std::filesystem::path& path){
           "Contact occlusion remains clearly visible across a band around the box");
     check(surroundingPixels > 100 && surroundingVisibility / surroundingPixels > 0.98f,
           "AO leaves the floor beyond its world-space radius unoccluded");
-    check(deferred.getScreenDraws() == 5, "Enabled AO uses one sampling and one resolve pass");
+    check(deferred.getScreenDraws() == 7,
+          "Enabled AO uses sampling, two separable filter passes and a full-resolution resolve");
     deferred.setView(vr::BufferView::Occlusion);
     const auto debug = render();
     check(debug != occluded, "AO has its own independently rendered diagnostic view");

@@ -8,7 +8,7 @@ namespace vr{
 struct ShadowStats{
     unsigned passes = 0;
     unsigned boundsTested = 0, rejected = 0;
-    unsigned draws = 0;
+    unsigned draws = 0, instances = 0;
     std::size_t triangles = 0;
     double cpuMs = 0;
 };
@@ -30,6 +30,16 @@ public:
         return m_stats;
     }
 
+    // Selects batching or individual draws for the same light-culled instances.
+    void setInstancing(bool enabled){
+        m_instancing = enabled;
+    }
+
+    // Returns whether compatible shadow casters are submitted together.
+    bool getInstancing() const{
+        return m_instancing;
+    }
+
     // Returns the directional light's two-dimensional depth attachment.
     const std::shared_ptr<RenderToTexture>& getSunTarget() const{
         return m_sun;
@@ -46,6 +56,16 @@ public:
     }
 
 private:
+    struct Batch{
+        Geometry* geometry;
+        std::shared_ptr<Texture> albedo;
+        float alphaCutoff;
+        std::vector<std::size_t> casters;
+    };
+
+    // Resolves depth-only batch state and world bounds once for this frame's casters.
+    void prepareCasters();
+
     // Renders only depth and alpha cutouts from one light camera.
     void drawDepthPass(const Camera& camera, bool radial, const glm::vec3& point, float farPlane,
                        const Frustum* cone = nullptr);
@@ -67,6 +87,10 @@ private:
     int m_pointResolution;
     std::shared_ptr<Program> m_depthProgram;
     std::vector<RenderNode> m_casters;
+    std::vector<BoundingBox> m_worldBounds;
+    std::vector<Batch> m_batches;
+    std::vector<glm::mat4> m_visibleModels;
+    bool m_instancing = true;
     ShadowStats m_stats;
 };
 } // namespace vr

@@ -43,13 +43,19 @@ public:
     // Uploads changed mesh data and draws its indexed triangles.
     void draw() const;
 
+    // Streams model matrices and draws this mesh once for all supplied instances.
+    void drawInstanced(const std::vector<glm::mat4>& models) const;
+
     // Computes the local bound from the stored vertex positions.
     BoundingBox computeBound() const override;
 
 private:
+    // Binds the VAO and uploads changed vertices and indices for either draw path.
+    void bind() const;
+
     std::vector<Vertex> m_vertices;
     std::vector<unsigned> m_indices;
-    mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0;
+    mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0, m_instances = 0;
     mutable bool m_dirty = true;
 };
 } // namespace vr

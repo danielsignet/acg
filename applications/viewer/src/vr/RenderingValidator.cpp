@@ -28,6 +28,7 @@ FramebufferImage RenderingValidator::captureScene() const{
 void RenderingValidator::run(){
     const bool previews = m_application.m_bufferPreviews;
     m_application.m_bufferPreviews = false;
+    validateNormalMapping();
     validateAmbientOcclusion();
     validateDeferred();
     validatePerformance();
@@ -49,6 +50,41 @@ void RenderingValidator::run(){
     OpenGL::check("Validation complete");
     std::cout << "GPU validation passed: scene pixels for lighting/lights/multitexture/toon/alpha, "
                  "animation/pause, all LOD levels, reload, reset, frustum culling, OpenGL errors\n";
+}
+
+// Checks normal-map comparison, shared menu controls and reload persistence.
+void RenderingValidator::validateNormalMapping(){
+    auto& app = m_application;
+    using Action = Controls::Action;
+    const auto view = app.m_scene->getCamera()->getView();
+    const auto lights = app.m_pointLights;
+    app.m_scene->getCamera()->setLookAt({-1.8f, 2.9f, -0.5f},{-6, 0.4f, -5});
+    app.render();
+    const auto mapped = captureScene();
+    app.handleKey(GLFW_KEY_Z);
+    app.handleKey(GLFW_KEY_N);
+    app.render();
+    require(app.m_shadingMode == ShadingMode::UnmappedPhong && app.m_pointLights == lights &&
+                mapped.countChangedPixels(captureScene()) > 100,
+            "Z then N shows the same scene without normal maps and leaves the lights unchanged");
+    app.handleKey(GLFW_KEY_Z);
+    app.handleKey(GLFW_KEY_4);
+    app.m_bufferPreviews = true;
+    const auto preview = app.m_deferred->previewRectangle(1);
+    app.handleClick(static_cast<float>(preview.x + 8), static_cast<float>(preview.y + 8));
+    require(app.m_bufferView == BufferView::Lit && app.m_shadingMode == ShadingMode::UnmappedPhong,
+            "Closing a normal-buffer preview returns to the selected plain shader");
+    app.m_bufferPreviews = false;
+    app.reload();
+    require(app.m_shadingMode == ShadingMode::UnmappedPhong,
+            "Reload retains the normal-map comparison mode");
+    app.handleKey(GLFW_KEY_F2);
+    app.handleKey(GLFW_KEY_Z);
+    app.handleKey(GLFW_KEY_1);
+    require(!app.m_deferredEnabled && app.m_shadingMode == ShadingMode::Phong,
+            "The same normal-map menu works in the forward renderer");
+    app.execute(Action::Renderer);
+    app.m_scene->getCamera()->setView(view);
 }
 
 // Checks reticle targeting, per-instance subdivision and exact restoration through the UI.
@@ -271,8 +307,11 @@ void RenderingValidator::validateDeferred(){
     require(app.m_bufferView == BufferView::Plane,
             "The geometric normal attachment has its own view");
     app.execute(Action::PhongShader);
-    app.handleKey(GLFW_KEY_G);
-    require(app.m_bufferPreviews, "G enables all G-buffer thumbnails");
+    app.handleClick(830, 28);
+    app.render();
+    require(app.m_bufferPreviews && app.m_deferred->getPreviews() &&
+                app.m_deferred->getScreenDraws() == 7 + DeferredRenderer::PreviewCount,
+            "The Multiview button displays every channel and counts its presentation draws");
     const auto preview = app.m_deferred->previewRectangle(2);
     app.handleClick(static_cast<float>(preview.x + 8), static_cast<float>(preview.y + 8));
     require(app.m_bufferView == BufferView::Albedo,
@@ -281,6 +320,19 @@ void RenderingValidator::validateDeferred(){
     require(app.m_bufferView == BufferView::Lit,
             "Clicking the selected thumbnail returns to the lit image");
     app.handleKey(GLFW_KEY_G);
+    app.render();
+    require(!app.m_bufferPreviews && !app.m_deferred->getPreviews(),
+            "G hides the same multiview controlled by the header button");
+    app.execute(Action::Renderer);
+    app.handleClick(830, 28);
+    require(app.m_deferredEnabled && app.m_bufferPreviews,
+            "Multiview is available directly from forward rendering");
+    app.execute(Action::Performance);
+    app.handleClick(830, 28);
+    app.render();
+    require(!app.m_profiler.getEnabled() && app.m_deferred->getPreviews(),
+            "The Multiview button opens visible channel previews from the performance view");
+    app.handleClick(830, 28);
     app.handleKey(GLFW_KEY_B);
     app.render();
     require(app.m_deferred->getBloom() && captureScene().countChangedPixels(lit) > 100,
@@ -382,9 +434,9 @@ void RenderingValidator::validateObjectAnimation(){
                                    {1.5, 0.5, m_application.m_animationEnabled});
     m_application.render();
     require(animated->getMatrix() == pausedMatrix,
-            "P must pause every component of the object matrix");
+            "Pausing object animation retains every component of the object matrix");
     require(captureScene().countChangedPixels(pausedPixels) == 0,
-            "P pause must retain scene pixels within 8-bit rounding tolerance");
+            "Pausing object animation retains scene pixels within 8-bit rounding tolerance");
     m_application.execute(Controls::Action::ObjectAnimation);
     m_application.render();
     const auto resumePixels = captureScene();
@@ -393,7 +445,37 @@ void RenderingValidator::validateObjectAnimation(){
     m_application.render();
     require(animated->getMatrix() != pausedMatrix &&
                 captureScene().countChangedPixels(resumePixels) > 100,
-            "P must resume both the transform and its visible animation");
+            "Resuming object animation updates the transform and its visible pixels");
+    auto& app = m_application;
+    const bool animationEnabled = app.m_animationEnabled;
+    for (const bool enabled :{true, false}){
+        app.m_animationEnabled = enabled;
+        const auto frozen = animated->getMatrix();
+        app.handleKey(GLFW_KEY_F);
+        for (unsigned frame = 0; frame < 3; ++frame){
+            app.update(glfwGetTime(), 0.5);
+        }
+        require(app.m_frozenFrustum && animated->getMatrix() == frozen,
+                "F keeps the doughnut's complete pose fixed across actual application updates");
+        app.handleKey(GLFW_KEY_F);
+        require(app.m_animationEnabled == enabled && animated->getMatrix() == frozen,
+                "Unfreezing retains the animation preference and does not jump to a new pose");
+        app.update(glfwGetTime(), 0.25);
+        require((animated->getMatrix() != frozen) == enabled,
+                "Only a doughnut that was animating before F resumes its rotation");
+    }
+    app.m_animationEnabled = true;
+    app.handleKey(GLFW_KEY_F);
+    const auto frozen = animated->getMatrix();
+    app.execute(Controls::Action::ObjectAnimation);
+    app.update(glfwGetTime(), 0.5);
+    require(animated->getMatrix() == frozen,
+            "Changing the animation preference cannot move the doughnut while frozen");
+    app.handleKey(GLFW_KEY_F);
+    app.update(glfwGetTime(), 0.25);
+    require(animated->getMatrix() == frozen,
+            "Unfreezing honors an animation pause requested during inspection");
+    app.m_animationEnabled = animationEnabled;
     m_application.m_lightOrbitCallback->setEnabled(orbitEnabled);
 }
 

@@ -1,5 +1,6 @@
 #version 410 core
 in vec3 worldPosition, worldNormal;
+in vec4 worldTangent;
 in vec2 texCoord;
 layout(location = 0) out vec4 gPosition;
 layout(location = 1) out vec4 gNormal;

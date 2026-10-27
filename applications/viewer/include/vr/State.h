@@ -12,6 +12,7 @@ namespace vr{
 class State{
 public:
     static constexpr unsigned MaxTextures = 4;
+    static constexpr unsigned MaterialTextureUnits = MaxTextures + 1;
     static constexpr unsigned MaxLights = 8;
     static constexpr unsigned MaxShadowMaps = MaxLights + 1;
 
@@ -25,7 +26,7 @@ public:
     void apply() const;
 
     // Binds shadow maps after any caller-reserved G-buffer texture units.
-    void applyShadowMaps(const Program& program, unsigned firstUnit = MaxTextures) const;
+    void applyShadowMaps(const Program& program, unsigned firstUnit = MaterialTextureUnits) const;
 
     // Overrides global shader lighting for this rendering scope.
     void setLighting(bool enabled){
@@ -86,6 +87,14 @@ public:
     // Overrides a texture layer; an empty pointer explicitly disables that layer.
     void setTexture(unsigned layer, std::shared_ptr<Texture> texture);
 
+    // Overrides the tangent-space normal texture; null explicitly removes an inherited map.
+    void setNormalMap(std::shared_ptr<Texture> texture);
+
+    // Returns the normal texture independently of the color texture layers.
+    std::shared_ptr<Texture> getNormalMap() const{
+        return m_normalMap.value_or(nullptr);
+    }
+
     // Stores one typed shader-uniform override by name.
     void setUniform(const std::string& name, Uniform value){
         m_uniforms[name] = std::move(value);
@@ -130,6 +139,7 @@ private:
     std::shared_ptr<Material> m_material;
     std::shared_ptr<Program> m_program;
     std::map<unsigned, std::shared_ptr<Texture>> m_textures;
+    std::optional<std::shared_ptr<Texture>> m_normalMap;
     std::map<std::string, Uniform> m_uniforms;
 };
 } // namespace vr

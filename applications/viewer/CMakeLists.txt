@@ -24,6 +24,7 @@ add_library(vrlib STATIC
     src/vr/FramebufferState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
+    src/vr/GeometryTangents.cpp
     src/vr/GeometryRay.cpp
     src/vr/Subdivision.cpp
     src/vr/ModelInstance.cpp
@@ -105,6 +106,7 @@ set(VIEWER_RESOURCES
     textures/box.bmp
     textures/grid.png
     textures/detail.png
+    textures/brick-normal.png
     textures/alphatest.png
     fonts/arial.ttf
     shaders/phong-shading.vs

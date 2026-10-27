@@ -23,7 +23,8 @@ Geometry::~Geometry(){
 
 // Validates and stores local vertex attributes and triangle indices.
 void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> indices,
-                       std::vector<glm::vec3> normals, std::vector<glm::vec2> uv){
+                       std::vector<glm::vec3> normals, std::vector<glm::vec2> uv,
+                       std::vector<glm::vec4> tangents){
     if (vertices.empty() || indices.empty() || indices.size() % 3 ||
         normals.size() != vertices.size()){
         throw std::invalid_argument(
@@ -31,6 +32,9 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
     }
     if (!uv.empty() && uv.size() != vertices.size()){
         throw std::invalid_argument("UV array size");
+    }
+    if (!tangents.empty() && tangents.size() != vertices.size()){
+        throw std::invalid_argument("Tangent array size");
     }
     for (auto index : indices){
         if (index >= vertices.size()){
@@ -45,7 +49,17 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
                 throw std::invalid_argument("Non-finite geometry");
             }
         }
-        data.push_back({vertices[i], normals[i], uv.empty() ? glm::vec2(0) : uv[i]});
+        const auto coordinates = uv.empty() ? glm::vec2(0) : uv[i];
+        const auto tangent = tangents.empty() ? glm::vec4(0) : tangents[i];
+        for (int axis = 0; axis < 4; ++axis){
+            if (!std::isfinite(tangent[axis]) || (axis < 2 && !std::isfinite(coordinates[axis]))){
+                throw std::invalid_argument("Non-finite texture basis");
+            }
+        }
+        data.push_back({vertices[i], normals[i], coordinates, tangent});
+    }
+    if (tangents.empty() && !uv.empty()){
+        buildTangents(data, indices);
     }
     m_vertices = std::move(data);
     m_indices = std::move(indices);
@@ -89,6 +103,9 @@ void Geometry::bind() const{
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                               reinterpret_cast<void*>(offsetof(Vertex, texCoord)));
+        glEnableVertexAttribArray(7);
+        glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                              reinterpret_cast<void*>(offsetof(Vertex, tangent)));
         m_dirty = false;
     }
 }

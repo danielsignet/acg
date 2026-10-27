@@ -37,8 +37,8 @@ WSL requires a graphical session such as WSLg.
 | RMB + Q/E | Move down/up |
 | RMB + Shift | Move faster |
 | 1-5 or light buttons | Toggle the four colored lights and daylight |
-| Z or Shader | Select Phong, Toon, positions, normals, albedo, specular or depth; use the mouse or 1-7 in the menu; 8/9/0 show ambient, emissive and geometric normals |
-| G | Show/hide G-buffer previews; click a preview to expand it, click again to return |
+| Z or Shader | Select Phong with normal maps (1), plain Phong (N), Toon (2), or individual G-buffer views; use the mouse or menu keys 3-0 and A |
+| G or Multiview | Show/hide all G-buffer channel previews together; enables deferred rendering; click a preview to expand it, click again to return |
 | B or Bloom | Toggle bloom |
 | V or DoF | Toggle depth of field; focus follows the surface under the crosshair, and no target leaves the image sharp |
 | J or Shadows | Toggle shadows |
@@ -48,7 +48,7 @@ WSL requires a graphical session such as WSLg.
 | F2 or renderer button | Switch between deferred and forward; AO, post effects and G-buffer views use deferred |
 | O or AO | Toggle screen-space ambient occlusion; Z then A shows AO alone |
 | F1 | Show/hide performance: CPU/GPU time and percentage breakdown; Reset averages clears measurements after changing settings |
-| F | Freeze/resume the culling camera and moving lights; show/hide the camera's debug volumes |
+| F | Freeze/resume the culling camera, model animations and moving lights; show/hide the camera's debug volumes |
 | Space | Reset the camera |
 | Crosshair / Subdivide button | Aim at a highlighted model and toggle one cached subdivision level for that instance; generated in memory on first use |
 | R | Reload the scene and shaders |

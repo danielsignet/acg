@@ -13,7 +13,7 @@ public:
     std::shared_ptr<Node> read(const std::filesystem::path& path, bool flatten);
 
 private:
-    // Reads material colors, shininess and an optional diffuse image.
+    // Reads material colors, shininess and optional diffuse and tangent-space normal images.
     std::shared_ptr<State> readMaterial(const aiMaterial& material, const aiScene& scene);
 
     // Resolves an embedded texture or a file relative to the model.
@@ -32,6 +32,7 @@ private:
     static glm::mat4 convertMatrix(const aiMatrix4x4& matrix);
     Reader& m_reader;
     std::filesystem::path m_modelDirectory;
+    float m_normalY = 1;
     std::vector<std::shared_ptr<State>> m_materials;
     std::vector<std::shared_ptr<Geometry>> m_meshes;
 };

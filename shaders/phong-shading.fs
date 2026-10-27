@@ -1,5 +1,6 @@
 #version 410 core
 in vec3 worldPosition, worldNormal;
+in vec4 worldTangent;
 in vec2 texCoord;
 out vec4 fragmentColor;
 #include "lighting.glsl"

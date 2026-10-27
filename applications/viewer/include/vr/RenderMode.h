@@ -1,7 +1,7 @@
 #pragma once
 
 namespace vr{
-enum class ShadingMode{ Phong, Toon };
+enum class ShadingMode{ Phong, Toon, UnmappedPhong };
 enum class BufferView{
     Lit,
     Position,

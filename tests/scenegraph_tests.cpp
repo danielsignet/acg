@@ -232,6 +232,26 @@ private:
         transform->accept(far);
         check(far.draws.size() == 1 && far.draws[0].node->getTriangleCount() == 80,
               "LOD must select one coarse geometry");
+        lod->setFadeWidth(2);
+        const auto midpoint = lod->select(12);
+        check(midpoint.nearLevel == 0 && midpoint.farLevel == 1 && midpoint.blend == 0.5f,
+              "LOD crossfade selects adjacent levels with equal midpoint coverage");
+        check(lod->select(10).nearLevel == lod->select(10).farLevel,
+              "LOD crossfade submits only one level outside the transition band");
+        Probe blended;
+        blended.setLodFading(true);
+        blended.setEye({112, 0, 0});
+        transform->accept(blended);
+        const auto nearRange =
+            std::get<glm::vec2>(blended.draws[0].state.getUniforms().at("uLodRange"));
+        const auto farRange =
+            std::get<glm::vec2>(blended.draws[1].state.getUniforms().at("uLodRange"));
+        check(blended.draws.size() == 2 && nearRange == glm::vec2(0, 0.5f) &&
+                  farRange == glm::vec2(0.5f, 1),
+              "Shared LOD traversal uses complementary per-instance coverage ranges");
+        rejects([&]{ lod->setFadeWidth(-1); }, "Negative LOD fade width");
+        rejects([&]{ lod->setFadeWidth(std::numeric_limits<float>::infinity()); },
+                "Infinite LOD fade width");
         rejects(
             [&]{
                 auto invalid = std::make_shared<vr::LOD>();

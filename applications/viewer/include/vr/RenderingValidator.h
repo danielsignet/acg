@@ -56,6 +56,8 @@ private:
     void validateFlashlight();
 
     void validateControls();
+    // Checks reticle targeting, per-instance subdivision and exact restoration through the UI.
+    void validateModelTargeting();
     Application& m_application;
 };
 } // namespace vr

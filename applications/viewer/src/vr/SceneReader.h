@@ -1,6 +1,7 @@
 #pragma once
 #include <rapidxml-1.13/rapidxml.hpp>
 #include <vr/Reader.h>
+#include <set>
 
 namespace vr{
 class SceneReader final{
@@ -76,5 +77,6 @@ private:
     Reader& m_reader;
     std::shared_ptr<Scene> m_scene;
     unsigned m_anonymousNodeCount = 0;
+    std::set<std::string> m_modelAssets;
 };
 } // namespace vr

@@ -29,6 +29,13 @@ BoundingBox Group::computeBound() const{
     return bound;
 }
 
+// Preserves exempt descendants when an ancestor lies outside a visibility volume.
+bool Group::computeCullingExemption() const{
+    return !getCullingEnabled() ||
+           std::any_of(m_children.begin(), m_children.end(),
+                       [](const auto& child){ return child->hasCullingExemption(); });
+}
+
 // Reports whether the requested node is part of this subtree.
 bool Group::contains(const Node* node) const{
     if (this == node){

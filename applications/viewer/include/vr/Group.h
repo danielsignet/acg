@@ -21,6 +21,9 @@ public:
     // Encloses every child bound in the group's coordinate system.
     BoundingBox computeBound() const override;
 
+    // Preserves exempt descendants when an ancestor lies outside a visibility volume.
+    bool computeCullingExemption() const override;
+
     // Returns the ordered collection of shared child nodes.
     const std::vector<std::shared_ptr<Node>>& getChildren() const{
         return m_children;

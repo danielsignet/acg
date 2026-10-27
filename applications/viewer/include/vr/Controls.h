@@ -56,7 +56,8 @@ public:
         AmbientBuffer,
         EmissiveBuffer,
         PlaneBuffer,
-        OcclusionBuffer
+        OcclusionBuffer,
+        Subdivision
     };
 
     struct Binding{
@@ -162,7 +163,7 @@ private:
          {Action::PointWhite, GLFW_KEY_4, "4", "Point White"},
          {Action::PointSun, GLFW_KEY_5, "5", "Sun"},
          {Action::Culling, GLFW_KEY_C, "C", "Culling"},
-         {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view"},
+         {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view/lights"},
          {Action::ShaderMenu, GLFW_KEY_Z, "Z", "Shader"},
          {Action::Shadows, GLFW_KEY_J, "J", "Shadows"},
          {Action::Flashlight, GLFW_KEY_L, "L", "Flashlight"},

@@ -5,6 +5,8 @@
 #include <vector>
 
 namespace vr{
+class ModelInstance;
+
 class PathVisitor : public NodeVisitor{
 public:
     // Initializes traversal with a base state and the identity model matrix.
@@ -35,6 +37,11 @@ public:
         m_eye = eye;
     }
 
+    // Enables complementary detail coverage for geometry and shadow collection only.
+    void setLodFading(bool enabled){
+        m_lodFading = enabled;
+    }
+
 protected:
     // Handles a geometry instance with its resolved transform and rendering state.
     virtual void geometry(Geometry&, const glm::mat4&, const State&){
@@ -53,5 +60,14 @@ protected:
     std::vector<State> m_states;
     std::vector<glm::mat4> m_models;
     glm::vec3 m_eye{0};
+    bool m_lodFading = false;
+    bool m_cullingEnabled = true;
+
+    struct InstancePath{
+        ModelInstance* node;
+        glm::mat4 model;
+    };
+
+    std::vector<InstancePath> m_instances{{nullptr, glm::mat4(1)}};
 };
 } // namespace vr

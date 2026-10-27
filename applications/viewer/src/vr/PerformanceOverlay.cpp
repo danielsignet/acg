@@ -7,7 +7,7 @@
 namespace vr{
 namespace{
 constexpr float panelWidth = 584;
-constexpr float panelHeight = 416;
+constexpr float panelHeight = 432;
 const std::array<glm::vec4, FrameProfiler::SliceCount> colors{{{1, 0.72f, 0.3f, 1},
                                                                {0.76f, 0.6f, 1, 1},
                                                                {0.3f, 0.95f, 0.8f, 1},
@@ -16,6 +16,9 @@ const std::array<glm::vec4, FrameProfiler::SliceCount> colors{{{1, 0.72f, 0.3f, 
                                                                {0.65f, 0.9f, 0.4f, 1},
                                                                {0.65f, 0.72f, 0.8f, 1},
                                                                {1, 0.5f, 0.2f, 1},
+                                                               {1, 0.87f, 0.3f, 1},
+                                                               {0.4f, 0.85f, 0.8f, 1},
+                                                               {1, 0.4f, 0.4f, 1},
                                                                {0.9f, 0.92f, 0.95f, 1}}};
 
 // Formats the few timing and percentage values shown in the compact view.
@@ -61,9 +64,9 @@ void SceneOverlay::drawPerformance(const Application& app){
     m_text.rectangle(reset.x, reset.y, reset.z, reset.w,{0.08f, 0.2f, 0.24f, 0.8f});
     text("Reset averages", reset.x + 17, reset.y + 5, 12, foreground);
     const auto fps = summary.frameMs > 0 ? decimal(1000 / summary.frameMs, 1) : "...";
-    text("AVG  " + fps + " FPS   |   frame " + decimal(summary.frameMs) + " ms   |   P95 " +
-             decimal(summary.p95Ms) + " ms",
-         32, top + 44, 13, foreground);
+    text("AVG " + fps + " FPS  |  frame " + decimal(summary.frameMs) + " ms  |  P95 " +
+             decimal(summary.p95Ms) + "  |  max " + decimal(summary.peakMs) + " ms",
+         32, top + 44, 12, foreground);
 
     const double cpuTotal = summary.cpu[static_cast<std::size_t>(FrameProfiler::Stage::Frame)];
     const double gpuTotal = summary.gpu[static_cast<std::size_t>(FrameProfiler::Stage::Render)];
@@ -97,19 +100,19 @@ void SceneOverlay::drawPerformance(const Application& app){
     text("GPU ms / %", 468, top + 126, 10, muted);
     for (std::size_t i = 0; i < slices.size(); ++i){
         const auto& slice = slices[i];
-        const float y = top + 148 + static_cast<float>(i) * 18;
+        const float y = top + 148 + static_cast<float>(i) * 15;
         m_text.rectangle(32, y + 3, 8, 8, colors[i]);
-        text(slice.name, 48, y, 12, foreground);
+        text(i == 2 && !app.m_deferredEnabled ? "Opaque geometry (forward)" : slice.name, 48, y, 11,
+             foreground);
         text(summary.samples ? decimal(slice.cpuMs) + " / " + decimal(slice.cpuPercent, 1) + "%"
                              : "...",
-             350, y, 12, colors[i]);
-        const bool cpuOnly = i == 1 || i == 6;
-        const auto gpu = cpuOnly                       ? "-"
+             350, y, 11, colors[i]);
+        const auto gpu = !slice.gpu                    ? "-"
                          : !profiler.getGpuSupported() ? "N/A"
                          : !summary.gpuSamples
                              ? "..."
                              : decimal(slice.gpuMs) + " / " + decimal(slice.gpuPercent, 1) + "%";
-        text(gpu, 468, y, 12, colors[i]);
+        text(gpu, 468, y, 11, colors[i]);
     }
 
     const auto value = [&](FrameProfiler::Counter counter){
@@ -117,18 +120,26 @@ void SceneOverlay::drawPerformance(const Application& app){
     };
     using Counter = FrameProfiler::Counter;
     text("Avg draws: " + compact(value(Counter::ColorDraws)) + " color + " +
-             compact(value(Counter::ShadowDraws)) +
-             " shadow   |   Triangles: " + compact(value(Counter::TotalTriangles)),
-         32, top + 320, 11, muted);
-    text("Culling: " + compact(value(Counter::FrustumRejected) + value(Counter::PortalRejected)) +
-             " subtrees cut   |   Rooms: " + decimal(value(Counter::VisibleRooms), 1) + "/" +
-             std::to_string(app.m_scene->getPortalGraph().getCells().size()) + "   |   Shadows " +
-             (app.m_shadowsEnabled ? "ON" : "OFF"),
-         32, top + 340, 11, muted);
+             compact(value(Counter::ShadowDraws)) + " shadow + " +
+             compact(value(Counter::ScreenDraws)) + " fullscreen",
+         32, top + 338, 11, muted);
+    text("Triangles: " + compact(value(Counter::ColorTriangles)) + " color + " +
+             compact(value(Counter::ShadowTriangles)) +
+             " shadow  |  Shadow views: " + compact(value(Counter::ShadowPasses)),
+         32, top + 354, 11, muted);
+    text("Culled: " + compact(value(Counter::FrustumRejected) + value(Counter::PortalRejected)) +
+             " camera subtrees / " + compact(value(Counter::ShadowRejected)) +
+             " shadow instances  |  LOD fade: " + compact(value(Counter::LodFadeDraws)) + " draws",
+         32, top + 370, 11, muted);
+    text(app.m_lastSubdivision.empty() ? "Last subdivision: none"
+                                       : "Last subdivision: " + app.m_lastSubdivision + " / " +
+                                             decimal(app.m_lastSubdivisionMs) +
+                                             " ms CPU (mesh uploads included in draw passes)",
+         32, top + 386, 10, foreground);
     text("Average window: " + std::to_string(summary.samples) + " frames / " +
              decimal(summary.frameMs * summary.samples / 1000, 1) + " s. Reset after changes.",
-         32, top + 372, 11, foreground);
+         32, top + 402, 11, foreground);
     text("CPU: whole frame incl. swap. GPU: elapsed render time incl. gaps. F1 / Esc: close.", 32,
-         top + 393, 9, muted);
+         top + 420, 9, muted);
 }
 } // namespace vr

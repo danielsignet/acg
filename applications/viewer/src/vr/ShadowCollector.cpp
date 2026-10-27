@@ -52,6 +52,7 @@ void ShadowCollector::within(Node& node, const std::function<void()>& action){
 void ShadowCollector::geometry(Geometry& node, const glm::mat4& model, const State& state){
     if (state.getCastShadows()){
         m_renderList.push_back({&node, model, state, m_roomId});
+        m_renderList.back().cullingEnabled = m_cullingEnabled;
     }
 }
 } // namespace vr

@@ -11,6 +11,9 @@ struct RenderNode{
     glm::mat4 model;
     State state;
     std::string room;
+    ModelInstance* instance = nullptr;
+    glm::mat4 instanceModel{1};
+    bool cullingEnabled = true;
 };
 
 struct CullStats{
@@ -27,6 +30,7 @@ class CullVisitor : public PathVisitor{
 public:
     // Initializes collection with the inherited rendering defaults.
     explicit CullVisitor(State initial ={}) : PathVisitor(std::move(initial)){
+        setLodFading(true);
     }
 
     // Rebuilds the render list using optional frustum and portal visibility.

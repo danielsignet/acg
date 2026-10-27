@@ -321,7 +321,7 @@ void instancing(const std::filesystem::path& path){
         check(batched.draws * 2 < individual.draws && batched.instances == individual.instances &&
                   batched.triangles == individual.triangles && batched.passes == 13,
               "Batching reduces draw calls while retaining all culled instances and triangles");
-        check(batched.boundsTested == batched.instances + batched.rejected &&
+        check(batched.boundsTested + batched.unculled == batched.instances + batched.rejected &&
                   batched.boundsTested == individual.boundsTested &&
                   batched.rejected == individual.rejected,
               "Light frustum and spotlight culling remain per instance");

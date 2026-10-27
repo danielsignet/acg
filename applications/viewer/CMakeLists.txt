@@ -23,6 +23,10 @@ add_library(vrlib STATIC
     src/vr/FramebufferState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
+    src/vr/GeometryRay.cpp
+    src/vr/Subdivision.cpp
+    src/vr/ModelInstance.cpp
+    src/vr/ModelPicker.cpp
     src/vr/GeometryFactory.cpp
     src/vr/Group.cpp
     src/vr/LOD.cpp
@@ -106,6 +110,7 @@ set(VIEWER_RESOURCES
     shaders/phong-shading.fs
     shaders/lighting.glsl
     shaders/surface.glsl
+    shaders/lod-fade.glsl
     shaders/gbuffer.fs
     shaders/screen-quad.vs
     shaders/deferred-lighting.fs

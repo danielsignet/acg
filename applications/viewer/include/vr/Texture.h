@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include <glad/glad.h>
+#include <glm/vec2.hpp>
 #include <memory>
 #include <vector>
 
@@ -49,6 +50,9 @@ public:
 
     // Uploads pixels on first use and binds the requested texture layer.
     void apply(unsigned layer) const;
+
+    // Samples stored alpha with bilinear filtering and the texture's wrap mode, without GL calls.
+    float sampleAlpha(const glm::vec2& coordinates) const;
 
     // Returns the image width in pixels.
     int getWidth() const{

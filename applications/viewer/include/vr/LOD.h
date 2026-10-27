@@ -18,6 +18,17 @@ public:
     // Selects the nearest matching range and falls back to the last detail level.
     std::size_t selectLevel(float distance) const;
 
+    struct Selection{
+        std::size_t nearLevel, farLevel;
+        float blend;
+    };
+
+    // Selects at most two neighboring levels with a continuous distance-based blend.
+    Selection select(float distance) const;
+
+    // Sets the world-space transition width; zero retains discrete detail selection.
+    void setFadeWidth(float width);
+
     // Returns the exclusive upper distance boundaries of the detail levels.
     const std::vector<float>& getRanges() const{
         return m_ranges;
@@ -37,5 +48,6 @@ private:
     using Group::addChild;
     std::vector<float> m_ranges;
     glm::vec3 m_center{0};
+    float m_fadeWidth = 0;
 };
 } // namespace vr

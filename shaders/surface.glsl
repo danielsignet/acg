@@ -5,9 +5,11 @@ uniform sampler2D uTextures[4];
 uniform bool uHasTexture[4];
 uniform float uTextureMix, uAlphaCutoff, uOpacity;
 uniform int uProcedural, uLightMask;
+#include "lod-fade.glsl"
 
 // Resolves textures and the optional antialiased procedural brick pattern.
 vec4 sampleSurface(vec2 coordinates){
+    applyLodFade();
     vec4 surface = vec4(uMaterial.diffuse * uTint, 1.0);
     if (uHasTexture[0]){
         surface *= texture(uTextures[0], coordinates);

@@ -5,6 +5,7 @@ namespace vr{
 const BoundingBox& Node::getBound() const{
     if (m_boundDirty){
         m_bound = computeBound();
+        m_cullingExemption = computeCullingExemption();
         m_boundDirty = false;
         ++m_boundBuildCount;
     }

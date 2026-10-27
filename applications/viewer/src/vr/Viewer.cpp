@@ -212,18 +212,22 @@ int Viewer::run(int argc, char** argv){
     int frames = 0;
     while (!glfwWindowShouldClose(m_window)){
         const double frameStart = glfwGetTime();
-        glfwPollEvents();
+        auto& profiler = m_application->m_profiler;
+        profiler.beginFrame(frameStart - previous);
+        {
+            FrameProfiler::Scope events(&profiler, FrameProfiler::Stage::Events);
+            glfwPollEvents();
+        }
         const double now = glfwGetTime();
         const double interval = now - previous;
         const double delta = std::min(interval, 0.05);
         previous = now;
         glfwGetFramebufferSize(m_window, &width, &height);
         if (width == 0 || height == 0){
+            profiler.endFrame(glfwGetTime() - frameStart);
             glfwWaitEventsTimeout(0.05);
             continue;
         }
-        auto& profiler = m_application->m_profiler;
-        profiler.beginFrame(interval);
         {
             FrameProfiler::Scope frame(&profiler, FrameProfiler::Stage::Frame);
             {

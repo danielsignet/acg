@@ -28,7 +28,8 @@ void CullVisitor::within(Node& node, const std::function<void()>& action){
         return;
     }
     bool inside = false;
-    if (m_frustum && !m_fullyInsideDepth){
+    const bool rejectable = m_cullingEnabled && !node.hasCullingExemption();
+    if (rejectable && m_frustum && !m_fullyInsideDepth){
         const auto& bound = node.getBound();
         if (bound.valid()){
             ++m_stats.boundsTested;
@@ -42,7 +43,7 @@ void CullVisitor::within(Node& node, const std::function<void()>& action){
         }
     }
     const auto& room = node.getRoomId().empty() ? m_roomId : node.getRoomId();
-    if (m_portals && m_portals->active && !room.empty()){
+    if (rejectable && m_portals && m_portals->active && !room.empty()){
         const auto found = m_portals->volumes.find(room);
         const auto world = node.getBound().transformed(m_models.back());
         if (found == m_portals->volumes.end() ||
@@ -94,7 +95,8 @@ void CullVisitor::apply(Geometry& node){
 
 // Records a visible geometry instance without issuing OpenGL calls.
 void CullVisitor::geometry(Geometry& node, const glm::mat4& model, const State& state){
-    m_renderList.push_back({&node, model, state, m_roomId});
+    m_renderList.push_back({&node, model, state, m_roomId, m_instances.back().node,
+                            m_instances.back().model, m_cullingEnabled});
 }
 
 // Records the selected detail level for the traversal path.

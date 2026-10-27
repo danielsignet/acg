@@ -1,12 +1,14 @@
 #pragma once
 #include "FrameProfiler.h"
 #include "AmbientOcclusion.h"
+#include "DepthOfField.h"
 #include "ColorTarget.h"
 #include "GBuffer.h"
 #include "LightCollector.h"
 #include "ScreenQuad.h"
 #include "RenderMode.h"
 #include <functional>
+#include <optional>
 
 namespace vr{
 class DeferredRenderer final{
@@ -58,7 +60,7 @@ public:
         return m_bloom;
     }
 
-    // Enables depth-based focus on the surface at the center of the camera.
+    // Enables depth of field while a targeted surface supplies a focus distance.
     void setDepthOfField(bool enabled){
         m_depthOfField = enabled;
     }
@@ -66,6 +68,14 @@ public:
     // Reports whether depth of field is enabled.
     bool getDepthOfField() const{
         return m_depthOfField;
+    }
+
+    // Sets the positive camera-space hit depth; no target leaves the image sharp.
+    void setFocusDistance(std::optional<float> distance);
+
+    // Returns the surface depth used by the next post-processing pass.
+    const std::optional<float>& getFocusDistance() const{
+        return m_focusDistance;
     }
 
     // Shows or hides the surface and AO diagnostic thumbnails.
@@ -111,12 +121,14 @@ private:
     std::shared_ptr<Program> m_geometryProgram, m_lightingProgram, m_postProgram, m_viewProgram;
     ScreenQuad m_quad;
     std::unique_ptr<AmbientOcclusion> m_occlusion;
+    std::unique_ptr<DepthOfField> m_dof;
     bool m_ambientOcclusion = false;
     std::unique_ptr<GBuffer> m_gbuffer;
     std::unique_ptr<ColorTarget> m_color, m_composite;
-    std::array<std::unique_ptr<ColorTarget>, 2> m_blur, m_bloomBlur;
+    std::array<std::unique_ptr<ColorTarget>, 2> m_bloomBlur;
     int m_width = 0, m_height = 0;
     BufferView m_view = BufferView::Lit;
     bool m_bloom = false, m_depthOfField = false, m_previews = true;
+    std::optional<float> m_focusDistance;
 };
 } // namespace vr

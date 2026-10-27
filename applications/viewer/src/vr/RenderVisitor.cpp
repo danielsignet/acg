@@ -10,9 +10,10 @@
 #include <vr/DeferredRenderer.h>
 
 namespace vr{
-// Collects transformed lights and then draws the scene instances.
+// Collects lights and geometry, invokes the optional preparation hook, then draws the scene.
 void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* frozen,
-                           const PortalResult* portals, DeferredRenderer* deferred){
+                           const PortalResult* portals, DeferredRenderer* deferred,
+                           const std::function<void()>& beforeDraw){
     m_camera = &camera;
     m_deferred = deferred;
     m_globalState = root.getState() ? m_states.front().merged(*root.getState()) : m_states.front();
@@ -21,6 +22,9 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
     collectLights(root);
     collectGeometry(root, camera, frozen ? *frozen : camera.getProjection() * camera.getView(),
                     portals);
+    if (beforeDraw){
+        beforeDraw();
+    }
     drawRenderList(camera);
 }
 

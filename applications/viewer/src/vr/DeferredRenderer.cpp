@@ -1,4 +1,5 @@
 #include <vr/DeferredRenderer.h>
+#include <cmath>
 #include <vr/Camera.h>
 #include <vr/FramebufferState.h>
 #include <vr/Light.h>
@@ -9,6 +10,7 @@ namespace vr{
 // Loads the geometry, lighting, post-processing and buffer-preview programs.
 DeferredRenderer::DeferredRenderer(const std::filesystem::path& root){
     m_occlusion = std::make_unique<AmbientOcclusion>(root);
+    m_dof = std::make_unique<DepthOfField>(root);
     const auto shaders = root / "shaders";
     m_geometryProgram =
         std::make_shared<Program>(shaders / "phong-shading.vs", shaders / "gbuffer.fs");
@@ -33,16 +35,15 @@ void DeferredRenderer::resize(int width, int height){
     auto gbuffer = std::make_unique<GBuffer>(width, height);
     auto color = std::make_unique<ColorTarget>(width, height, gbuffer->getDepth());
     auto composite = std::make_unique<ColorTarget>(width, height);
-    std::array<std::unique_ptr<ColorTarget>, 2> blurred, bloom;
+    std::array<std::unique_ptr<ColorTarget>, 2> bloom;
     for (unsigned i = 0; i < 2; ++i){
-        blurred[i] = std::make_unique<ColorTarget>(std::max(1, width / 2), std::max(1, height / 2));
         bloom[i] = std::make_unique<ColorTarget>(std::max(1, width / 2), std::max(1, height / 2));
     }
     m_occlusion->resize(width, height);
+    m_dof->resize(width, height);
     m_gbuffer = std::move(gbuffer);
     m_color = std::move(color);
     m_composite = std::move(composite);
-    m_blur = std::move(blurred);
     m_bloomBlur = std::move(bloom);
     m_width = width;
     m_height = height;
@@ -137,15 +138,24 @@ void DeferredRenderer::blur(const std::shared_ptr<Texture>& source,
     }
 }
 
+// Sets the positive camera-space hit depth; no target leaves the image sharp.
+void DeferredRenderer::setFocusDistance(std::optional<float> distance){
+    if (distance && (!std::isfinite(*distance) || *distance <= 0)){
+        throw std::invalid_argument("Focus distance must be finite and positive");
+    }
+    m_focusDistance = distance;
+}
+
 // Extracts and filters intermediate images before composing the final color target.
 void DeferredRenderer::postProcess(const Camera& camera){
     m_postProgram->use();
     m_postProgram->set("uColor", 0);
-    m_postProgram->set("uBlur", 1);
+    m_postProgram->set("uDofFar", 1);
     m_postProgram->set("uBloom", 2);
     m_postProgram->set("uDepth", 3);
     m_postProgram->set("uPosition", 4);
     m_postProgram->set("uEmissive", 5);
+    m_postProgram->set("uDofNear", 6);
     m_postProgram->set("uInverseProjection", glm::inverse(camera.getProjection()));
     m_postProgram->set("uEye", camera.getPosition());
     if (m_bloom){
@@ -156,21 +166,25 @@ void DeferredRenderer::postProcess(const Camera& camera){
         drawQuad();
         blur(m_bloomBlur[1]->getTexture(), m_bloomBlur, 6);
     }
-    if (m_depthOfField){
+    if (m_depthOfField && m_focusDistance){
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::DepthOfField);
-        blur(m_color->getTexture(), m_blur, 2);
+        m_dof->render(camera, m_color->getTexture(), m_gbuffer->getDepth(), *m_focusDistance);
+        m_screenDraws += DepthOfField::ScreenDraws;
+        m_postProgram->use();
     }
     FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Composite);
     m_composite->bind();
     m_color->getTexture()->apply(0);
-    m_blur[1]->getTexture()->apply(1);
+    m_dof->getFar()->apply(1);
     m_bloomBlur[1]->getTexture()->apply(2);
     m_gbuffer->getDepth()->apply(3);
     m_gbuffer->get(GBuffer::Position)->apply(4);
     m_gbuffer->get(GBuffer::Emissive)->apply(5);
+    m_dof->getNear()->apply(6);
     m_postProgram->set("uPass", 0);
     m_postProgram->set("uBloomEnabled", m_bloom);
-    m_postProgram->set("uDofEnabled", m_depthOfField);
+    m_postProgram->set("uDofEnabled", m_depthOfField && m_focusDistance.has_value());
+    m_postProgram->set("uFocusDistance", m_focusDistance.value_or(1.0f));
     drawQuad();
 }
 

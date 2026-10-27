@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 #include <vr/FrameProfiler.h>
 
 namespace{
@@ -22,7 +23,7 @@ void breakdownTests(){
         summary.cpu[index] = cpu;
         summary.gpu[index] = gpu;
     };
-    time(Stage::Frame, 100);
+    time(Stage::Frame, 120);
     time(Stage::Render, 75, 40);
     time(Stage::Update, 5);
     time(Stage::Shadows, 40, 20);
@@ -39,6 +40,9 @@ void breakdownTests(){
     time(Stage::Debug, 1, 0.5);
     time(Stage::Overlay, 2, 0.5);
     time(Stage::Swap, 20);
+    time(Stage::Events, 11);
+    time(Stage::Picking, 2);
+    time(Stage::Subdivision, 6);
     const auto slices = Profiler::breakdown(summary);
     double cpuPercent = 0, gpuPercent = 0;
     for (const auto& slice : slices){
@@ -48,19 +52,26 @@ void breakdownTests(){
     }
     check(std::abs(cpuPercent - 100) < 1e-8 && std::abs(gpuPercent - 100) < 1e-8,
           "Each chart accounts for 100 percent without adding nested totals twice");
-    check(slices[0].cpuPercent == 40 && slices[0].gpuPercent == 50,
+    check(std::abs(slices[0].cpuPercent - 100.0 / 3) < 1e-8 && slices[0].gpuPercent == 50,
           "CPU uses whole-frame time while GPU uses elapsed render time");
     check(slices[1].cpuMs == 10 && slices[1].gpuMs == 0 && slices[3].cpuMs == 5 &&
               slices[4].gpuMs == 5,
           "Related disjoint stages form useful pipeline groups");
-    check(slices[6].cpuPercent == 20 && slices[6].gpuPercent == 0 && slices.back().cpuMs == 7 &&
+    check(slices[6].cpuMs == 20 && slices[6].gpuPercent == 0 && slices.back().cpuMs == 9 &&
               slices.back().gpuMs == 4,
           "Swap remains CPU-only and unmeasured work stays in Other / gaps");
+    check(slices[8].cpuMs == 2 && slices[9].cpuMs == 10 && slices[10].cpuMs == 6 &&
+              !slices[8].gpu && !slices[9].gpu && !slices[10].gpu,
+          "Raycasting is separate and event commands do not count subdivision twice");
     time(Stage::Occlusion, 2, 1);
     const auto withAO = Profiler::breakdown(summary);
-    check(withAO[7].cpuMs == 2 && withAO[7].gpuMs == 1 && withAO.back().cpuMs == 5 &&
+    check(withAO[7].cpuMs == 2 && withAO[7].gpuMs == 1 && withAO.back().cpuMs == 7 &&
               withAO.back().gpuMs == 3,
           "Ambient occlusion has its own share without being counted again in post-processing");
+    time(Stage::Forward, 3, 2);
+    const auto forward = Profiler::breakdown(summary);
+    check(forward[2].cpuMs == 13 && forward[2].gpuMs == 7 && forward[3].cpuMs == 5,
+          "Forward surface submission belongs to geometry rather than deferred lighting");
     for (const auto& slice : Profiler::breakdown({})){
         check(slice.cpuPercent == 0 && slice.gpuPercent == 0,
               "Empty histories produce finite, empty charts");
@@ -81,6 +92,11 @@ void run(){
     profiler.setEnabled(true);
     for (unsigned i = 0; i < 8; ++i){
         profiler.beginFrame(i % 2 ? 0.03 : 0.01);
+        {
+            vr::FrameProfiler::Scope events(&profiler, Stage::Events);
+            vr::FrameProfiler::Scope subdivision(&profiler, Stage::Subdivision);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
         {
             vr::FrameProfiler::Scope frame(&profiler, Stage::Frame);
             vr::FrameProfiler::Scope render(&profiler, Stage::Render);
@@ -109,8 +125,13 @@ void run(){
               "Each counter retains its live value and averages its own frame history");
     }
     check(summary.samples == 8 && std::abs(summary.frameMs - 20) < 1e-8 &&
-              std::abs(summary.p95Ms - 30) < 1e-8,
-          "Averages and P95 use unclamped real frame intervals");
+              std::abs(summary.p95Ms - 30) < 1e-8 && summary.peakMs == 30,
+          "Averages, P95 and worst frame use unclamped real frame intervals");
+    check(summary.cpu[static_cast<std::size_t>(Stage::Events)] >=
+                  summary.cpu[static_cast<std::size_t>(Stage::Subdivision)] &&
+              summary.cpu[static_cast<std::size_t>(Stage::Subdivision)] > 0 &&
+              summary.gpu[static_cast<std::size_t>(Stage::Subdivision)] == 0,
+          "Event callbacks and CPU subdivision are recorded without GPU timestamp scopes");
     const auto render = static_cast<std::size_t>(Stage::Render);
     const auto geometry = static_cast<std::size_t>(Stage::Geometry);
     check(summary.cpu[render] > 0 && summary.cpu[render] >= summary.cpu[geometry],
@@ -168,7 +189,8 @@ void run(){
     profiler.endFrame(0.012);
     const auto reset = profiler.summarize();
     check(reset.samples == 1 && reset.gpuSamples == 0 && reset.frameMs == 12 &&
-              reset.counters == fresh && profiler.getHistory().back().sequence > previousSequence,
+              reset.peakMs == 12 && reset.counters == fresh &&
+              profiler.getHistory().back().sequence > previousSequence,
           "Reset discards old counters, timings and delayed GPU results without reusing frame IDs");
     check(reset.cpu[static_cast<std::size_t>(Stage::Frame)] == 12,
           "Frame budgets use current wall time rather than the previous configuration's interval");

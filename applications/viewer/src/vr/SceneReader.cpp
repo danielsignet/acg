@@ -1,4 +1,5 @@
 #include "SceneReader.h"
+#include <vr/ModelInstance.h>
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -138,6 +139,7 @@ void SceneReader::readAssets(Xml* root){
                 required(asset, "id"),
                 m_reader.readModel(portablePath(required(asset, "file")),
                                    boolean(attribute(asset, "flatten", "false"))));
+            m_modelAssets.insert(required(asset, "id"));
         }
     }
 }
@@ -156,10 +158,15 @@ std::shared_ptr<Node> SceneReader::readNode(Xml* xml){
     const std::string tag = xml->name(),
                       name = attribute(xml, "name", tag + std::to_string(m_anonymousNodeCount++));
     if (tag == "instance"){
-        if (xml->first_node() || xml->first_attribute("name")){
+        if (xml->first_node()){
             throw std::runtime_error("Put instance overrides on a surrounding transform/group");
         }
-        return m_reader.getAsset(required(xml, "ref"));
+        const auto asset = required(xml, "ref");
+        auto instance = ModelInstance::create(
+            attribute(xml, "name", asset), m_reader.getAsset(asset),
+            boolean(attribute(xml, "selectable", m_modelAssets.count(asset) ? "true" : "false")));
+        instance->setCullingEnabled(boolean(attribute(xml, "culling", "true")));
+        return instance;
     }
     if (tag == "light"){
         return readLight(xml, name);
@@ -176,6 +183,7 @@ std::shared_ptr<Node> SceneReader::readNode(Xml* xml){
         throw std::runtime_error("Unknown scene element: " + tag);
     }
     group->setRoomId(attribute(xml, "room"));
+    group->setCullingEnabled(boolean(attribute(xml, "culling", "true")));
     readChildren(xml, *group);
     return group;
 }
@@ -204,6 +212,7 @@ std::shared_ptr<Light> SceneReader::readLight(Xml* xml, const std::string& name)
 std::shared_ptr<LOD> SceneReader::readLod(Xml* xml, const std::string& name){
 
     auto lod = std::make_shared<LOD>(name);
+    lod->setFadeWidth(number(attribute(xml, "fadeWidth", "0")));
     if (xml->first_attribute("center")){
         lod->setCenter(vec3(attribute(xml, "center")));
     }

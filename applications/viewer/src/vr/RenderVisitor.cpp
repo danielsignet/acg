@@ -121,6 +121,10 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     state.apply();
     const auto& program = *state.getProgram();
     program.set("uLinearOutput", linearOutput);
+    const auto coverage = state.getUniforms().find("uLodRange");
+    program.set("uLodRange", coverage == state.getUniforms().end()
+                                 ? glm::vec2(0, 1)
+                                 : std::get<glm::vec2>(coverage->second));
     int lightMask = 0;
     for (unsigned i = 0; i < State::MaxLights; ++i){
         if (state.getLightEnabled(i)){

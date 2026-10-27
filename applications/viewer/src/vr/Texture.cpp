@@ -1,6 +1,8 @@
 #include <vr/Texture.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace vr{
@@ -21,6 +23,30 @@ Texture::Texture(int width, int height, std::vector<unsigned char> rgba, bool re
         m_rgba.size() != static_cast<std::size_t>(width) * height * 4){
         throw std::invalid_argument("Texture dimensions do not match RGBA data");
     }
+}
+
+// Samples stored alpha with bilinear filtering and the texture's wrap mode, without GL calls.
+float Texture::sampleAlpha(const glm::vec2& coordinates) const{
+    if (m_rgba.empty() || !std::isfinite(coordinates.x) || !std::isfinite(coordinates.y)){
+        return 1;
+    }
+    const auto coordinate = [&](float value){
+        return m_repeat ? value - std::floor(value) : std::clamp(value, 0.0f, 1.0f);
+    };
+    const float x = coordinate(coordinates.x) * m_width - 0.5f,
+                y = coordinate(coordinates.y) * m_height - 0.5f;
+    const int left = static_cast<int>(std::floor(x)), bottom = static_cast<int>(std::floor(y));
+    const auto texel = [&](int column, int row){
+        column =
+            m_repeat ? (column % m_width + m_width) % m_width : std::clamp(column, 0, m_width - 1);
+        row = m_repeat ? (row % m_height + m_height) % m_height : std::clamp(row, 0, m_height - 1);
+        return m_rgba[(static_cast<std::size_t>(row) * m_width + column) * 4 + 3] / 255.0f;
+    };
+    const float horizontal = x - left, vertical = y - bottom;
+    const float low = texel(left, bottom) * (1 - horizontal) + texel(left + 1, bottom) * horizontal,
+                high = texel(left, bottom + 1) * (1 - horizontal) +
+                       texel(left + 1, bottom + 1) * horizontal;
+    return low * (1 - vertical) + high * vertical;
 }
 
 // Releases the texture after its final owner is destroyed.

@@ -55,6 +55,7 @@ void Application::reload(){
     auto debugLines = std::make_unique<DebugLines>(m_root);
     m_shadowRenderer = std::move(shadows);
     m_flashlight = std::move(flashlight);
+    m_target.reset();
     m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
     m_deferred = std::move(deferred);
@@ -87,6 +88,7 @@ void Application::exportGraph(const std::filesystem::path& path){
 // Stops the camera tour and restores the scene's initial camera pose.
 void Application::resetView(){
     m_shaderMenuOpen = false;
+    freezeLightOrbit(false);
     m_frozenFrustum.reset();
     m_frozenEye.reset();
     m_debugBounds = false;
@@ -117,6 +119,21 @@ void Application::stopLodDemo(){
     const auto eye = m_scene->getCamera()->getPosition();
     lookAt(eye, eye - glm::vec3(glm::inverse(m_scene->getCamera()->getView())[2]));
     m_status = "Manual camera";
+}
+
+// Temporarily pauses the light ring while preserving its user's animation preference.
+void Application::freezeLightOrbit(bool frozen){
+    if (frozen){
+        if (m_lightOrbitCallback && !m_frozenLightOrbitEnabled.has_value()){
+            m_frozenLightOrbitEnabled = m_lightOrbitCallback->getEnabled();
+            m_lightOrbitCallback->setEnabled(false);
+        }
+    } else{
+        if (m_lightOrbitCallback && m_frozenLightOrbitEnabled.has_value()){
+            m_lightOrbitCallback->setEnabled(*m_frozenLightOrbitEnabled);
+        }
+        m_frozenLightOrbitEnabled.reset();
+    }
 }
 
 // Updates the viewport and camera projection for a nonempty framebuffer.
@@ -171,6 +188,28 @@ void Application::execute(Controls::Action action){
         m_status = m_deferredEnabled
                        ? "Deferred rendering"
                        : "Forward rendering; AO, G-buffer views and post effects use Deferred [F2]";
+    } else if (action == Action::Subdivision){
+        if (!m_target){
+            m_status = "Aim at a model to subdivide it";
+            return;
+        }
+        try{
+            auto& target = *m_target->instance;
+            const auto start = std::chrono::steady_clock::now();
+            {
+                FrameProfiler::Scope subdivision(&m_profiler, FrameProfiler::Stage::Subdivision);
+                target.setSubdivided(!target.getSubdivided());
+            }
+            m_lastSubdivisionMs =
+                std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start)
+                    .count();
+            m_lastSubdivision = target.getName() + (target.getSubdivided() ? " ON" : " OFF");
+            m_status =
+                target.getName() + (target.getSubdivided() ? ": subdivision ON (cached in memory)"
+                                                           : ": original mesh");
+        } catch (const std::exception& error){
+            m_status = error.what();
+        }
     } else if ((action == Action::AmbientOcclusion || action == Action::Bloom ||
                 action == Action::DepthOfField || action == Action::BufferPreviews) &&
                !m_deferredEnabled){
@@ -237,7 +276,11 @@ void Application::execute(Controls::Action action){
         m_animationEnabled = !m_animationEnabled;
         m_status = m_animationEnabled ? "Object transform resumed" : "Object transform paused";
     } else if (action == Action::PointOrbit && m_lightOrbitCallback){
-        m_lightOrbitCallback->setEnabled(!m_lightOrbitCallback->getEnabled());
+        if (m_frozenLightOrbitEnabled.has_value()){
+            m_frozenLightOrbitEnabled = !*m_frozenLightOrbitEnabled;
+        } else{
+            m_lightOrbitCallback->setEnabled(!m_lightOrbitCallback->getEnabled());
+        }
     } else if (action == Action::LodTour && m_lodDemoCallback){
         if (m_lodDemoCallback->getEnabled()){
             stopLodDemo();
@@ -282,8 +325,9 @@ void Application::execute(Controls::Action action){
             m_frozenFrustum = camera.getProjection() * camera.getView();
             m_frozenEye = camera.getPosition();
         }
+        freezeLightOrbit(m_frozenFrustum.has_value());
         m_debugBounds = m_frozenFrustum.has_value();
-        m_status = m_frozenFrustum ? "View frozen: move to inspect; F resumes live culling."
+        m_status = m_frozenFrustum ? "View and light ring frozen: move to inspect; F resumes."
                                    : "Culling follows the live camera.";
     } else if (action == Action::DebugBounds){
         m_debugBounds = !m_debugBounds;
@@ -377,7 +421,16 @@ void Application::render(){
     m_renderer->render(*m_scene->getRoot(), camera, frozen, &m_portalResult,
                        m_deferredEnabled ? m_deferred.get() : nullptr);
     {
+        FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
+        m_target = pickModel(m_renderer->getRenderList(), camera.getPosition(),
+                             glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f));
+    }
+    {
         FrameProfiler::Scope debug(&m_profiler, FrameProfiler::Stage::Debug);
+        if (m_target && m_showHud && !m_profiler.getEnabled()){
+            m_debugLines->box(m_target->instance->getBound().transformed(m_target->model), vp,
+                              {1, 0.75f, 0.18f, 1});
+        }
         drawVisibilityDebug(camera, vp);
     }
     if (m_showHud || m_profiler.getEnabled()){
@@ -488,6 +541,13 @@ FrameProfiler::Counters Application::performanceCounters() const{
         })));
     set(Counter::PortalsTested, m_portalResult.portalsTested);
     set(Counter::GBufferMiB, static_cast<double>(m_width) * m_height * 64 / (1024 * 1024));
+    set(Counter::LodFadeDraws,
+        std::count_if(m_renderer->getRenderList().begin(), m_renderer->getRenderList().end(),
+                      [](const auto& item){
+                          const auto range = item.state.getUniforms().find("uLodRange");
+                          return range != item.state.getUniforms().end() &&
+                                 std::get<glm::vec2>(range->second) != glm::vec2(0, 1);
+                      }));
     return counters;
 }
 
@@ -560,9 +620,7 @@ void Application::showCullingDemo(){
         roof->setVisible(false);
     }
     m_animationEnabled = false;
-    if (m_lightOrbitCallback){
-        m_lightOrbitCallback->setEnabled(false);
-    }
+    freezeLightOrbit(true);
     lookAt({28, 32, 16},{0, 0, -26});
     m_status = "Observation view: visibility frozen inside A. Doorways are cyan; walls remain "
                "solid to culling.";
@@ -654,7 +712,7 @@ void Application::moveCamera(float delta){
 
 // Moves the existing light ring along world axes using arrows and Page Up/Down.
 void Application::moveLights(float delta){
-    if (!m_lightOrbitCallback){
+    if (!m_lightOrbitCallback || m_frozenFrustum){
         return;
     }
     glm::vec3 displacement(0);

@@ -15,33 +15,33 @@
     <transform name="redLight" translate="8 0 0">
       <light name="red" position="0 0 0 1" diffuse="2.8 0 0" specular="2.4 0 0" ambient="0.02 0 0"/>
       <transform name="redMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="1 0 0" emissive="0.8 0 0" castShadows="false" receiveShadows="false"/><instance ref="sphere-low"/>
+        <state lighting="false" diffuse="1 0 0" emissive="0.8 0 0" castShadows="false" receiveShadows="false"/><instance ref="sphere-low" name="Red point light" selectable="true"/>
       </transform>
     </transform>
     <transform name="greenLight" translate="0 0 -8">
       <light name="green" position="0 0 0 1" diffuse="0 2.8 0" specular="0 2.4 0" ambient="0 0.02 0"/>
       <transform name="greenMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="0 1 0" emissive="0 0.8 0" castShadows="false" receiveShadows="false"/><instance ref="sphere-low"/>
+        <state lighting="false" diffuse="0 1 0" emissive="0 0.8 0" castShadows="false" receiveShadows="false"/><instance ref="sphere-low" name="Green point light" selectable="true"/>
       </transform>
     </transform>
     <transform name="blueLight" translate="-8 0 0">
       <light name="blue" position="0 0 0 1" diffuse="0 0 2.8" specular="0 0 2.4" ambient="0 0 0.02"/>
       <transform name="blueMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="0 0 1" emissive="0 0 0.8" castShadows="false" receiveShadows="false"/><instance ref="sphere-low"/>
+        <state lighting="false" diffuse="0 0 1" emissive="0 0 0.8" castShadows="false" receiveShadows="false"/><instance ref="sphere-low" name="Blue point light" selectable="true"/>
       </transform>
     </transform>
     <transform name="whiteLight" translate="0 0 8">
       <light name="white" position="0 0 0 1" diffuse="1.8 1.8 1.8" specular="1.8 1.8 1.8" ambient="0.025 0.025 0.025"/>
       <transform name="whiteMarker" scale="0.16 0.16 0.16">
-        <state lighting="false" diffuse="1 1 1" emissive="0.6 0.6 0.6" castShadows="false" receiveShadows="false"/><instance ref="sphere-low"/>
+        <state lighting="false" diffuse="1 1 1" emissive="0.6 0.6 0.6" castShadows="false" receiveShadows="false"/><instance ref="sphere-low" name="White point light" selectable="true"/>
       </transform>
     </transform>
   </transform>
   <group name="gallery">
-    <transform name="ground">
+    <transform name="ground" culling="false">
       <state diffuse="0.3 0.4 0.46" ambient="0.23 0.28 0.32" specular="0.15 0.18 0.2" shininess="70"
              texture0="textures/grid.png" texture1="textures/detail.png" textureMix="0.4"/>
-      <instance ref="ground"/>
+      <instance ref="ground" selectable="false"/>
     </transform>
     <group name="pedestals">
       <state diffuse="0.2 0.25 0.31" ambient="0.2 0.2 0.2" specular="0.6 0.65 0.7" shininess="100"/>
@@ -59,7 +59,7 @@
     </transform>
     <transform name="animated" translate="0 2.4 0" rotate="65 0 0" animation="spin" speed="38" axis="0 0 1">
       <state diffuse="0.95 0.55 0.16" ambient="0.23 0.13 0.04" specular="1 0.84 0.55" shininess="110"/>
-      <instance ref="torus"/>
+      <instance ref="torus" selectable="true"/>
     </transform>
     <transform name="cowDisplay" translate="6 0.76 0" rotate="0 20 0" scale="0.009 0.009 0.009">
       <lod name="cowLOD" center="0 140 0">
@@ -78,7 +78,7 @@
     <transform name="crateB" translate="0.5 1 -5.7" rotate="0 25 0" scale="0.65 0.65 0.65"><instance ref="crate"/></transform>
     <transform name="alphatest" translate="-3 0 -8" rotate="0 12 0" scale="1.1 1.1 1.1">
       <state cull="false" diffuse="1 1 1" ambient="0.3 0.3 0.3" texture0="textures/alphatest.png" alphaCutoff="0.5"/>
-      <instance ref="alphatest-panel"/>
+      <instance ref="alphatest-panel" name="Leaf" selectable="true"/>
     </transform>
   </group>
 </scene>

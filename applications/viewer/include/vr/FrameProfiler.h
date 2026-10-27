@@ -29,6 +29,9 @@ public:
         Swap,
         Forward,
         Occlusion,
+        Events,
+        Picking,
+        Subdivision,
         Count
     };
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);
@@ -54,6 +57,7 @@ public:
         VisibleRooms,
         PortalsTested,
         GBufferMiB,
+        LodFadeDraws,
         Count
     };
     static constexpr std::size_t CounterCount = static_cast<std::size_t>(Counter::Count);
@@ -77,18 +81,19 @@ public:
         std::array<double, StageCount> cpu{}, gpu{};
         std::array<double, StageCount> latestCpu{}, latestGpu{};
         Counters counters{};
-        double frameMs = 0, p95Ms = 0;
+        double frameMs = 0, p95Ms = 0, peakMs = 0;
         unsigned samples = 0, gpuSamples = 0, counterSamples = 0;
         std::uint64_t gpuLag = 0, skipped = 0;
     };
 
     struct Slice{
         const char* name;
+        bool gpu = true;
         double cpuMs = 0, gpuMs = 0;
         double cpuPercent = 0, gpuPercent = 0;
     };
 
-    static constexpr std::size_t SliceCount = 9;
+    static constexpr std::size_t SliceCount = 12;
 
     class Scope final{
     public:

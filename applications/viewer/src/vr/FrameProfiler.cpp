@@ -8,25 +8,18 @@ namespace vr{
 // Names the measured stages and identifies CPU-only work.
 const std::array<FrameProfiler::Description, FrameProfiler::StageCount>&
 FrameProfiler::descriptions(){
-    static const std::array<Description, StageCount> stages{{{"Frame incl. swap", false},
-                                                             {"Input / animation", false},
-                                                             {"Render total", true},
-                                                             {"Shadow maps", true},
-                                                             {"Portal traversal", false},
-                                                             {"Light collection", false},
-                                                             {"Scene graph culling", false},
-                                                             {"G-buffer geometry", true},
-                                                             {"Deferred lighting", true},
-                                                             {"Transparent surfaces", true},
-                                                             {"Bloom (7 draws)", true},
-                                                             {"DoF (2 draws)", true},
-                                                             {"Composite / tone map", true},
-                                                             {"Present / previews", true},
-                                                             {"Debug volumes", true},
-                                                             {"HUD / performance view", true},
-                                                             {"Swap / VSync wait", false},
-                                                             {"Forward surfaces", true},
-                                                             {"Ambient occlusion", true}}};
+    static const std::array<Description, StageCount> stages{
+        {{"Frame incl. swap", false},{"Input / animation", false},
+         {"Render total", true},{"Shadow maps", true},
+         {"Portal traversal", false},{"Light collection", false},
+         {"Scene graph culling", false},{"G-buffer geometry", true},
+         {"Deferred lighting", true},{"Transparent surfaces", true},
+         {"Bloom (7 draws)", true},{"DoF (2 draws)", true},
+         {"Composite / tone map", true},{"Present / previews", true},
+         {"Debug volumes", true},{"HUD / performance view", true},
+         {"Swap / VSync wait", false},{"Forward surfaces", true},
+         {"Ambient occlusion", true},{"Window events / commands", false},
+         {"Model raycast / BVH", false},{"CPU subdivision", false}}};
     return stages;
 }
 
@@ -73,13 +66,16 @@ void FrameProfiler::resetAverages(){
 std::array<FrameProfiler::Slice, FrameProfiler::SliceCount>
 FrameProfiler::breakdown(const Summary& summary){
     std::array<Slice, SliceCount> slices{{{"Shadows"},
-                                          {"Visibility"},
+                                          {"Visibility / LOD", false},
                                           {"G-buffer geometry"},
                                           {"Lighting / transparency"},
                                           {"Post-processing / output"},
                                           {"HUD / debug"},
-                                          {"Swap / VSync wait"},
+                                          {"Swap / VSync wait", false},
                                           {"Ambient occlusion"},
+                                          {"Model raycast / BVH", false},
+                                          {"Input / animation", false},
+                                          {"Subdivision", false},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
@@ -90,12 +86,17 @@ FrameProfiler::breakdown(const Summary& summary){
     };
     add(0,{Stage::Shadows});
     add(1,{Stage::Portals, Stage::Lights, Stage::Culling});
-    add(2,{Stage::Geometry});
-    add(3,{Stage::Lighting, Stage::Forward, Stage::Transparency});
+    add(2,{Stage::Geometry, Stage::Forward});
+    add(3,{Stage::Lighting, Stage::Transparency});
     add(4,{Stage::Bloom, Stage::DepthOfField, Stage::Composite, Stage::Present});
     add(5,{Stage::Debug, Stage::Overlay});
     add(6,{Stage::Swap});
     add(7,{Stage::Occlusion});
+    add(8,{Stage::Picking});
+    add(9,{Stage::Events, Stage::Update});
+    add(10,{Stage::Subdivision});
+    // Commands run inside event polling; attribute their work exactly once.
+    slices[9].cpuMs = std::max(0.0, slices[9].cpuMs - slices[10].cpuMs);
     const double cpu = summary.cpu[static_cast<std::size_t>(Stage::Frame)];
     const double gpu = summary.gpu[static_cast<std::size_t>(Stage::Render)];
     double measuredCpu = 0, measuredGpu = 0;
@@ -238,6 +239,7 @@ FrameProfiler::Summary FrameProfiler::summarize() const{
     for (const auto& sample : m_history){
         intervals.push_back(sample.intervalMs);
         result.frameMs += sample.intervalMs;
+        result.peakMs = std::max(result.peakMs, sample.intervalMs);
         result.latestCpu = sample.cpu;
         for (std::size_t i = 0; i < StageCount; ++i){
             result.cpu[i] += sample.cpu[i];

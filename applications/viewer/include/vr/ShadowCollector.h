@@ -7,6 +7,7 @@ public:
     // Initializes shadow collection with the depth shader's rendering defaults.
     explicit ShadowCollector(const std::shared_ptr<Program>& program)
         : PathVisitor(State::defaults(program)){
+        setLodFading(true);
     }
 
     // Collects all physical casters without applying observer visibility restrictions.

@@ -8,6 +8,8 @@
 #include "SceneOverlay.h"
 #include "ShadowRenderer.h"
 #include "Flashlight.h"
+#include "ModelInstance.h"
+#include "ModelPicker.h"
 #include <GLFW/glfw3.h>
 
 namespace vr{
@@ -84,6 +86,9 @@ private:
     // Stops the camera tour while retaining its current position and direction.
     void stopLodDemo();
 
+    // Temporarily pauses the light ring while preserving its user's animation preference.
+    void freezeLightOrbit(bool frozen);
+
     // Draws the application HUD after rendering the 3D scene.
     void overlay();
 
@@ -119,10 +124,12 @@ private:
     std::unique_ptr<DeferredRenderer> m_deferred;
     std::unique_ptr<ShadowRenderer> m_shadowRenderer;
     std::unique_ptr<Flashlight> m_flashlight;
+    std::optional<ModelHit> m_target;
     std::unique_ptr<SceneOverlay> m_overlay;
     std::unique_ptr<DebugLines> m_debugLines;
     std::optional<glm::mat4> m_frozenFrustum;
     std::optional<glm::vec3> m_frozenEye;
+    std::optional<bool> m_frozenLightOrbitEnabled;
     PortalResult m_portalResult;
     UpdateVisitor m_updater;
     std::shared_ptr<OrbitCallback> m_lightOrbitCallback;
@@ -162,6 +169,8 @@ private:
     bool m_shadowsEnabled = true;
     double m_framesPerSecond = 0;
     double m_portalCpuMs = 0;
+    double m_lastSubdivisionMs = 0;
+    std::string m_lastSubdivision;
     std::string m_status = "Ready";
 };
 } // namespace vr

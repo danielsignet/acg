@@ -25,13 +25,14 @@ constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
 
-constexpr std::array<ToolbarButton, 7> buttons{{{Action::PointRed, 78, 56},
+constexpr std::array<ToolbarButton, 8> buttons{{{Action::PointRed, 78, 56},
                                                 {Action::PointGreen, 142, 56},
                                                 {Action::PointBlue, 206, 56},
                                                 {Action::PointWhite, 270, 56},
                                                 {Action::PointSun, 334, 56},
                                                 shaderButton,
-                                                {Action::Culling, 602, 120}}};
+                                                {Action::Culling, 602, 120},
+                                                {Action::Subdivision, 738, 180}}};
 
 const char* shaderName(ShadingMode mode){
     return mode == ShadingMode::Phong ? "Phong" : "Toon";
@@ -178,19 +179,20 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.draw(info.str(), static_cast<float>(app.m_width) - 185, 20, 12,{0.7f, 0.8f, 0.88f, 1});
 }
 
-// Marks the optical center used by automatic depth-of-field focusing.
+// Marks the camera ray used by model targeting and depth-of-field focusing.
 void SceneOverlay::drawFocus(const Application& app){
-    if (!app.m_deferredEnabled || !app.m_depthOfFieldEnabled ||
-        app.m_bufferView != BufferView::Lit){
-        return;
-    }
     const float x = app.m_width * 0.5f, y = app.m_height * 0.5f;
     const std::array<glm::vec4, 4> marks{
         {{x - 9, y - 1, 5, 2},{x + 4, y - 1, 5, 2},{x - 1, y - 9, 2, 5},{x - 1, y + 4, 2, 5}}};
     for (const auto& mark : marks){
         m_text.rectangle(mark.x - 1, mark.y - 1, mark.z + 2, mark.w + 2,
                          {0.02f, 0.03f, 0.04f, 0.8f});
-        m_text.rectangle(mark.x, mark.y, mark.z, mark.w,{0.95f, 0.95f, 0.9f, 0.9f});
+        m_text.rectangle(mark.x, mark.y, mark.z, mark.w,
+                         app.m_target ? glm::vec4(1, 0.75f, 0.18f, 1)
+                                      : glm::vec4(0.95f, 0.95f, 0.9f, 0.9f));
+    }
+    if (app.m_target){
+        m_text.draw(app.m_target->instance->getName(), x + 14, y + 12, 12,{1, 0.82f, 0.35f, 1});
     }
 }
 
@@ -216,7 +218,7 @@ void SceneOverlay::drawFooter(const Application& app){
     m_text.draw("Lights", 20, top + 7, 13,{0.7f, 0.8f, 0.88f, 1});
     drawToolbar(app, top);
     m_text.draw(
-        "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: move lamps   F: freeze view   "
+        "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: lamps   F: freeze view/lights   "
         "G: buffers   F1: performance   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     const auto& shadowStats = app.m_shadowRenderer->getStats();
@@ -255,6 +257,10 @@ void SceneOverlay::drawToolbar(const Application& app, float top){
             if (enabled){
                 foreground ={0.3f, 0.9f, 0.78f, 1};
             }
+        } else if (button.action == Action::Subdivision){
+            text = std::string("Subdivide: ") + (!app.m_target ? "aim at model"
+                                                 : app.m_target->instance->getSubdivided() ? "ON"
+                                                                                           : "OFF");
         }
         m_text.rectangle(button.x, top, button.width, 32, background);
         m_text.draw(text, button.x + 7, top + 7, 11, foreground);

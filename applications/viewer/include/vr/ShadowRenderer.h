@@ -8,6 +8,7 @@ namespace vr{
 struct ShadowStats{
     unsigned passes = 0;
     unsigned boundsTested = 0, rejected = 0;
+    unsigned unculled = 0;
     unsigned draws = 0, instances = 0;
     std::size_t triangles = 0;
     double cpuMs = 0;
@@ -60,6 +61,7 @@ private:
         Geometry* geometry;
         std::shared_ptr<Texture> albedo;
         float alphaCutoff;
+        glm::vec2 lodRange;
         std::vector<std::size_t> casters;
     };
 

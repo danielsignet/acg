@@ -79,6 +79,28 @@ public:
     // Invalidates the cached bound and every ancestor reached through DAG parents.
     void dirtyBound();
 
+    // Enables volume rejection for this subtree; disabled nodes still obey visibility.
+    void setCullingEnabled(bool enabled){
+        m_cullingEnabled = enabled;
+        dirtyBound();
+    }
+
+    // Reports whether this subtree permits frustum and portal rejection.
+    bool getCullingEnabled() const{
+        return m_cullingEnabled;
+    }
+
+    // Keeps ancestors traversable when a descendant must bypass volume rejection.
+    bool hasCullingExemption() const{
+        getBound();
+        return m_cullingExemption;
+    }
+
+    // Computes the exemption cached alongside the physical bounding box.
+    virtual bool computeCullingExemption() const{
+        return !m_cullingEnabled;
+    }
+
     // Reports whether the next bound access must rebuild the cache.
     bool isBoundDirty() const{
         return m_boundDirty;
@@ -118,6 +140,8 @@ private:
     mutable BoundingBox m_bound;
     mutable bool m_boundDirty = true;
     mutable std::size_t m_boundBuildCount = 0;
+    mutable bool m_cullingExemption = false;
+    bool m_cullingEnabled = true;
     bool m_visible = true;
     std::string m_roomId;
 };

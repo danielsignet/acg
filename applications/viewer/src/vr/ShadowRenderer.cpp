@@ -109,13 +109,17 @@ void ShadowRenderer::prepareCasters(){
         if (!albedo){
             cutoff = 0;
         }
+        const auto coverage = node.state.getUniforms().find("uLodRange");
+        const auto range = coverage == node.state.getUniforms().end()
+                               ? glm::vec2(0, 1)
+                               : std::get<glm::vec2>(coverage->second);
         const auto found =
             std::find_if(m_batches.begin(), m_batches.end(), [&](const Batch& batch){
                 return batch.geometry == node.geometry && batch.albedo == albedo &&
-                       batch.alphaCutoff == cutoff;
+                       batch.alphaCutoff == cutoff && batch.lodRange == range;
             });
         if (found == m_batches.end()){
-            m_batches.push_back({node.geometry, std::move(albedo), cutoff,{index}});
+            m_batches.push_back({node.geometry, std::move(albedo), cutoff, range,{index}});
         } else{
             found->casters.push_back(index);
         }
@@ -140,12 +144,16 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
     for (const auto& batch : m_batches){
         m_visibleModels.clear();
         for (const auto index : batch.casters){
-            ++m_stats.boundsTested;
-            const auto& bound = m_worldBounds[index];
-            if (frustum.classify(bound) == Visibility::Outside ||
-                (cone && cone->classify(bound) == Visibility::Outside)){
-                ++m_stats.rejected;
-                continue;
+            if (m_casters[index].cullingEnabled){
+                ++m_stats.boundsTested;
+                const auto& bound = m_worldBounds[index];
+                if (frustum.classify(bound) == Visibility::Outside ||
+                    (cone && cone->classify(bound) == Visibility::Outside)){
+                    ++m_stats.rejected;
+                    continue;
+                }
+            } else{
+                ++m_stats.unculled;
             }
             m_visibleModels.push_back(m_casters[index].model);
         }
@@ -153,6 +161,7 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
             continue;
         }
         m_depthProgram->set("uAlphaCutoff", batch.alphaCutoff);
+        m_depthProgram->set("uLodRange", batch.lodRange);
         m_depthProgram->set("uHasAlbedo", static_cast<bool>(batch.albedo));
         if (batch.albedo){
             batch.albedo->apply(0);

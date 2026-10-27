@@ -15,6 +15,7 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uShadows", false);
     s.setUniform("uShadowPCF", true);
     s.setUniform("uOpacity", 1.0f);
+    s.setUniform("uLodRange", glm::vec2(0, 1));
     s.setUniform("uFog", true);
     s.setUniform("uTint", glm::vec3(1));
     s.setUniform("uEmissive", glm::vec3(0));

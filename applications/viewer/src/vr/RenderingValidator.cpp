@@ -33,6 +33,7 @@ void RenderingValidator::run(){
     validatePerformance();
     validateShadows();
     validateControls();
+    validateModelTargeting();
     validateFlashlight();
     validateLighting();
     validateAlphaTest();
@@ -48,6 +49,87 @@ void RenderingValidator::run(){
     OpenGL::check("Validation complete");
     std::cout << "GPU validation passed: scene pixels for lighting/lights/multitexture/toon/alpha, "
                  "animation/pause, all LOD levels, reload, reset, frustum culling, OpenGL errors\n";
+}
+
+// Checks reticle targeting, per-instance subdivision and exact restoration through the UI.
+void RenderingValidator::validateModelTargeting(){
+    auto& app = m_application;
+    const auto camera = app.m_scene->getCamera();
+    const auto originalView = camera->getView();
+    camera->setLookAt({-3.6f, 2.6f, 1.5f},{-4.8f, 2.4f, 0});
+    app.render();
+    require(app.m_target && app.m_target->instance->getName() == "monkey",
+            "The center camera ray targets the visible model instance");
+    auto* target = app.m_target->instance;
+    const auto original = captureScene();
+    const float y = static_cast<float>(app.m_height - SceneOverlay::FooterHeight + 28);
+    app.handleKey(GLFW_KEY_F1);
+    app.m_profiler.beginFrame(0.02);
+    {
+        FrameProfiler::Scope events(&app.m_profiler, FrameProfiler::Stage::Events);
+        app.handleClick(750, y);
+    }
+    app.render();
+    app.m_profiler.endFrame();
+    const auto measured = app.m_profiler.summarize();
+    const auto cpu = [&](FrameProfiler::Stage stage){
+        return measured.cpu[static_cast<std::size_t>(stage)];
+    };
+    require(cpu(FrameProfiler::Stage::Events) >= cpu(FrameProfiler::Stage::Subdivision) &&
+                cpu(FrameProfiler::Stage::Subdivision) > 0 &&
+                cpu(FrameProfiler::Stage::Picking) > 0 && app.m_lastSubdivisionMs > 0 &&
+                app.m_lastSubdivision == "monkey ON",
+            "F1 includes targeted subdivision, event handling and model raycasting");
+    app.handleKey(GLFW_KEY_F1);
+    app.render();
+    require(target->getSubdivided() && captureScene().countChangedPixels(original) > 100,
+            "The generic subdivision button changes the targeted model's rendered geometry");
+    app.handleClick(750, y);
+    app.render();
+    require(!target->getSubdivided() && captureScene().hash() == original.hash(),
+            "Turning subdivision off restores the original scene pixels");
+    camera->setLookAt({0, 8, 12},{0, 30, 13});
+    app.render();
+    require(!app.m_target, "Aiming into empty space clears the highlighted model");
+    app.handleClick(750, y);
+    require(!target->getSubdivided(), "Subdivision without a targeted model changes no geometry");
+    CullVisitor objects;
+    objects.collect(*app.m_scene->getRoot(), glm::mat4(1),{}, false);
+    for (const auto& name :{"Red point light", "Green point light", "Blue point light",
+                             "White point light", "Leaf", "torus"}){
+        const auto found = std::find_if(
+            objects.getRenderList().begin(), objects.getRenderList().end(),
+            [&](const auto& item){ return item.instance && item.instance->getName() == name; });
+        require(found != objects.getRenderList().end(), "Selectable scene object exists");
+        const bool torus = std::string(name) == "torus", leaf = std::string(name) == "Leaf";
+        const glm::vec3 point =
+            torus ? glm::vec3(1.3f, 0.38f, 0) : found->geometry->getBound().getCenter();
+        const glm::vec3 direction = torus ? glm::vec3(0, 1, 0) : glm::vec3(0, 0, 1);
+        const auto center = glm::vec3(found->model * glm::vec4(point, 1));
+        const auto normal = glm::normalize(glm::mat3(found->model) * direction);
+        camera->setLookAt(center + normal * 2.0f, center);
+        app.render();
+        require(app.m_target && app.m_target->instance == found->instance,
+                std::string("The crosshair selects ") + name);
+        app.handleClick(750, y);
+        app.render();
+        require(found->instance->getSubdivided(),
+                std::string("The targeted procedural mesh subdivides: ") + name);
+        app.handleClick(750, y);
+        require(!found->instance->getSubdivided(), "Procedural meshes restore their original");
+        if (leaf){
+            const auto corner = glm::vec3(found->model * glm::vec4(-0.95f, 0.05f, 0, 1));
+            camera->setLookAt(corner + normal * 2.0f, corner);
+            app.render();
+            require(
+                !app.m_target || app.m_target->instance != found->instance,
+                "Leaf targeting passes through transparent pixels instead of selecting its panel");
+        }
+    }
+    camera->setLookAt({30, 4, 10},{30, 0, 9.9f});
+    app.render();
+    require(!app.m_target, "The outdoor floor remains an unselectable ray occluder");
+    camera->setView(originalView);
 }
 
 // Checks performance controls, counters and overlay isolation from the scene.
@@ -68,12 +150,17 @@ void RenderingValidator::validatePerformance(){
                 app.m_bufferPreviews == previews && !app.m_frozenEye,
             "Performance inspection preserves lights, culling, previews and the live camera");
     const auto& shadows = app.m_shadowRenderer->getStats();
+    const auto unculled = std::count_if(app.m_renderer->getRenderList().begin(),
+                                        app.m_renderer->getRenderList().end(),
+                                        [](const auto& item){ return !item.cullingEnabled; });
+    require(unculled == 7 && shadows.unculled == unculled * shadows.passes,
+            "All seven floors bypass camera, portal and per-light shadow volume rejection");
     const auto averages = app.m_profiler.summarize();
     require(averages.counterSamples == 1 &&
                 averages.counters[static_cast<std::size_t>(FrameProfiler::Counter::ColorDraws)] ==
                     app.m_renderer->getStats().draws,
             "The performance view averages the actual rendered scene counters");
-    require(shadows.boundsTested == shadows.instances + shadows.rejected &&
+    require(shadows.boundsTested + shadows.unculled == shadows.instances + shadows.rejected &&
                 app.m_deferred->getScreenDraws() == 7 &&
                 app.m_renderer->getStats().visitedNodes > 0,
             "Profiler counters describe actual shadow rejection and screen submissions");
@@ -296,16 +383,53 @@ void RenderingValidator::validateObjectAnimation(){
 
 // Checks that light-ring motion is independent of object-animation pause.
 void RenderingValidator::validateLightOrbit(){
+    auto& app = m_application;
     const auto orbit = m_application.m_scene->findTransform("lightOrbit");
     const auto orbitMatrix = orbit->getMatrix();
     m_application.execute(Controls::Action::PointOrbit);
     m_application.m_updater.update(*m_application.m_scene->getRoot(),{0.9, 0.3, true});
     require(glm::length(orbitMatrix[0] - orbit->getMatrix()[0]) < 0.00001f,
-            "L must pause the light ring independently of P");
+            "Explicit orbit pause retains the light ring's transform");
     m_application.execute(Controls::Action::PointOrbit);
     m_application.m_updater.update(*m_application.m_scene->getRoot(),{1.2, 0.3, false});
     require(glm::length(orbitMatrix[0] - orbit->getMatrix()[0]) > 0.001f,
             "Light ring must rotate while geometry animation is paused");
+    const bool originalEnabled = app.m_lightOrbitCallback->getEnabled();
+    for (const bool enabled :{true, false}){
+        app.m_lightOrbitCallback->setEnabled(enabled);
+        const auto frozen = orbit->getMatrix();
+        app.handleKey(GLFW_KEY_F);
+        require(app.m_frozenFrustum && !app.m_lightOrbitCallback->getEnabled(),
+                "F freezes the culling camera and pauses the moving lights together");
+        app.m_updater.update(*app.m_scene->getRoot(),{10, 2, false});
+        require(orbit->getMatrix() == frozen,
+                "Frozen lights and their markers retain their world-space pose as time advances");
+        app.handleKey(GLFW_KEY_F);
+        require(app.m_lightOrbitCallback->getEnabled() == enabled && orbit->getMatrix() == frozen,
+                "Unfreezing restores the previous orbit mode without changing the frozen pose");
+        app.m_updater.update(*app.m_scene->getRoot(),{10.1, 0.1, false});
+        require((glm::length(frozen[0] - orbit->getMatrix()[0]) > 0.001f) == enabled,
+                "Only lights that were moving before F resume their orbit");
+    }
+    app.m_lightOrbitCallback->setEnabled(true);
+    app.handleKey(GLFW_KEY_F);
+    app.execute(Controls::Action::PointOrbit);
+    require(!app.m_lightOrbitCallback->getEnabled(),
+            "Changing the desired orbit mode cannot start the lights while frozen");
+    app.handleKey(GLFW_KEY_F);
+    require(!app.m_lightOrbitCallback->getEnabled(),
+            "Unfreezing honors orbit preferences changed during inspection");
+    app.m_lightOrbitCallback->setEnabled(true);
+    app.handleKey(GLFW_KEY_F);
+    app.resetView();
+    require(!app.m_frozenFrustum && app.m_lightOrbitCallback->getEnabled(),
+            "Reset exits inspection and restores the previous light animation mode");
+    app.handleKey(GLFW_KEY_F);
+    app.reload();
+    require(!app.m_frozenFrustum && !app.m_frozenLightOrbitEnabled &&
+                app.m_lightOrbitCallback->getEnabled(),
+            "Reload exits inspection without leaving the replacement light ring paused");
+    app.m_lightOrbitCallback->setEnabled(originalEnabled);
 }
 
 // Checks distance selection and the camera tour across all cow detail levels.
@@ -317,6 +441,16 @@ void RenderingValidator::validateLod(){
         require(m_application.m_renderer->getStats().lodLevels.at("cowLOD") == test.second,
                 "Cow LOD distance selection");
     }
+    m_application.m_scene->getCamera()->setLookAt({6, 2.02f, 8},{6, 2.02f, 0});
+    m_application.render();
+    const auto fading = m_application.performanceCounters();
+    require(fading[static_cast<std::size_t>(FrameProfiler::Counter::LodFadeDraws)] == 2,
+            "F1 counts both cow detail draws during a crossfade");
+    m_application.m_scene->getCamera()->setLookAt({6, 2.02f, 10},{6, 2.02f, 0});
+    m_application.render();
+    require(m_application.performanceCounters()[static_cast<std::size_t>(
+                FrameProfiler::Counter::LodFadeDraws)] == 0,
+            "F1 clears transition draws outside the LOD fade band");
     m_application.execute(Controls::Action::LodTour);
     for (const auto& test : std::vector<std::pair<double, std::size_t>>{
              {0.5, 5u},{2.0, 4u},{2.0, 3u},{2.0, 2u},{2.0, 1u},{2.0, 0u}}){

@@ -5,8 +5,10 @@ uniform sampler2D uAlbedo;
 uniform bool uHasAlbedo, uPointPass;
 uniform float uAlphaCutoff, uShadowFarPlane;
 uniform vec3 uShadowLightPosition;
+#include "lod-fade.glsl"
 
 void main(){
+    applyLodFade();
     if (uHasAlbedo && texture(uAlbedo, shadowUV).a < uAlphaCutoff){
         discard;
     }

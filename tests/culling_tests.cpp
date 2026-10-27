@@ -4,6 +4,7 @@
 #include <random>
 #include <stdexcept>
 #include <vr/SceneGraph.h>
+#include <vr/ShadowCollector.h>
 
 namespace{
 unsigned checks = 0;
@@ -161,6 +162,48 @@ void traversal(){
     check(culler.getStats().lodLevels.at("lod") == 0, "LOD switches near observer");
 }
 
+// Keeps exempt floors traversable through rejected ancestors without exempting siblings.
+void exemptions(){
+    auto root = std::make_shared<vr::Group>();
+    auto room = std::make_shared<vr::Transform>();
+    room->setRoomId("hidden room");
+    room->setMatrix(glm::translate(glm::mat4(1),{4, 0, 0}));
+    root->addChild(room);
+    auto floor = std::make_shared<vr::Group>();
+    floor->setCullingEnabled(false);
+    floor->addChild(vr::GeometryFactory::createBox());
+    room->addChild(floor);
+    room->addChild(vr::GeometryFactory::createBox());
+    vr::CullVisitor culler;
+    culler.collect(*root, glm::mat4(1),{}, true);
+    check(culler.getRenderList().size() == 1 && !culler.getRenderList().front().cullingEnabled &&
+              root->hasCullingExemption(),
+          "An exempt descendant survives ancestor frustum rejection while siblings are culled");
+    vr::PortalResult portals;
+    portals.active = true;
+    culler.collect(*root, glm::mat4(1),{}, false, &portals);
+    check(culler.getRenderList().size() == 1 && culler.getStats().portalRejected == 1,
+          "A hidden room cannot portal-cull its exempt floor or exempt its other contents");
+    vr::ShadowCollector shadows(nullptr);
+    const auto casters = shadows.collect(*root,{});
+    check(casters.size() == 2 && !casters[0].cullingEnabled && casters[1].cullingEnabled,
+          "Shadow casters inherit exemptions independently for each subtree");
+    floor->setVisible(false);
+    culler.collect(*root, glm::mat4(1),{}, true);
+    check(culler.getRenderList().empty(), "Explicit visibility still hides an exempt subtree");
+    floor->setVisible(true);
+    floor->setCullingEnabled(true);
+    check(!root->hasCullingExemption(), "Changing an exemption invalidates its cached ancestors");
+    culler.collect(*root, glm::mat4(1),{}, true);
+    check(culler.getRenderList().empty(), "Re-enabling culling restores ancestor rejection");
+    auto otherRoot = std::make_shared<vr::Group>();
+    otherRoot->addChild(floor);
+    otherRoot->getBound();
+    floor->setCullingEnabled(false);
+    check(root->hasCullingExemption() && otherRoot->hasCullingExemption(),
+          "Exemption changes propagate through every parent of a shared subtree");
+}
+
 } // namespace
 
 int main(){
@@ -168,6 +211,7 @@ int main(){
         bounds();
         frustums();
         traversal();
+        exemptions();
         std::cout << checks << " culling checks passed\n";
         return 0;
     } catch (const std::exception& error){

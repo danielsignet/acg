@@ -1,6 +1,8 @@
 #pragma once
 #include "Node.h"
 #include "NodeVisitor.h"
+#include <optional>
+#include <functional>
 
 namespace vr{
 struct Vertex{
@@ -46,6 +48,11 @@ public:
     // Streams model matrices and draws this mesh once for all supplied instances.
     void drawInstanced(const std::vector<glm::mat4>& models) const;
 
+    // Finds the closest BVH hit whose interpolated UV passes the optional surface filter.
+    std::optional<float>
+    intersectRay(const glm::vec3& origin, const glm::vec3& direction, float maximum,
+                 const std::function<bool(const glm::vec2&)>& accepts ={}) const;
+
     // Computes the local bound from the stored vertex positions.
     BoundingBox computeBound() const override;
 
@@ -53,9 +60,19 @@ private:
     // Binds the VAO and uploads changed vertices and indices for either draw path.
     void bind() const;
 
+    // Builds a balanced hierarchy over triangle bounds without issuing OpenGL calls.
+    void buildRayTree() const;
+
+    struct RayNode{
+        BoundingBox bounds;
+        unsigned first = 0, count = 0, left = 0, right = 0;
+    };
+
     std::vector<Vertex> m_vertices;
     std::vector<unsigned> m_indices;
     mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0, m_instances = 0;
     mutable bool m_dirty = true;
+    mutable std::vector<RayNode> m_rayNodes;
+    mutable std::vector<unsigned> m_rayTriangles;
 };
 } // namespace vr

@@ -43,13 +43,14 @@ WSL requires a graphical session such as WSLg.
 | V or DoF | Toggle depth of field; aim the center marker at the surface to focus on |
 | J or Shadows | Toggle shadows |
 | L or Flashlight | Toggle the camera-mounted flashlight |
-| Arrows / Page Up / Page Down | Move the lights along X/Z and Y |
+| Arrows / Page Up / Page Down | Move the lights along X/Z and Y while unfrozen |
 | C or Culling | Toggle frustum and portal culling |
 | F2 or renderer button | Switch between deferred and forward; AO, post effects and G-buffer views use deferred |
 | O or AO | Toggle screen-space ambient occlusion; Z then A shows AO alone |
 | F1 | Show/hide performance: CPU/GPU time and percentage breakdown; Reset averages clears measurements after changing settings |
-| F | Freeze/resume the culling camera and show/hide its debug volumes |
+| F | Freeze/resume the culling camera and moving lights; show/hide the camera's debug volumes |
 | Space | Reset the camera |
+| Crosshair / Subdivide button | Aim at a highlighted model and toggle one cached subdivision level for that instance; generated in memory on first use |
 | R | Reload the scene and shaders |
 | Esc | Close the performance view or menu, then the program |
 

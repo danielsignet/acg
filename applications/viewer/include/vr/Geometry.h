@@ -1,10 +1,10 @@
 #pragma once
 #include "Node.h"
 #include "NodeVisitor.h"
-#include <optional>
-#include <functional>
-#include <cstdint>
 #include <array>
+#include <cstdint>
+#include <functional>
+#include <optional>
 
 namespace vr{
 struct SkinningPose;
@@ -25,6 +25,11 @@ struct Vertex{
 
 class Geometry : public Node{
 public:
+    struct SurfaceTransform{
+        glm::mat3 normal;
+        float tangentSign;
+    };
+
     using Node::Node;
 
     // Releases the OpenGL buffers owned by this mesh.
@@ -45,6 +50,13 @@ public:
     // Updates positions and tangent frames once per evaluated skeleton pose.
     void updateSkin();
 
+    std::uint64_t getAppliedSkinRevision() const{
+        return m_skinRevision;
+    }
+
+    // Creates independent deformable output while sharing immutable rest vertices.
+    std::shared_ptr<Geometry> instantiateSkin(std::shared_ptr<SkinningPose> pose) const;
+
     // Shares the palette with in-memory subdivision variants.
     const std::shared_ptr<SkinningPose>& getSkin() const{
         return m_skin;
@@ -52,7 +64,7 @@ public:
 
     // Returns the undeformed control mesh for subdivision.
     const std::vector<Vertex>& getRestVertices() const{
-        return m_skin ? m_restVertices : m_vertices;
+        return m_restVertices ? *m_restVertices : m_vertices;
     }
 
     // Returns the mesh vertices in their local coordinate system.
@@ -74,7 +86,8 @@ public:
     void draw() const;
 
     // Streams model matrices and draws this mesh once for all supplied instances.
-    void drawInstanced(const std::vector<glm::mat4>& models) const;
+    void drawInstanced(const std::vector<glm::mat4>& models, bool surface = false) const;
+    SurfaceTransform getSurfaceTransform(const glm::mat4& model) const;
 
     // Finds the closest BVH hit whose interpolated UV passes the optional surface filter.
     std::optional<float>
@@ -104,10 +117,12 @@ private:
     std::vector<Vertex> m_vertices;
     std::vector<unsigned> m_indices;
     mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0, m_instances = 0;
+    mutable GLuint m_instanceNormals = 0;
+    mutable std::vector<std::pair<glm::mat4, SurfaceTransform>> m_surfaceTransforms;
     mutable bool m_dirty = true;
     mutable bool m_vertexDirty = false, m_rayDirty = false;
     std::shared_ptr<SkinningPose> m_skin;
-    std::vector<Vertex> m_restVertices;
+    std::shared_ptr<const std::vector<Vertex>> m_restVertices;
     std::uint64_t m_skinRevision = 0;
     mutable std::vector<RayNode> m_rayNodes;
     mutable std::vector<unsigned> m_rayTriangles;

@@ -1,3 +1,4 @@
+#include <functional>
 #include <stdexcept>
 #include <vr/State.h>
 
@@ -65,9 +66,7 @@ State State::merged(const State& local) const{
     }
     // Unspecified material properties retain their inherited values.
     if (local.m_material){
-        result.m_material = m_material
-                                ? std::make_shared<Material>(m_material->merged(*local.m_material))
-                                : local.m_material;
+        result.m_material = m_material ? local.m_material->resolve(m_material) : local.m_material;
     }
     if (local.m_program){
         result.m_program = local.m_program;
@@ -90,6 +89,47 @@ State State::merged(const State& local) const{
         result.m_uniforms[entry.first] = entry.second;
     }
     return result;
+}
+
+bool State::sameRenderState(const State& other) const{
+    const bool material =
+        m_material == other.m_material ||
+        (m_material && other.m_material && m_material->sameValues(*other.m_material));
+    return material && m_program == other.m_program && m_textures == other.m_textures &&
+           m_normalMap == other.m_normalMap && m_heightMap == other.m_heightMap &&
+           m_uniforms == other.m_uniforms && m_shadowMaps == other.m_shadowMaps &&
+           m_lightEnabled == other.m_lightEnabled && m_lightingEnabled == other.m_lightingEnabled &&
+           m_cullFace == other.m_cullFace && m_blend == other.m_blend &&
+           m_castShadows == other.m_castShadows && m_receiveShadows == other.m_receiveShadows;
+}
+
+std::size_t State::renderKey() const{
+    std::size_t key = 0;
+    const auto add = [&](std::size_t value){
+        key ^= value + 0x9e3779b9 + (key << 6) + (key >> 2);
+    };
+    const auto scalar = [&](float value){ add(std::hash<float>{}(value)); };
+    add(std::hash<const void*>{}(m_program.get()));
+    if (m_material){
+        for (const auto& color :
+             {m_material->getAmbient(), m_material->getDiffuse(), m_material->getSpecular()}){
+            for (int i = 0; i < 3; ++i){
+                scalar(color[i]);
+            }
+        }
+        scalar(m_material->getShininess());
+        scalar(m_material->getRoughness());
+        scalar(m_material->getMetallic());
+    }
+    for (const auto& entry : m_textures){
+        add(entry.first);
+        add(std::hash<const void*>{}(entry.second.get()));
+    }
+    add(std::hash<const void*>{}(getNormalMap().get()));
+    add(std::hash<const void*>{}(getHeightMap().get()));
+    // Keep ordering stable when lights allocate auxiliary targets or pass uniforms change.
+    // Exact compatibility (including every uniform and shadow texture) is checked separately.
+    return key;
 }
 
 // Overrides one validated light slot independently of global lighting.

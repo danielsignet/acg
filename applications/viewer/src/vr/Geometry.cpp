@@ -7,6 +7,9 @@
 namespace vr{
 // Releases the OpenGL buffers owned by this mesh.
 Geometry::~Geometry(){
+    if (m_instanceNormals){
+        glDeleteBuffers(1, &m_instanceNormals);
+    }
     if (m_instances){
         glDeleteBuffers(1, &m_instances);
     }
@@ -69,7 +72,7 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
     m_indices = std::move(indices);
     m_dirty = true;
     m_skin.reset();
-    m_restVertices.clear();
+    m_restVertices.reset();
     m_vertexDirty = m_rayDirty = false;
     m_rayNodes.clear();
     m_rayTriangles.clear();
@@ -135,7 +138,7 @@ void Geometry::draw() const{
 }
 
 // Streams model matrices and draws this mesh once for all supplied instances.
-void Geometry::drawInstanced(const std::vector<glm::mat4>& models) const{
+void Geometry::drawInstanced(const std::vector<glm::mat4>& models, bool surface) const{
     if (m_indices.empty() || models.empty()){
         return;
     }
@@ -157,8 +160,56 @@ void Geometry::drawInstanced(const std::vector<glm::mat4>& models) const{
     glBindBuffer(GL_ARRAY_BUFFER, m_instances);
     const auto bytes = static_cast<GLsizeiptr>(models.size() * sizeof(glm::mat4));
     glBufferData(GL_ARRAY_BUFFER, bytes, models.data(), GL_STREAM_DRAW);
+    if (surface){
+        if (!m_instanceNormals){
+            glGenBuffers(1, &m_instanceNormals);
+            glBindBuffer(GL_ARRAY_BUFFER, m_instanceNormals);
+            for (unsigned column = 0; column < 3; ++column){
+                const unsigned attribute = 8 + column;
+                glEnableVertexAttribArray(attribute);
+                glVertexAttribPointer(attribute, 3, GL_FLOAT, GL_FALSE, sizeof(SurfaceTransform),
+                                      reinterpret_cast<void*>(offsetof(SurfaceTransform, normal) +
+                                                              column * sizeof(glm::vec3)));
+                glVertexAttribDivisor(attribute, 1);
+            }
+            glEnableVertexAttribArray(11);
+            glVertexAttribPointer(11, 1, GL_FLOAT, GL_FALSE, sizeof(SurfaceTransform),
+                                  reinterpret_cast<void*>(offsetof(SurfaceTransform, tangentSign)));
+            glVertexAttribDivisor(11, 1);
+        }
+        std::vector<SurfaceTransform> bases;
+        bases.reserve(models.size());
+        for (const auto& model : models){
+            bases.push_back(getSurfaceTransform(model));
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, m_instanceNormals);
+        glBufferData(GL_ARRAY_BUFFER,
+                     static_cast<GLsizeiptr>(bases.size() * sizeof(SurfaceTransform)), bases.data(),
+                     GL_STREAM_DRAW);
+    }
     glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT,
                             nullptr, static_cast<GLsizei>(models.size()));
     glBindVertexArray(0);
+}
+
+Geometry::SurfaceTransform Geometry::getSurfaceTransform(const glm::mat4& model) const{
+    for (const auto& cached : m_surfaceTransforms){
+        if (cached.first == model){
+            return cached.second;
+        }
+    }
+    const glm::mat3 linear(model);
+    const float orientation = glm::determinant(
+        glm::mat3(glm::normalize(linear[0]), glm::normalize(linear[1]), glm::normalize(linear[2])));
+    if (!std::isfinite(orientation) || std::abs(orientation) < 1e-8f){
+        throw std::runtime_error("Singular model transform");
+    }
+    const SurfaceTransform basis{glm::transpose(glm::inverse(linear)),
+                                 orientation < 0 ? -1.0f : 1.0f};
+    if (m_surfaceTransforms.size() == 8){
+        m_surfaceTransforms.clear();
+    }
+    m_surfaceTransforms.emplace_back(model, basis);
+    return basis;
 }
 } // namespace vr

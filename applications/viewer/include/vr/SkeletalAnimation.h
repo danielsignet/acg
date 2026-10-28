@@ -1,8 +1,8 @@
 #pragma once
 #include "UpdateCallback.h"
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -50,6 +50,13 @@ public:
     // Owns copied animation data independently of Assimp's importer lifetime.
     SkeletalAnimation(std::vector<Joint> joints, std::vector<Clip> clips,
                       std::vector<Binding> bindings);
+    // Shares immutable source data while allocating independent playback and palettes.
+    std::shared_ptr<SkeletalAnimation> instantiate() const;
+
+    const std::vector<Binding>& getBindings() const{
+        return m_bindings;
+    }
+
     // Advances clip time only while scene animation is enabled.
     void update(Node& node, const UpdateContext& context) override;
     // Selects a looping source clip and evaluates its first pose immediately.
@@ -57,7 +64,7 @@ public:
 
     // Returns the source clips for contextual controls.
     const std::vector<Clip>& getClips() const{
-        return m_clips;
+        return m_source->clips;
     }
 
     // Reports the selected source clip.
@@ -71,13 +78,37 @@ public:
     }
 
 private:
+    struct Source{
+        std::vector<Joint> joints;
+        std::vector<Clip> clips;
+    };
+
+    SkeletalAnimation(std::shared_ptr<const Source> source, std::vector<Binding> bindings);
     // Samples TRS tracks and updates each mesh-local skin palette.
     void evaluate();
-    std::vector<Joint> m_joints;
-    std::vector<Clip> m_clips;
+    std::shared_ptr<const Source> m_source;
+    std::vector<Joint> m_sampled;
     std::vector<Binding> m_bindings;
     std::vector<glm::mat4> m_local, m_global;
     std::size_t m_clip = 0;
     double m_time = 0;
+};
+
+// Synchronizes an imported transform with one joint of its instance's current pose.
+class JointAnimationCallback final : public UpdateCallback{
+public:
+    JointAnimationCallback(std::weak_ptr<SkeletalAnimation> animation, unsigned joint)
+        : m_animation(std::move(animation)), m_joint(joint){
+    }
+
+    void update(Node& node, const UpdateContext& context) override;
+
+    unsigned getJoint() const{
+        return m_joint;
+    }
+
+private:
+    std::weak_ptr<SkeletalAnimation> m_animation;
+    unsigned m_joint;
 };
 } // namespace vr

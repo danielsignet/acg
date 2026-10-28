@@ -36,6 +36,8 @@ public:
         return m_id;
     }
 
+    bool supportsInstancing() const;
+
 private:
     // Reads shader source and expands relative includes with bounded nesting.
     static std::string readSource(const std::filesystem::path& path, unsigned depth = 0);
@@ -44,5 +46,6 @@ private:
     static GLuint compileShader(const std::filesystem::path& path, GLenum type);
     GLuint m_id = 0;
     mutable std::map<std::string, GLint> m_locations;
+    mutable int m_instancing = -1;
 };
 } // namespace vr

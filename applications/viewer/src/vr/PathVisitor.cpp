@@ -79,7 +79,7 @@ void PathVisitor::apply(Group& node){
 
 // Accumulates the local matrix and restores it after visiting descendants.
 void PathVisitor::apply(Transform& node){
-    StackScope<glm::mat4> matrixScope(m_models, m_models.back() * node.getMatrix());
+    StackScope<glm::mat4> matrixScope(m_models, node.getWorldMatrix(m_models.back()));
     scoped(node, [&]{ traverse(node); });
 }
 

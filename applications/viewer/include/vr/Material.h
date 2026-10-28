@@ -1,26 +1,44 @@
 #pragma once
 #include "Program.h"
 #include <glm/glm.hpp>
+#include <memory>
+#include <vector>
 
 namespace vr{
 class Material{
 public:
+    Material() = default;
+    Material(const Material& other);
+    Material& operator=(const Material& other);
+
     // Overrides the ambient contribution while preserving other material properties.
     void setAmbient(const glm::vec3& v){
+        if (m_hasAmbient && m_ambient == v){
+            return;
+        }
         m_ambient = v;
         m_hasAmbient = true;
+        ++m_revision;
     }
 
     // Overrides the diffuse contribution while preserving other material properties.
     void setDiffuse(const glm::vec3& v){
+        if (m_hasDiffuse && m_diffuse == v){
+            return;
+        }
         m_diffuse = v;
         m_hasDiffuse = true;
+        ++m_revision;
     }
 
     // Overrides the specular contribution while preserving other material properties.
     void setSpecular(const glm::vec3& v){
+        if (m_hasSpecular && m_specular == v){
+            return;
+        }
         m_specular = v;
         m_hasSpecular = true;
+        ++m_revision;
     }
 
     // Validates and overrides the specular highlight exponent.
@@ -62,11 +80,22 @@ public:
 
     // Combines inherited values with explicitly supplied local overrides.
     Material merged(const Material& local) const;
+    // Reuses inherited material resolution, invalidating on edits to either input or output.
+    std::shared_ptr<Material> resolve(const std::shared_ptr<Material>& parent) const;
+    bool sameValues(const Material& other) const;
 
     // Uploads the material colors and shininess to the shader.
     void apply(const Program& program) const;
 
 private:
+    struct Resolution{
+        std::weak_ptr<Material> parent;
+        std::size_t parentRevision, localRevision, outputRevision;
+        std::shared_ptr<Material> output;
+    };
+
+    std::size_t m_revision = 0;
+    mutable std::vector<Resolution> m_resolutions;
     glm::vec3 m_ambient{0.13f};
     glm::vec3 m_diffuse{0.72f};
     glm::vec3 m_specular{0.45f};

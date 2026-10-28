@@ -21,6 +21,9 @@ public:
 
     // Combines inherited values with explicitly supplied local overrides.
     State merged(const State& local) const;
+    // Resolved-state compatibility for opaque instancing; uniforms include LOD and light masks.
+    bool sameRenderState(const State& other) const;
+    std::size_t renderKey() const;
 
     // Applies resolved shader, material, texture and rasterization state.
     void apply() const;

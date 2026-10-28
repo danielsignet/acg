@@ -1,7 +1,7 @@
 #pragma once
-#include "FrameProfiler.h"
 #include "ColorTarget.h"
 #include "CullVisitor.h"
+#include "FrameProfiler.h"
 #include "LightCollector.h"
 #include "PathVisitor.h"
 #include "RenderMode.h"
@@ -15,6 +15,7 @@ class EnvironmentMap;
 class PlanarReflection;
 
 struct RenderStats{
+    unsigned instances = 0, instancedDraws = 0;
     unsigned draws = 0, lights = 0, visitedNodes = 0, screenDraws = 0, screenCopies = 0;
     std::size_t triangles = 0;
     std::map<std::string, std::size_t> lodLevels;
@@ -49,6 +50,14 @@ public:
     // Returns whether frustum culling is enabled.
     bool getCulling() const{
         return m_culling;
+    }
+
+    void setInstancing(bool enabled){
+        m_instancing = enabled;
+    }
+
+    bool getInstancing() const{
+        return m_instancing;
     }
 
     // Selects the existing shader mode for all rendered instances.
@@ -104,6 +113,8 @@ private:
 
     // Draws opaque instances first and transparent instances in stable back-to-front order.
     void drawRenderList(const Camera& camera);
+    void drawOpaque(const std::vector<const RenderNode*>& items,
+                    const std::shared_ptr<Program>& program, bool linearOutput);
 
     // Submits one resolved instance and updates room and transparency counts.
     void drawInstance(const RenderNode& item, const std::shared_ptr<Program>& program ={},
@@ -111,7 +122,7 @@ private:
 
     // Submits a mesh with its resolved transform and rendering state.
     void drawGeometry(const RenderNode& item, const std::shared_ptr<Program>& program,
-                      bool linearOutput);
+                      bool linearOutput, const std::vector<glm::mat4>* models = nullptr);
 
     // Copies the current color before refractive glass samples the background.
     void captureTransmission();
@@ -131,6 +142,7 @@ private:
     RenderStats m_stats;
     CullVisitor m_culler;
     bool m_culling = true;
+    bool m_instancing = true;
     ShadingMode m_shadingMode = ShadingMode::Phong;
 };
 } // namespace vr

@@ -60,6 +60,19 @@ public:
         return m_instancing;
     }
 
+    void setStateCaching(bool enabled){
+        PathVisitor::setStateCaching(enabled);
+        m_culler.setStateCaching(enabled);
+    }
+
+    std::size_t getResolvedStateCacheHits() const{
+        return m_culler.getStateCacheHits();
+    }
+
+    std::size_t getResolvedStateCacheMisses() const{
+        return m_culler.getStateCacheMisses();
+    }
+
     // Selects the existing shader mode for all rendered instances.
     void setShadingMode(ShadingMode mode){
         m_shadingMode = mode;

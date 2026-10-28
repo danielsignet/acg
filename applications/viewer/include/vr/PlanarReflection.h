@@ -18,6 +18,10 @@ public:
         m_enabled = enabled;
     }
 
+    void setStateCaching(bool enabled){
+        m_renderer.setStateCaching(enabled);
+    }
+
     // Updates a visible front-facing mirror; its own surface is excluded from the capture.
     void render(Scene& scene, const Camera& camera, EnvironmentMap* environment,
                 ShadingMode shading, bool culling, bool portals);

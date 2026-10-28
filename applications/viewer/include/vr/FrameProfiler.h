@@ -42,6 +42,8 @@ public:
         AnimationHierarchy,
         AnimationPalettes,
         Skinning,
+        GpuSkinning,
+        SkinBounds,
         Count
     };
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);
@@ -75,6 +77,12 @@ public:
         ReadyProbes,
         SkinnedVertices,
         SkinInfluences,
+        GpuSkinnedVertices,
+        GpuSkinningDraws,
+        CpuSkinPositions,
+        ShadowCacheHits,
+        ShadowReusedFaces,
+        ShadowCacheRebuilds,
         Count
     };
     static constexpr std::size_t CounterCount = static_cast<std::size_t>(Counter::Count);
@@ -110,7 +118,7 @@ public:
         double cpuPercent = 0, gpuPercent = 0;
     };
 
-    static constexpr std::size_t SliceCount = 20;
+    static constexpr std::size_t SliceCount = 22;
 
     class Scope final{
     public:

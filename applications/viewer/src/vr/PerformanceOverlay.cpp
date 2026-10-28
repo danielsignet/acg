@@ -1,24 +1,23 @@
-#include <vr/Application.h>
-#include <vr/SceneOverlay.h>
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <vr/Application.h>
+#include <vr/SceneOverlay.h>
 
 namespace vr{
 namespace{
 constexpr float panelWidth = 584;
 constexpr float counterOffset = static_cast<float>(FrameProfiler::SliceCount - 14) * 11;
-constexpr float panelHeight = 396 + counterOffset + 16;
+constexpr float panelHeight = 396 + counterOffset + 32;
 constexpr std::array<std::size_t, FrameProfiler::SliceCount> displayOrder{
-    9, 10, 13, 14, 15, 16, 17, 18, 1, 0, 11, 12, 8, 2, 3, 7, 4, 5, 6, 19};
+    9, 10, 13, 14, 15, 16, 17, 19, 20, 18, 1, 0, 11, 12, 8, 2, 3, 7, 4, 5, 6, 21};
 const std::array<glm::vec4, FrameProfiler::SliceCount> colors{
-    {{1, 0.72f, 0.3f, 1},{0.76f, 0.6f, 1, 1},{0.3f, 0.95f, 0.8f, 1},
-     {0.4f, 0.75f, 1, 1},{1, 0.55f, 0.7f, 1},{0.65f, 0.9f, 0.4f, 1},
-     {0.65f, 0.72f, 0.8f, 1},{1, 0.5f, 0.2f, 1},{1, 0.87f, 0.3f, 1},
-     {0.4f, 0.85f, 0.8f, 1},{1, 0.4f, 0.4f, 1},{0.45f, 0.65f, 1, 1},
-     {0.65f, 0.85f, 1, 1},{0.4f, 0.9f, 0.7f, 1},{0.9f, 0.65f, 1, 1},
-     {0.65f, 0.8f, 1, 1},{1, 0.8f, 0.45f, 1},{1, 0.45f, 0.6f, 1},
-     {0.65f, 0.9f, 0.75f, 1},{0.9f, 0.92f, 0.95f, 1}}};
+    {{1, 0.72f, 0.3f, 1},{0.76f, 0.6f, 1, 1},{0.3f, 0.95f, 0.8f, 1},{0.4f, 0.75f, 1, 1},
+     {1, 0.55f, 0.7f, 1},{0.65f, 0.9f, 0.4f, 1},{0.65f, 0.72f, 0.8f, 1},{1, 0.5f, 0.2f, 1},
+     {1, 0.87f, 0.3f, 1},{0.4f, 0.85f, 0.8f, 1},{1, 0.4f, 0.4f, 1},{0.45f, 0.65f, 1, 1},
+     {0.65f, 0.85f, 1, 1},{0.4f, 0.9f, 0.7f, 1},{0.9f, 0.65f, 1, 1},{0.65f, 0.8f, 1, 1},
+     {1, 0.8f, 0.45f, 1},{1, 0.45f, 0.6f, 1},{0.65f, 0.9f, 0.75f, 1},{0.5f, 0.9f, 1, 1},
+     {0.9f, 0.7f, 0.5f, 1},{0.9f, 0.92f, 0.95f, 1}}};
 
 // Formats the few timing and percentage values shown in the compact view.
 std::string decimal(double value, int precision = 2){
@@ -130,30 +129,38 @@ void SceneOverlay::drawPerformance(const Application& app){
              compact(value(Counter::ShadowTriangles)) +
              " shadow  |  Shadow views: " + compact(value(Counter::ShadowPasses)),
          32, top + 326 + counterOffset, 11, muted);
-    text("CPU skinning: " + compact(value(Counter::SkinnedVertices)) + " vertices / " +
-             compact(value(Counter::SkinInfluences)) + " joint influences per frame",
+    text("Shadow cache: " + compact(value(Counter::ShadowCacheHits)) + " hits / " +
+             compact(value(Counter::ShadowReusedFaces)) + " reused faces / " +
+             compact(value(Counter::ShadowCacheRebuilds)) + " static rebuilds",
          32, top + 342 + counterOffset, 11, muted);
+    text(value(Counter::GpuSkinningDraws) > 0
+             ? "GPU skinning: " + compact(value(Counter::GpuSkinnedVertices)) + " vertices / " +
+                   compact(value(Counter::GpuSkinningDraws)) +
+                   " draws | CPU positions: " + compact(value(Counter::CpuSkinPositions))
+             : "CPU skinning: " + compact(value(Counter::SkinnedVertices)) + " vertices / " +
+                   compact(value(Counter::SkinInfluences)) + " influences",
+         32, top + 358 + counterOffset, 11, muted);
     text("Culled: " + compact(value(Counter::FrustumRejected) + value(Counter::PortalRejected)) +
              " camera subtrees / " + compact(value(Counter::ShadowRejected)) +
              " shadow instances  |  LOD fade: " + compact(value(Counter::LodFadeDraws)) + " draws",
-         32, top + 358 + counterOffset, 11, muted);
+         32, top + 374 + counterOffset, 11, muted);
     text(app.m_lastSubdivision.empty() ? "Last subdivision: none"
                                        : "Last subdivision: " + app.m_lastSubdivision + " / " +
                                              decimal(app.m_lastSubdivisionMs) +
                                              " ms CPU (mesh uploads included in draw passes)",
-         32, top + 374 + counterOffset, 10, foreground);
+         32, top + 390 + counterOffset, 10, foreground);
     text("AA: " + std::string(antialiasingName(app.m_antialiasingMode)) +
              " | filter / resolve GPU: " +
              decimal(summary.gpu[static_cast<std::size_t>(FrameProfiler::Stage::Antialiasing)] +
                      summary.gpu[static_cast<std::size_t>(FrameProfiler::Stage::GBufferResolve)]) +
              " ms | Reflections: " + reflectionName(app.m_reflectionMode),
-         32, top + 390 + counterOffset, 10, foreground);
+         32, top + 406 + counterOffset, 10, foreground);
     text("Averages: " + std::to_string(summary.samples) + " frames / " +
              decimal(summary.frameMs * summary.samples / 1000, 1) + " s | Probes: " +
              std::to_string(app.m_reflectionProbes ? app.m_reflectionProbes->getReadyCount() : 0) +
              "/" +
              std::to_string(app.m_reflectionProbes ? app.m_reflectionProbes->getProbeCount() : 0) +
              " ready / " + decimal(value(Counter::ProbeFaces), 2) + " faces per frame (avg)",
-         32, top + 402 + counterOffset, 9, foreground);
+         32, top + 418 + counterOffset, 9, foreground);
 }
 } // namespace vr

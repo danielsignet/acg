@@ -4,16 +4,12 @@
 #include <stdexcept>
 #include <vr/GLState.h>
 #include <vr/Geometry.h>
+#include <vr/GpuSkinning.h>
+#include <vr/SkeletalAnimation.h>
 
 namespace vr{
 // Releases the OpenGL buffers owned by this mesh.
 Geometry::~Geometry(){
-    if (m_instanceNormals){
-        glDeleteBuffers(1, &m_instanceNormals);
-    }
-    if (m_instances){
-        glDeleteBuffers(1, &m_instances);
-    }
     if (m_ebo){
         glDeleteBuffers(1, &m_ebo);
     }
@@ -70,9 +66,13 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
         buildTangents(data, indices);
     }
     m_vertices = std::move(data);
+    m_dataRevision = nextRevision();
     m_indices = std::move(indices);
     m_dirty = true;
     m_skin.reset();
+    m_gpuSkinning.reset();
+    m_gpuData.reset();
+    m_skinRevision = m_positionRevision = 0;
     m_skinInfluences = 0;
     m_restVertices.reset();
     m_vertexDirty = m_rayDirty = false;
@@ -83,6 +83,7 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
 
 // Computes the local bound from the stored vertex positions.
 BoundingBox Geometry::computeBound() const{
+    ensureSkinPositions();
     BoundingBox bound;
     for (const auto& vertex : m_vertices){
         bound.expandBy(vertex.position);
@@ -90,42 +91,76 @@ BoundingBox Geometry::computeBound() const{
     return bound;
 }
 
-// Binds the VAO and uploads changed vertices and indices for either draw path.
+// Binds render attributes independently of CPU skin weights.
+void Geometry::bindAttributes(GLuint buffer) const{
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GpuVertex),
+                          reinterpret_cast<void*>(offsetof(GpuVertex, position)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GpuVertex),
+                          reinterpret_cast<void*>(offsetof(GpuVertex, normal)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(GpuVertex),
+                          reinterpret_cast<void*>(offsetof(GpuVertex, texCoord)));
+    glEnableVertexAttribArray(7);
+    glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(GpuVertex),
+                          reinterpret_cast<void*>(offsetof(GpuVertex, tangent)));
+}
+
 void Geometry::bind() const{
+    const bool gpu =
+        m_gpuData && m_skin && m_gpuSkinning && m_gpuData->revision == m_skin->revision;
+    if (!gpu){
+        updateSkin();
+    }
     if (!m_vao){
         glGenVertexArrays(1, &m_vao);
         glGenBuffers(1, &m_vbo);
         glGenBuffers(1, &m_ebo);
     }
     GLState::bindVertexArray(m_vao);
-    if (m_dirty){
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(m_vertices.size() * sizeof(Vertex)),
-                     m_vertices.data(), GL_STATIC_DRAW);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     static_cast<GLsizeiptr>(m_indices.size() * sizeof(unsigned)), m_indices.data(),
-                     GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              reinterpret_cast<void*>(offsetof(Vertex, position)));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              reinterpret_cast<void*>(offsetof(Vertex, normal)));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              reinterpret_cast<void*>(offsetof(Vertex, texCoord)));
-        glEnableVertexAttribArray(7);
-        glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                              reinterpret_cast<void*>(offsetof(Vertex, tangent)));
-        m_dirty = false;
-        m_vertexDirty = false;
+    if (gpu){
+        const auto buffer = m_gpuData->output.getBuffer();
+        if (m_boundVertexBuffer != buffer){
+            bindAttributes(buffer);
+            m_boundVertexBuffer = buffer;
+        }
+        if (m_dirty){
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         static_cast<GLsizeiptr>(m_indices.size() * sizeof(unsigned)),
+                         m_indices.data(), GL_STATIC_DRAW);
+            m_dirty = false;
+        }
+        return;
     }
-    if (m_vertexDirty){
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(m_vertices.size() * sizeof(Vertex)),
-                     m_vertices.data(), GL_STREAM_DRAW);
-        m_vertexDirty = false;
+    if (m_dirty || m_vertexDirty){
+        m_uploadVertices.clear();
+        m_uploadVertices.reserve(m_vertices.size());
+        for (const auto& vertex : m_vertices){
+            m_uploadVertices.push_back(
+                {vertex.position, vertex.normal, vertex.texCoord, vertex.tangent});
+        }
+        if (m_skin){
+            m_boundVertexBuffer = m_vertexStream.acquire(
+                m_uploadVertices.size() * sizeof(GpuVertex), m_uploadVertices.data());
+            bindAttributes(m_boundVertexBuffer);
+        } else{
+            glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+            glBufferData(GL_ARRAY_BUFFER,
+                         static_cast<GLsizeiptr>(m_uploadVertices.size() * sizeof(GpuVertex)),
+                         m_uploadVertices.data(), GL_STATIC_DRAW);
+            bindAttributes(m_vbo);
+            m_boundVertexBuffer = m_vbo;
+        }
+        if (m_dirty){
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         static_cast<GLsizeiptr>(m_indices.size() * sizeof(unsigned)),
+                         m_indices.data(), GL_STATIC_DRAW);
+        }
+        m_dirty = m_vertexDirty = false;
     }
 }
 
@@ -136,6 +171,9 @@ void Geometry::draw() const{
     }
     bind();
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
+    if (m_skin && !m_gpuSkinning){
+        m_vertexStream.seal();
+    }
     GLState::bindVertexArray(0);
 }
 
@@ -148,49 +186,43 @@ void Geometry::drawInstanced(const std::vector<glm::mat4>& models, bool surface)
         throw std::length_error("Too many geometry instances");
     }
     bind();
-    if (!m_instances){
-        glGenBuffers(1, &m_instances);
-        glBindBuffer(GL_ARRAY_BUFFER, m_instances);
-        for (unsigned column = 0; column < 4; ++column){
-            const unsigned attribute = 3 + column;
-            glEnableVertexAttribArray(attribute);
-            glVertexAttribPointer(attribute, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                                  reinterpret_cast<void*>(column * sizeof(glm::vec4)));
-            glVertexAttribDivisor(attribute, 1);
-        }
+    m_instanceStream.acquire(models.size() * sizeof(glm::mat4), models.data());
+    for (unsigned column = 0; column < 4; ++column){
+        const unsigned attribute = 3 + column;
+        glEnableVertexAttribArray(attribute);
+        glVertexAttribPointer(attribute, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                              reinterpret_cast<void*>(column * sizeof(glm::vec4)));
+        glVertexAttribDivisor(attribute, 1);
     }
-    glBindBuffer(GL_ARRAY_BUFFER, m_instances);
-    const auto bytes = static_cast<GLsizeiptr>(models.size() * sizeof(glm::mat4));
-    glBufferData(GL_ARRAY_BUFFER, bytes, models.data(), GL_STREAM_DRAW);
     if (surface){
-        if (!m_instanceNormals){
-            glGenBuffers(1, &m_instanceNormals);
-            glBindBuffer(GL_ARRAY_BUFFER, m_instanceNormals);
-            for (unsigned column = 0; column < 3; ++column){
-                const unsigned attribute = 8 + column;
-                glEnableVertexAttribArray(attribute);
-                glVertexAttribPointer(attribute, 3, GL_FLOAT, GL_FALSE, sizeof(SurfaceTransform),
-                                      reinterpret_cast<void*>(offsetof(SurfaceTransform, normal) +
-                                                              column * sizeof(glm::vec3)));
-                glVertexAttribDivisor(attribute, 1);
-            }
-            glEnableVertexAttribArray(11);
-            glVertexAttribPointer(11, 1, GL_FLOAT, GL_FALSE, sizeof(SurfaceTransform),
-                                  reinterpret_cast<void*>(offsetof(SurfaceTransform, tangentSign)));
-            glVertexAttribDivisor(11, 1);
-        }
         std::vector<SurfaceTransform> bases;
         bases.reserve(models.size());
         for (const auto& model : models){
             bases.push_back(getSurfaceTransform(model));
         }
-        glBindBuffer(GL_ARRAY_BUFFER, m_instanceNormals);
-        glBufferData(GL_ARRAY_BUFFER,
-                     static_cast<GLsizeiptr>(bases.size() * sizeof(SurfaceTransform)), bases.data(),
-                     GL_STREAM_DRAW);
+        m_normalStream.acquire(bases.size() * sizeof(SurfaceTransform), bases.data());
+        for (unsigned column = 0; column < 3; ++column){
+            const unsigned attribute = 8 + column;
+            glEnableVertexAttribArray(attribute);
+            glVertexAttribPointer(attribute, 3, GL_FLOAT, GL_FALSE, sizeof(SurfaceTransform),
+                                  reinterpret_cast<void*>(offsetof(SurfaceTransform, normal) +
+                                                          column * sizeof(glm::vec3)));
+            glVertexAttribDivisor(attribute, 1);
+        }
+        glEnableVertexAttribArray(11);
+        glVertexAttribPointer(11, 1, GL_FLOAT, GL_FALSE, sizeof(SurfaceTransform),
+                              reinterpret_cast<void*>(offsetof(SurfaceTransform, tangentSign)));
+        glVertexAttribDivisor(11, 1);
     }
     glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT,
                             nullptr, static_cast<GLsizei>(models.size()));
+    m_instanceStream.seal();
+    if (surface){
+        m_normalStream.seal();
+    }
+    if (m_skin && !m_gpuSkinning){
+        m_vertexStream.seal();
+    }
     GLState::bindVertexArray(0);
 }
 
@@ -215,3 +247,15 @@ Geometry::SurfaceTransform Geometry::getSurfaceTransform(const glm::mat4& model)
     return basis;
 }
 } // namespace vr
+
+std::vector<vr::GpuVertex> vr::Geometry::readGpuVertices() const{
+    if (!m_gpuData || !m_gpuData->output.getBuffer()){
+        throw std::logic_error("GPU deformation has not been prepared");
+    }
+    std::vector<GpuVertex> vertices(m_vertices.size());
+    glBindBuffer(GL_ARRAY_BUFFER, m_gpuData->output.getBuffer());
+    glGetBufferSubData(GL_ARRAY_BUFFER, 0,
+                       static_cast<GLsizeiptr>(vertices.size() * sizeof(GpuVertex)),
+                       vertices.data());
+    return vertices;
+}

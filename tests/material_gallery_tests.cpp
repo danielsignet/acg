@@ -1,16 +1,16 @@
-#include <vr/DeferredRenderer.h>
-#include <vr/EnvironmentMap.h>
-#include <vr/PlanarReflection.h>
-#include <vr/ReflectionProbes.h>
-#include <vr/ModelInstance.h>
-#include <vr/SceneGraph.h>
 #include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <vr/DeferredRenderer.h>
+#include <vr/EnvironmentMap.h>
+#include <vr/ModelInstance.h>
+#include <vr/PlanarReflection.h>
+#include <vr/ReflectionProbes.h>
+#include <vr/SceneGraph.h>
 
 namespace{
 constexpr int width = 256, height = 192;
@@ -141,6 +141,13 @@ void materials(const std::filesystem::path& root){
         "The HDRI illuminates metal without point lights and supplies a normalized sun direction");
     check(changed(environmentOnly, render(false)) < 120,
           "Environment lighting and sky agree between forward and deferred rendering");
+    for (auto mode :{vr::ShadingMode::Phong, vr::ShadingMode::BlinnPhong}){
+        renderer.setShadingMode(mode);
+        check(changed(environmentOnly, render()) < 5 &&
+                  changed(environmentOnly, render(false)) < 120,
+              "Metallic paint retains its colored environment reflection across highlight models");
+    }
+    renderer.setShadingMode(vr::ShadingMode::CookTorrance);
     camera->setLookAt({0.2f, 0, 4},{0.2f, 0, 0});
     const auto translated = render();
     const auto corner = ((height - 12) * width + 12) * 4;

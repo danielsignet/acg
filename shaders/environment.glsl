@@ -30,13 +30,8 @@ vec3 diffuseEnvironment(vec3 n){
 vec3 environmentLighting(Material material, vec3 albedo, vec3 normal, vec3 view, float ao, int probe){
     float nv = max(dot(normal, view), 0.001);
     float roughness = clamp(material.roughness, 0.045, 1.0);
-    if (uBrdfMode != 2){
-        float glossRoughness = pow(2.0 / (material.shininess + 2.0), 0.25);
-        vec3 reflected = reflectedEnvironment(reflect(-view, normal),
-                                               glossRoughness * uEnvironmentMaxLod, probe);
-        return ((1.0 - material.metallic) * albedo * diffuseEnvironment(normal) +
-                 material.specular * reflected) * ao;
-    }
+    // Imported metallic/roughness materials retain their finish when the direct-light
+    // highlight model changes. Untinted Phong specular turns colored metals into chrome.
     vec3 f0 = mix(vec3(0.04), clamp(albedo, 0.0, 1.0), material.metallic);
     vec3 fresnel = f0 + (max(vec3(1.0 - roughness), f0) - f0) * pow(1.0 - nv, 5.0);
     vec3 diffuse = (1.0 - fresnel) * (1.0 - material.metallic) * albedo * diffuseEnvironment(normal);

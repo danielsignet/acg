@@ -40,6 +40,8 @@ public:
     static void bindFramebuffer(GLenum target, GLuint framebuffer);
     static void deleteFramebuffers(GLsizei count, const GLuint* framebuffers);
     static void bindVertexArray(GLuint array);
+    static void useProgram(GLuint program);
+    static void bindTransformFeedback(GLuint feedback);
     static void deleteVertexArrays(GLsizei count, const GLuint* arrays);
     static void viewport(GLint x, GLint y, GLsizei width, GLsizei height);
     static void depthFunc(GLenum function);

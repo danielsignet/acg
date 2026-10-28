@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 #include <vr/GLState.h>
 #include <vr/ResourceLocator.h>
 #include <vr/Viewer.h>
@@ -59,6 +60,12 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_noAO = true;
         } else if (option == "--no-bump"){
             m_noBump = true;
+        } else if (option == "--cpu-skinning"){
+            m_cpuSkinning = true;
+        } else if (option == "--no-shadow-cache"){
+            m_noShadowCache = true;
+        } else if (option == "--no-scene-cache"){
+            m_noSceneCache = true;
         } else if (option == "--performance"){
             m_performance = true;
         } else if (option == "--benchmark"){
@@ -122,7 +129,8 @@ bool Viewer::parseOptions(int argc, char** argv){
                          "[--buffer lit|positions|normals|albedo|specular|depth|"
                          "ambient|emissive|plane|ao] [--bloom] [--dof] "
                          "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
-                         "[--no-menus] [--no-bump] [--no-vsync] [--benchmark output.csv] "
+                         "[--no-menus] [--no-bump] [--no-vsync] [--cpu-skinning] [--benchmark "
+                         "output.csv] [--no-shadow-cache] [--no-scene-cache] "
                          "[--aa off|fxaa|msaa] "
                          "[--reflections off|environment|cubemaps] "
                          "[--shading phong|blinn|cook] "
@@ -200,6 +208,16 @@ int Viewer::run(int argc, char** argv){
         return 0;
     }
     initialize();
+    if (m_cpuSkinning){
+        m_application->m_gpuSkinningEnabled = false;
+        m_application->m_gpuSkinning.reset();
+    }
+    m_application->m_shadowCaching = !m_noShadowCache;
+    m_application->m_sceneCaching = !m_noSceneCache;
+    m_application->m_shadowRenderer->setCaching(!m_noShadowCache);
+    m_application->m_shadowRenderer->setStateCaching(!m_noSceneCache);
+    m_application->m_renderer->setStateCaching(!m_noSceneCache);
+    m_application->m_reflection->setStateCaching(!m_noSceneCache);
     int width;
     int height;
     glfwGetFramebufferSize(m_window, &width, &height);
@@ -333,6 +351,18 @@ void Viewer::writeBenchmark() const{
     for (const auto& stage : FrameProfiler::descriptions()){
         output << ",\"cpu_" << stage.name << "_ms\",\"gpu_" << stage.name << "_ms\"";
     }
+    using Counter = FrameProfiler::Counter;
+    const std::pair<const char*, Counter> counts[]{
+        {"shadow_draws", Counter::ShadowDraws},
+        {"shadow_cache_hits", Counter::ShadowCacheHits},
+        {"shadow_reused_faces", Counter::ShadowReusedFaces},
+        {"shadow_cache_rebuilds", Counter::ShadowCacheRebuilds},
+        {"gpu_skinned_vertices", Counter::GpuSkinnedVertices},
+        {"cpu_skinned_vertices", Counter::SkinnedVertices},
+        {"cpu_skin_positions", Counter::CpuSkinPositions}};
+    for (const auto& counter : counts){
+        output << ',' << counter.first;
+    }
     output << '\n'
            << m_application->m_width << ',' << m_application->m_height << ','
            << m_application->m_vsync << ',' << summary.samples << ',' << summary.gpuSamples << ','
@@ -340,6 +370,9 @@ void Viewer::writeBenchmark() const{
            << (summary.frameMs > 0 ? 1000 / summary.frameMs : 0);
     for (std::size_t i = 0; i < FrameProfiler::StageCount; ++i){
         output << ',' << summary.cpu[i] << ',' << summary.gpu[i];
+    }
+    for (const auto& counter : counts){
+        output << ',' << summary.counters[static_cast<std::size_t>(counter.second)];
     }
     output << '\n';
     std::cout << "Frame benchmark: " << summary.frameMs << " ms / " << 1000 / summary.frameMs

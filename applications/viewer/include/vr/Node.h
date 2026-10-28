@@ -70,6 +70,11 @@ public:
 
     // Bounds are expressed in the parent's coordinates, including a local transform.
     const BoundingBox& getBound() const;
+    BoundingBox getWorldBound(const glm::mat4& parent) const;
+
+    std::size_t getWorldBoundBuildCount() const{
+        return m_worldBoundBuildCount;
+    }
 
     // Computes this node type's bound in its parent coordinate system.
     virtual BoundingBox computeBound() const{
@@ -77,7 +82,7 @@ public:
     }
 
     // Invalidates the cached bound and every ancestor reached through DAG parents.
-    void dirtyBound();
+    void dirtyBound() const;
 
     // Enables volume rejection for this subtree; disabled nodes still obey visibility.
     void setCullingEnabled(bool enabled){
@@ -140,6 +145,15 @@ private:
     mutable BoundingBox m_bound;
     mutable bool m_boundDirty = true;
     mutable std::size_t m_boundBuildCount = 0;
+
+    struct WorldBound{
+        glm::mat4 parent;
+        BoundingBox bound;
+        std::size_t revision;
+    };
+
+    mutable std::vector<WorldBound> m_worldBounds;
+    mutable std::size_t m_worldBoundBuildCount = 0;
     mutable bool m_cullingExemption = false;
     bool m_cullingEnabled = true;
     bool m_visible = true;

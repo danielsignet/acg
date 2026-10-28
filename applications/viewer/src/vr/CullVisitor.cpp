@@ -33,7 +33,7 @@ void CullVisitor::within(Node& node, const std::function<void()>& action){
         const auto& bound = node.getBound();
         if (bound.valid()){
             ++m_stats.boundsTested;
-            const auto result = m_frustum->classify(bound.transformed(m_models.back()));
+            const auto result = m_frustum->classify(node.getWorldBound(m_models.back()));
             if (result == Visibility::Outside){
                 ++m_stats.subtreesRejected;
                 m_stats.rejectedNames.push_back(node.getName());
@@ -45,7 +45,7 @@ void CullVisitor::within(Node& node, const std::function<void()>& action){
     const auto& room = node.getRoomId().empty() ? m_roomId : node.getRoomId();
     if (rejectable && m_portals && m_portals->active && !room.empty()){
         const auto found = m_portals->volumes.find(room);
-        const auto world = node.getBound().transformed(m_models.back());
+        const auto world = node.getWorldBound(m_models.back());
         if (found == m_portals->volumes.end() ||
             !std::any_of(found->second.begin(), found->second.end(),
                          [&](const auto& volume){ return volume.intersects(world); })){

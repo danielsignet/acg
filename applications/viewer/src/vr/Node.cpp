@@ -12,8 +12,24 @@ const BoundingBox& Node::getBound() const{
     return m_bound;
 }
 
+BoundingBox Node::getWorldBound(const glm::mat4& parent) const{
+    const auto& local = getBound();
+    for (const auto& entry : m_worldBounds){
+        if (entry.revision == m_boundBuildCount && entry.parent == parent){
+            return entry.bound;
+        }
+    }
+    const auto world = local.transformed(parent);
+    if (m_worldBounds.size() == 8){
+        m_worldBounds.clear();
+    }
+    m_worldBounds.push_back({parent, world, m_boundBuildCount});
+    ++m_worldBoundBuildCount;
+    return world;
+}
+
 // Invalidates the cached bound and every ancestor reached through DAG parents.
-void Node::dirtyBound(){
+void Node::dirtyBound() const{
     if (m_boundDirty){
         return;
     }

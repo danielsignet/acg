@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
+#include <vr/GLState.h>
 #include <vr/Program.h>
 
 namespace vr{
@@ -67,17 +68,27 @@ GLuint Program::compileShader(const std::filesystem::path& path, GLenum type){
 
 // Compiles shader stages and links them into one owned OpenGL program.
 Program::Program(const std::filesystem::path& vertex, const std::filesystem::path& fragment,
-                 const std::filesystem::path& geometry){
+                 const std::filesystem::path& geometry, const std::vector<std::string>& feedback){
     std::vector<GLuint> shaders;
     try{
         shaders.push_back(compileShader(vertex, GL_VERTEX_SHADER));
-        shaders.push_back(compileShader(fragment, GL_FRAGMENT_SHADER));
+        if (!fragment.empty()){
+            shaders.push_back(compileShader(fragment, GL_FRAGMENT_SHADER));
+        }
         if (!geometry.empty()){
             shaders.push_back(compileShader(geometry, GL_GEOMETRY_SHADER));
         }
         m_id = glCreateProgram();
         for (auto shader : shaders){
             glAttachShader(m_id, shader);
+        }
+        if (!feedback.empty()){
+            std::vector<const char*> names;
+            for (const auto& name : feedback){
+                names.push_back(name.c_str());
+            }
+            glTransformFeedbackVaryings(m_id, static_cast<GLsizei>(names.size()), names.data(),
+                                        GL_INTERLEAVED_ATTRIBS);
         }
         glLinkProgram(m_id);
         GLint status = 0;
@@ -104,13 +115,18 @@ Program::Program(const std::filesystem::path& vertex, const std::filesystem::pat
 // Releases the linked OpenGL shader program.
 Program::~Program(){
     if (m_id){
+        GLint current = 0;
+        GLState::getIntegerv(GL_CURRENT_PROGRAM, &current);
+        if (static_cast<GLuint>(current) == m_id){
+            GLState::useProgram(0);
+        }
         glDeleteProgram(m_id);
     }
 }
 
 // Makes this linked shader program current.
 void Program::use() const{
-    glUseProgram(m_id);
+    GLState::useProgram(m_id);
 }
 
 // Uploads one typed uniform, caching the shader location by name.

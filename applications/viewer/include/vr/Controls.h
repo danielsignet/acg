@@ -63,6 +63,7 @@ public:
         OcclusionBuffer,
         Subdivision,
         CarHeadlights,
+        ModelAnimation,
         Reflections
     };
 

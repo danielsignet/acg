@@ -3,13 +3,24 @@
 #include "NodeVisitor.h"
 #include <optional>
 #include <functional>
+#include <cstdint>
+#include <array>
 
 namespace vr{
+struct SkinningPose;
+
+struct SkinWeights{
+    static constexpr unsigned Count = 12;
+    std::array<unsigned, Count> joints{};
+    std::array<float, Count> weights{};
+};
+
 struct Vertex{
     glm::vec3 position;
     glm::vec3 normal;
     glm::vec2 texCoord;
     glm::vec4 tangent{0};
+    SkinWeights skin;
 };
 
 class Geometry : public Node{
@@ -27,7 +38,22 @@ public:
     // Validates and stores local vertex attributes and triangle indices.
     void setData(std::vector<glm::vec3> vertices, std::vector<unsigned> indices,
                  std::vector<glm::vec3> normals, std::vector<glm::vec2> texCoords ={},
-                 std::vector<glm::vec4> tangents ={});
+                 std::vector<glm::vec4> tangents ={}, std::vector<SkinWeights> skin ={});
+
+    // Retains the undeformed control mesh and attaches its evaluated palette.
+    void setSkin(std::shared_ptr<SkinningPose> skin);
+    // Updates positions and tangent frames once per evaluated skeleton pose.
+    void updateSkin();
+
+    // Shares the palette with in-memory subdivision variants.
+    const std::shared_ptr<SkinningPose>& getSkin() const{
+        return m_skin;
+    }
+
+    // Returns the undeformed control mesh for subdivision.
+    const std::vector<Vertex>& getRestVertices() const{
+        return m_skin ? m_restVertices : m_vertices;
+    }
 
     // Returns the mesh vertices in their local coordinate system.
     const std::vector<Vertex>& getVertices() const{
@@ -67,6 +93,8 @@ private:
 
     // Builds a balanced hierarchy over triangle bounds without issuing OpenGL calls.
     void buildRayTree() const;
+    // Refits picking bounds after deformation while retaining the tree topology.
+    void refitRayTree() const;
 
     struct RayNode{
         BoundingBox bounds;
@@ -77,6 +105,10 @@ private:
     std::vector<unsigned> m_indices;
     mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0, m_instances = 0;
     mutable bool m_dirty = true;
+    mutable bool m_vertexDirty = false, m_rayDirty = false;
+    std::shared_ptr<SkinningPose> m_skin;
+    std::vector<Vertex> m_restVertices;
+    std::uint64_t m_skinRevision = 0;
     mutable std::vector<RayNode> m_rayNodes;
     mutable std::vector<unsigned> m_rayTriangles;
 };

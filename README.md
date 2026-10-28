@@ -54,6 +54,7 @@ WSL requires a graphical session such as WSLg.
 | Space | Reset the camera |
 | F4 or Subdivide | Aim at a highlighted model and toggle one cached subdivision level for that instance; generated in memory on first use; No target when nothing is selected |
 | Headlights button by the crosshair | Shown when targeting the car; toggle its headlamps and light beams, initially off |
+| Animation button by the crosshair | Shown for animated models; cycle source animation clips; the dragon starts in Idle, and F pauses/resumes playback |
 | Tab or Hide menus | Hide/show the menu bars and buffer previews; crosshair and target actions stay visible, including in F1 |
 | R | Reload the scene and shaders |
 | Esc | Close the performance view or menu, then the program |
@@ -62,6 +63,8 @@ WSL requires a graphical session such as WSLg.
 
 Based on Anders Backman/vrguru's VRLib under the [MIT license](LICENSE).
 Bundled dependencies and assets retain their original notices.
+
+Dragon model, rig and animations: [3DHaupt](https://blendswap.com/blend/10300), [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The bundled `models/dragon/Dragon.fbx` has been replaced with an animated export from `BGE Dragon 2.07.blend`. Rig constraints are baked; the original mesh topology is preserved without subdivision.
 
 Sky HDRI: [Kloofendal 48d Partly Cloudy (Pure Sky)](https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky), Greg Zaal and Jarod Guest, [CC0](https://polyhaven.com/license).
 Filmic tone curve: [Krzysztof Narkowicz](https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/), CC0.

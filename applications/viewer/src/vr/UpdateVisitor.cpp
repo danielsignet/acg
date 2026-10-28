@@ -46,7 +46,9 @@ void UpdateVisitor::apply(LOD& node){
 
 // Executes this mesh's callback once even when the mesh is shared.
 void UpdateVisitor::apply(Geometry& node){
-    enter(node);
+    if (enter(node)){
+        node.updateSkin();
+    }
 }
 
 // Executes this light's callback once per update.

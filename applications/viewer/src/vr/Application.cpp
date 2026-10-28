@@ -9,6 +9,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <vr/Application.h>
+#include <vr/SkeletalAnimation.h>
 #include <vr/DotVisitor.h>
 #include <vr/OpenGL.h>
 #include <vr/RenderingValidator.h>
@@ -228,6 +229,13 @@ void Application::execute(Controls::Action action){
                        "; averages reset. Cycle: Off > FXAA > MSAA 4x";
         } catch (const std::exception& error){
             m_status = error.what();
+        }
+    } else if (action == Action::ModelAnimation){
+        if (m_target){
+            if (const auto animation = m_target->instance->getAnimation()){
+                animation->setClip((animation->getClip() + 1) % animation->getClips().size());
+                m_status = "Animation: " + animation->getClips()[animation->getClip()].name;
+            }
         }
     } else if (action == Action::CarHeadlights){
         if (!carTargeted()){

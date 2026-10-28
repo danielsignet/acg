@@ -1,6 +1,8 @@
 #pragma once
 #include <assimp/scene.h>
 #include <vr/Reader.h>
+#include <map>
+#include <vr/SkeletalAnimation.h>
 
 namespace vr{
 class ModelReader final{
@@ -28,6 +30,8 @@ private:
 
     // Restores local transforms while reusing shared mesh objects.
     std::shared_ptr<Node> readNode(const aiNode& node) const;
+    // Copies source clips and bone bindings before the importer releases its scene.
+    std::shared_ptr<SkeletalAnimation> readAnimation(const aiScene& scene);
 
     // Maps Assimp row indexing to GLM column indexing.
     static glm::mat4 convertMatrix(const aiMatrix4x4& matrix);
@@ -36,5 +40,7 @@ private:
     float m_normalY = 1;
     std::vector<std::shared_ptr<State>> m_materials;
     std::vector<std::shared_ptr<Geometry>> m_meshes;
+    std::map<const aiNode*, unsigned> m_jointIndices;
+    std::shared_ptr<SkeletalAnimation> m_animation;
 };
 } // namespace vr

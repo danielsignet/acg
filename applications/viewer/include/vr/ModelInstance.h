@@ -2,6 +2,8 @@
 #include "Group.h"
 
 namespace vr{
+class SkeletalAnimation;
+
 class ModelInstance final : public Group{
 public:
     using Group::Group;
@@ -12,6 +14,8 @@ public:
 
     // Builds the refined variant on first use and toggles only this model placement.
     void setSubdivided(bool enabled);
+    // Returns this asset's source-animation controller when one was imported.
+    std::shared_ptr<SkeletalAnimation> getAnimation() const;
 
     // Reports which cached variant is active for picking and the toolbar.
     bool getSubdivided() const{

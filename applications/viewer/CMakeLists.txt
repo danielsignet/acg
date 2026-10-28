@@ -1,6 +1,7 @@
 add_library(vrlib STATIC
     src/glad.c
     src/vr/SpinCallback.cpp
+    src/vr/SkeletalAnimation.cpp
     src/vr/OrbitCallback.cpp
     src/vr/LodDemoCallback.cpp
     src/vr/BoundingBox.cpp
@@ -28,6 +29,7 @@ add_library(vrlib STATIC
     src/vr/FramebufferState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
+    src/vr/GeometrySkin.cpp
     src/vr/GeometryTangents.cpp
     src/vr/GeometryRay.cpp
     src/vr/Subdivision.cpp
@@ -44,6 +46,7 @@ add_library(vrlib STATIC
     src/vr/Light.cpp
     src/vr/Material.cpp
     src/vr/ModelReader.cpp
+    src/vr/ModelAnimationReader.cpp
     src/vr/NodeVisitor.cpp
     src/vr/PathVisitor.cpp
     src/vr/Program.cpp
@@ -101,6 +104,10 @@ set(VIEWER_RESOURCES
     models/5426_C3PO_Robot_Star_Wars.obj
     models/5426_C3PO_Robot_Star_Wars.mtl
     "models/Altair Model/altair.obj"
+    models/dragon/Dragon.fbx
+    models/dragon/readme.txt
+    models/dragon/textures/Dragon_Bump_Col2.jpg
+    models/dragon/textures/Dragon_Nor_mirror2.jpg
     models/cow/cow_0.99.obj
     models/cow/cow_0.5.obj
     models/cow/cow_0.3.obj

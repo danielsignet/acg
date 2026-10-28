@@ -17,6 +17,8 @@ public:
 private:
     // Checks material-gallery controls, reflected geometry and persistent BRDF selection.
     void validateMaterialGallery();
+    // Checks the repaired dragon's textures, targeting, placement and cached subdivision.
+    void validateDragon();
     // Checks reflection-source controls, local captures, disabled passes and persistence.
     void validateReflections();
     // Checks the shared AA button, average reset and persistence across renderer and scene changes.

@@ -459,6 +459,20 @@ private:
             check(draw.state.getTexture(0) != nullptr,
                   "Stale author texture paths must resolve to the bundled textures directory");
         }
+        const auto dragon = reader.readModel("models/dragon/Dragon.fbx");
+        Probe dragonProbe;
+        dragon->accept(dragonProbe);
+        std::size_t dragonTriangles = 0;
+        for (const auto& draw : dragonProbe.draws){
+            dragonTriangles += draw.node->getTriangleCount();
+            check(draw.state.getTexture(0) && draw.state.getNormalMap(),
+                  "The repaired dragon retains its diffuse and normal textures");
+        }
+        check(dragonProbe.draws.size() == 3 && dragonTriangles == 37986 &&
+                  dragon->getBound().valid() && dragon->getUpdateCallback(),
+              "The animated FBX preserves the dragon's three meshes and original topology");
+        rejects([&]{ reader.readModel("models/dragon/Dragon.fbx", true); },
+                "Static flattening cannot silently discard source animation");
         rejects([&]{ reader.readModel("models/missing.obj"); },
                 "Missing model must report an error");
         reader.registerNode("ground", vr::GeometryFactory::createGround());

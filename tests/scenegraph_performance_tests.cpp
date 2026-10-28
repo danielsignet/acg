@@ -120,6 +120,56 @@ void lights(){
 }
 
 void caches(){
+    auto cachedRoot = std::make_shared<vr::Group>();
+    auto rootState = std::make_shared<vr::State>();
+    auto rootMaterial = std::make_shared<vr::Material>();
+    rootState->setMaterial(rootMaterial);
+    rootState->setUniform("uTint", glm::vec3(1));
+    rootState->setPassUniform("uPointShadowFar[0]", 10.0f);
+    cachedRoot->setState(rootState);
+    auto cachedMesh = vr::GeometryFactory::createBox();
+    auto meshState = std::make_shared<vr::State>();
+    auto meshMaterial = std::make_shared<vr::Material>();
+    meshMaterial->setRoughness(0.7f);
+    meshState->setMaterial(meshMaterial);
+    cachedMesh->setState(meshState);
+    cachedRoot->addChild(cachedMesh);
+    vr::CullVisitor cacheCollector(vr::State::defaults(nullptr));
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    const auto misses = cacheCollector.getStateCacheMisses();
+    const auto stateRevision = rootState->getRevision();
+    rootState->setUniform("uTint", glm::vec3(1));
+    rootState->setPassUniform("uPointShadowFar[0]", 20.0f);
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    check(rootState->getRevision() == stateRevision &&
+              cacheCollector.getStateCacheMisses() == misses &&
+              cacheCollector.getStateCacheHits() > 0,
+          "Unchanged material state is reused while live pass uniforms update");
+    check(std::get<float>(cacheCollector.getRenderList()[0].state.getPassUniforms().at(
+              "uPointShadowFar[0]")) == 20.0f,
+          "Cached states see the current shadow-camera data");
+    rootMaterial->setDiffuse({0.3f, 0.4f, 0.5f});
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    check(cacheCollector.getRenderList()[0].state.getMaterial()->getDiffuse() ==
+              rootMaterial->getDiffuse(),
+          "Parent material edits invalidate resolved-state caching");
+    meshMaterial->setDiffuse({0.8f, 0.2f, 0.1f});
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    check(cacheCollector.getRenderList()[0].state.getMaterial()->getDiffuse() ==
+              meshMaterial->getDiffuse(),
+          "Local material edits invalidate resolved-state caching");
+    const auto placementA = glm::translate(glm::mat4(1),{3, 0, 0});
+    const auto placementB = glm::translate(glm::mat4(1),{-4, 0, 0});
+    const auto worldA = cachedMesh->getWorldBound(placementA);
+    const auto worldB = cachedMesh->getWorldBound(placementB);
+    const auto builds = cachedMesh->getWorldBoundBuildCount();
+    for (unsigned i = 0; i < 10; ++i){
+        cachedMesh->getWorldBound(placementA);
+        cachedMesh->getWorldBound(placementB);
+    }
+    check(cachedMesh->getWorldBoundBuildCount() == builds && worldA.getCenter().x > 0 &&
+              worldB.getCenter().x < 0,
+          "World bounds reuse distinct shared-node placements without mixing DAG parents");
     auto instance = vr::ModelInstance::create("with attachment", vr::GeometryFactory::createBox());
     auto attachment = std::make_shared<vr::Transform>();
     attachment->setMatrix(glm::translate(glm::mat4(1),{10, 0, 0}));

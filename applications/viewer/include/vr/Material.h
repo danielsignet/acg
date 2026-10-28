@@ -1,5 +1,6 @@
 #pragma once
 #include "Program.h"
+#include <cstdint>
 #include <glm/glm.hpp>
 #include <memory>
 #include <vector>
@@ -83,6 +84,10 @@ public:
     // Reuses inherited material resolution, invalidating on edits to either input or output.
     std::shared_ptr<Material> resolve(const std::shared_ptr<Material>& parent) const;
     bool sameValues(const Material& other) const;
+
+    std::uint64_t getRevision() const{
+        return m_revision;
+    }
 
     // Uploads the material colors and shininess to the shader.
     void apply(const Program& program) const;

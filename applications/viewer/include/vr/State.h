@@ -1,6 +1,7 @@
 #pragma once
 #include "Material.h"
 #include "Program.h"
+#include "Revision.h"
 #include "Texture.h"
 #include <array>
 #include <map>
@@ -11,6 +12,16 @@
 namespace vr{
 class State{
 public:
+    using Uniforms = std::map<std::string, Uniform>;
+
+    std::uint64_t getRevision() const{
+        return m_revision;
+    }
+
+    std::uint64_t getMaterialRevision() const{
+        return m_material ? m_material->getRevision() : 0;
+    }
+
     static constexpr unsigned MaxTextures = 4;
     static constexpr unsigned MaterialTextureUnits = MaxTextures + 1;
     static constexpr unsigned MaxLights = 8;
@@ -35,17 +46,29 @@ public:
 
     // Overrides global shader lighting for this rendering scope.
     void setLighting(bool enabled){
+        if (m_lightingEnabled == enabled){
+            return;
+        }
         m_lightingEnabled = enabled;
+        changed();
     }
 
     // Overrides back-face culling for this rendering scope.
     void setCullFace(bool enabled){
+        if (m_cullFace == enabled){
+            return;
+        }
         m_cullFace = enabled;
+        changed();
     }
 
     // Overrides alpha blending and depth-write behavior for this rendering scope.
     void setBlend(bool enabled){
+        if (m_blend == enabled){
+            return;
+        }
         m_blend = enabled;
+        changed();
     }
 
     // Returns the resolved alpha-blending setting.
@@ -55,12 +78,20 @@ public:
 
     // Overrides whether this subtree contributes geometry to light depth passes.
     void setCastShadows(bool enabled){
+        if (m_castShadows == enabled){
+            return;
+        }
         m_castShadows = enabled;
+        changed();
     }
 
     // Overrides whether the lighting shader samples shadow maps on this subtree.
     void setReceiveShadows(bool enabled){
+        if (m_receiveShadows == enabled){
+            return;
+        }
         m_receiveShadows = enabled;
+        changed();
     }
 
     // Returns the resolved shadow-caster flag, enabled by default.
@@ -81,12 +112,20 @@ public:
 
     // Attaches local material property overrides.
     void setMaterial(std::shared_ptr<Material> value){
+        if (m_material == value){
+            return;
+        }
         m_material = std::move(value);
+        changed();
     }
 
     // Overrides the shader program inherited by this scope.
     void setProgram(std::shared_ptr<Program> value){
+        if (m_program == value){
+            return;
+        }
         m_program = std::move(value);
+        changed();
     }
 
     // Overrides a texture layer; an empty pointer explicitly disables that layer.
@@ -110,7 +149,22 @@ public:
 
     // Stores one typed shader-uniform override by name.
     void setUniform(const std::string& name, Uniform value){
-        m_uniforms[name] = std::move(value);
+        const auto found = m_uniforms->find(name);
+        if (found != m_uniforms->end() && found->second == value){
+            return;
+        }
+        if (m_uniforms.use_count() != 1){
+            m_uniforms = std::make_shared<Uniforms>(*m_uniforms);
+        }
+        (*m_uniforms)[name] = std::move(value);
+        changed();
+    }
+
+    // Live per-pass data is shared by cached states; material inheritance stays immutable.
+    void setPassUniform(const std::string& name, Uniform value);
+
+    const Uniforms& getPassUniforms() const{
+        return m_passUniforms ? *m_passUniforms : *emptyUniforms();
     }
 
     // Returns the global lighting setting resolved for this scope.
@@ -141,10 +195,17 @@ public:
 
     // Returns the named uniform overrides associated with this state.
     const std::map<std::string, Uniform>& getUniforms() const{
-        return m_uniforms;
+        return *m_uniforms;
     }
 
 private:
+    static std::shared_ptr<Uniforms> emptyUniforms();
+
+    void changed(){
+        m_revision = nextRevision();
+    }
+
+    std::uint64_t m_revision = nextRevision();
     std::optional<bool> m_lightingEnabled, m_cullFace, m_blend;
     std::optional<bool> m_castShadows, m_receiveShadows;
     std::array<std::shared_ptr<Texture>, MaxShadowMaps> m_shadowMaps;
@@ -154,6 +215,7 @@ private:
     std::map<unsigned, std::shared_ptr<Texture>> m_textures;
     std::optional<std::shared_ptr<Texture>> m_normalMap;
     std::optional<std::shared_ptr<Texture>> m_heightMap;
-    std::map<std::string, Uniform> m_uniforms;
+    std::shared_ptr<Uniforms> m_uniforms = emptyUniforms();
+    std::shared_ptr<Uniforms> m_passUniforms;
 };
 } // namespace vr

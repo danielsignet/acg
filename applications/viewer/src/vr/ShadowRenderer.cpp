@@ -54,11 +54,11 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
         root->setState(std::make_shared<State>());
     }
     auto& state = *root->getState();
-    state.setUniform("uShadows", enabled);
-    state.setUniform("uShadowPCF", filtered);
-    state.setUniform("uSunShadowIndex", -1);
+    state.setPassUniform("uShadows", enabled);
+    state.setPassUniform("uShadowPCF", filtered);
+    state.setPassUniform("uSunShadowIndex", -1);
     for (unsigned i = 0; i < State::MaxLights; ++i){
-        state.setUniform("uPointShadowSlot[" + std::to_string(i) + "]", -1);
+        state.setPassUniform("uPointShadowSlot[" + std::to_string(i) + "]", -1);
     }
     if (!enabled){
         return;
@@ -105,7 +105,7 @@ void ShadowRenderer::prepareCasters(){
     m_worldBounds.reserve(m_casters.size());
     for (std::size_t index = 0; index < m_casters.size(); ++index){
         const auto& node = m_casters[index];
-        m_worldBounds.push_back(node.geometry->getBound().transformed(node.model));
+        m_worldBounds.push_back(node.geometry->getWorldBound(node.model));
         const auto alpha = node.state.getUniforms().find("uAlphaCutoff");
         float cutoff =
             alpha == node.state.getUniforms().end() ? 0.0f : std::get<float>(alpha->second);
@@ -196,9 +196,9 @@ void ShadowRenderer::renderSun(State& state, const BoundingBox& bounds, const gl
                                const glm::vec3& point, int index){
     fitDirectionalCamera(*m_sunCamera, bounds, direction);
     const auto vp = m_sunCamera->getProjection() * m_sunCamera->getView();
-    state.setUniform("uSunShadowIndex", index);
-    state.setUniform("uSunVP", vp);
-    state.setUniform("uSunPlane", glm::transpose(glm::inverse(glm::mat3(vp))));
+    state.setPassUniform("uSunShadowIndex", index);
+    state.setPassUniform("uSunVP", vp);
+    state.setPassUniform("uSunPlane", glm::transpose(glm::inverse(glm::mat3(vp))));
     m_sun->renderFace(0, [&](const Camera& camera){ drawDepthPass(camera, false, point, 1); });
 }
 
@@ -228,8 +228,8 @@ void ShadowRenderer::renderPoint(State& state, const BoundingBox& bounds,
         beam.setPerspective(light.node->getOuterAngle() * 2, 1, 0.05f, farPlane);
         cone.emplace(beam.getProjection() * beam.getView());
     }
-    state.setUniform("uPointShadowSlot[" + std::to_string(index) + "]", static_cast<int>(slot));
-    state.setUniform("uPointShadowFar[" + std::to_string(slot) + "]", farPlane);
+    state.setPassUniform("uPointShadowSlot[" + std::to_string(index) + "]", static_cast<int>(slot));
+    state.setPassUniform("uPointShadowFar[" + std::to_string(slot) + "]", farPlane);
     for (unsigned face = 0; face < 6; ++face){
         target->renderFace(face, [&](const Camera& camera){
             drawDepthPass(camera, true, point, farPlane, cone ? &*cone : nullptr);

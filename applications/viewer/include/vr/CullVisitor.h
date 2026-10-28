@@ -14,6 +14,7 @@ struct RenderNode{
     ModelInstance* instance = nullptr;
     glm::mat4 instanceModel{1};
     bool cullingEnabled = true;
+    bool dynamic = false;
 };
 
 struct CullStats{

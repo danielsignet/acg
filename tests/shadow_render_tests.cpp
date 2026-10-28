@@ -625,7 +625,7 @@ void run(const std::filesystem::path& path){
     }
     shadows.render(cubeScene,{0, 0, 10}, true, false);
     const float farPlane =
-        std::get<float>(cubeRoot->getState()->getUniforms().at("uPointShadowFar[0]"));
+        std::get<float>(cubeRoot->getState()->getPassUniforms().at("uPointShadowFar[0]"));
     for (unsigned face = 0; face < 6; ++face){
         const auto data = shadows.getPointTarget()->readDepth(face);
         const float distance = data[128 * 256 + 128] * farPlane;

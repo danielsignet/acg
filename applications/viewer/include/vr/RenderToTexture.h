@@ -38,14 +38,20 @@ public:
     // Reads an actual depth image for diagnostics without changing the caller target.
     std::vector<float> readDepth(unsigned layer) const;
 
+    std::uint64_t getContentRevision(unsigned layer) const{
+        return m_contentRevisions.at(layer);
+    }
+
 private:
     friend class ShadowRenderer;
     // The shadow renderer owns one caller-state guard around all light faces.
     void renderFace(unsigned layer, const std::function<void(const Camera&)>& draw);
     // Binds the prevalidated framebuffer for one immutable depth face.
     void attach(unsigned layer) const;
+    void copyDepthFrom(const RenderToTexture& source, unsigned layer);
     std::vector<GLuint> m_framebuffers;
     std::shared_ptr<Texture> m_texture;
     std::vector<std::shared_ptr<Camera>> m_cameras;
+    std::vector<std::uint64_t> m_contentRevisions;
 };
 } // namespace vr

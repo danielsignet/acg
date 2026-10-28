@@ -1,8 +1,9 @@
 #pragma once
 #include "CullVisitor.h"
+#include "LightCollector.h"
 #include "RenderToTexture.h"
 #include "Scene.h"
-#include "LightCollector.h"
+#include "ShadowCollector.h"
 
 namespace vr{
 struct ShadowStats{
@@ -12,6 +13,7 @@ struct ShadowStats{
     unsigned draws = 0, instances = 0;
     std::size_t triangles = 0;
     double cpuMs = 0;
+    unsigned cacheHits = 0, reusedFaces = 0, staticRebuilds = 0;
 };
 
 class ShadowRenderer{
@@ -33,7 +35,23 @@ public:
 
     // Selects batching or individual draws for the same light-culled instances.
     void setInstancing(bool enabled){
+        if (m_instancing != enabled){
+            invalidate();
+        }
         m_instancing = enabled;
+    }
+
+    void setCaching(bool enabled){
+        if (m_caching != enabled){
+            invalidate();
+        }
+        m_caching = enabled;
+    }
+
+    void invalidate();
+
+    void setStateCaching(bool enabled){
+        m_collector.setStateCaching(enabled);
     }
 
     // Returns whether compatible shadow casters are submitted together.
@@ -63,14 +81,45 @@ private:
         float alphaCutoff;
         glm::vec2 lodRange;
         std::vector<std::size_t> casters;
+        bool dynamic = false;
     };
+
+    struct StaticCaster{
+        Geometry* geometry;
+        std::uint64_t geometryRevision, textureRevision;
+        glm::mat4 model;
+        float cutoff;
+        glm::vec2 range;
+        bool culling;
+
+        bool operator==(const StaticCaster& other) const{
+            return geometry == other.geometry && geometryRevision == other.geometryRevision &&
+                   textureRevision == other.textureRevision && model == other.model &&
+                   cutoff == other.cutoff && range == other.range && culling == other.culling;
+        }
+    };
+
+    struct FaceCache{
+        std::unique_ptr<RenderToTexture> depth;
+        glm::mat4 projection{1};
+        glm::vec3 point{0};
+        float farPlane = 0;
+        bool radial = false;
+        std::optional<std::array<glm::vec4, 6>> cone;
+        std::uint64_t staticRevision = 0, activeRevision = 0;
+        bool observed = false, ready = false, hadDynamic = true;
+    };
+    enum class Casters{ All, Static, Dynamic };
+    void renderFace(RenderToTexture& target, unsigned layer, FaceCache& cache, bool radial,
+                    const glm::vec3& point, float farPlane, const Frustum* cone = nullptr);
+    bool hasDynamicCasters(const Frustum& frustum, const Frustum* cone) const;
 
     // Resolves depth-only batch state and world bounds once for this frame's casters.
     void prepareCasters();
 
     // Renders only depth and alpha cutouts from one light camera.
     void drawDepthPass(const Camera& camera, bool radial, const glm::vec3& point, float farPlane,
-                       const Frustum* cone = nullptr);
+                       const Frustum* cone = nullptr, Casters selection = Casters::All);
 
     // Creates a cubemap with six independent cameras for one positional light.
     std::shared_ptr<RenderToTexture> createPointTarget(unsigned slot) const;
@@ -93,6 +142,12 @@ private:
     std::vector<Batch> m_batches;
     std::vector<glm::mat4> m_visibleModels;
     bool m_instancing = true;
+    bool m_caching = true, m_hasStatic = false;
+    std::uint64_t m_staticRevision = 1;
+    std::vector<StaticCaster> m_staticCasters;
+    FaceCache m_sunCache;
+    std::vector<std::array<FaceCache, 6>> m_pointCaches;
+    ShadowCollector m_collector;
     ShadowStats m_stats;
 };
 } // namespace vr

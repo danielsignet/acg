@@ -40,7 +40,9 @@ FrameProfiler::descriptions(){
          {"Animation track sampling", false},
          {"Skeleton world transforms", false},
          {"Skin palette matrices", false},
-         {"CPU vertex skinning", false}}};
+         {"CPU vertex skinning", false},
+         {"GPU skinning (once)", true},
+         {"Skin positions / bounds", false}}};
     return stages;
 }
 
@@ -105,6 +107,8 @@ FrameProfiler::breakdown(const Summary& summary){
                                           {"Skin palettes", false},
                                           {"CPU vertex skinning", false},
                                           {"Scene graph / callbacks", false},
+                                          {"GPU skinning (once)"},
+                                          {"Skin positions / bounds", false},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
@@ -133,6 +137,8 @@ FrameProfiler::breakdown(const Summary& summary){
     add(16,{Stage::AnimationPalettes});
     add(17,{Stage::Skinning});
     add(18,{Stage::Update});
+    add(19,{Stage::GpuSkinning});
+    add(20,{Stage::SkinBounds});
     // Animation stages are nested in Update; show only its remaining traversal/callback work.
     for (std::size_t i = 14; i <= 17; ++i){
         slices[18].cpuMs -= slices[i].cpuMs;

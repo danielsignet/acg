@@ -5,10 +5,13 @@
 #include <iostream>
 #include <stdexcept>
 #include <vr/DeferredRenderer.h>
+#include <vr/EnvironmentMap.h>
+#include <vr/FramebufferImage.h>
 #include <vr/FramebufferState.h>
 #include <vr/GLState.h>
 #include <vr/LightCollector.h>
 #include <vr/ModelInstance.h>
+#include <vr/Reader.h>
 #include <vr/SceneGraph.h>
 
 namespace{
@@ -94,22 +97,22 @@ void trackedState(){
 }
 
 void lights(){
-    vr::Group root;
+    auto root = std::make_shared<vr::Group>();
     auto light = std::make_shared<vr::Light>();
     for (float x :{-3.0f, 4.0f}){
         auto transform = std::make_shared<vr::Transform>();
         transform->setMatrix(glm::translate(glm::mat4(1),{x, 0, 0}));
         transform->addChild(light);
-        root.addChild(transform);
+        root->addChild(transform);
     }
     auto lod = std::make_shared<vr::LOD>();
     auto nearLight = std::make_shared<vr::Light>();
     auto farLight = std::make_shared<vr::Light>();
     lod->addLevel(5, nearLight);
     lod->addLevel(100, farLight);
-    root.addChild(lod);
-    const auto near = vr::collectLights(root,{0, 0, 0});
-    const auto far = vr::collectLights(root,{0, 0, 20});
+    root->addChild(lod);
+    const auto near = vr::collectLights(*root,{0, 0, 0});
+    const auto far = vr::collectLights(*root,{0, 0, 20});
     check(near.size() == 3 && near[0].node == light.get() && near[1].node == light.get() &&
               near[0].model[3].x == -3 && near[1].model[3].x == 4 &&
               near[2].node == nearLight.get() && far[2].node == farLight.get(),
@@ -117,6 +120,56 @@ void lights(){
 }
 
 void caches(){
+    auto cachedRoot = std::make_shared<vr::Group>();
+    auto rootState = std::make_shared<vr::State>();
+    auto rootMaterial = std::make_shared<vr::Material>();
+    rootState->setMaterial(rootMaterial);
+    rootState->setUniform("uTint", glm::vec3(1));
+    rootState->setPassUniform("uPointShadowFar[0]", 10.0f);
+    cachedRoot->setState(rootState);
+    auto cachedMesh = vr::GeometryFactory::createBox();
+    auto meshState = std::make_shared<vr::State>();
+    auto meshMaterial = std::make_shared<vr::Material>();
+    meshMaterial->setRoughness(0.7f);
+    meshState->setMaterial(meshMaterial);
+    cachedMesh->setState(meshState);
+    cachedRoot->addChild(cachedMesh);
+    vr::CullVisitor cacheCollector(vr::State::defaults(nullptr));
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    const auto misses = cacheCollector.getStateCacheMisses();
+    const auto stateRevision = rootState->getRevision();
+    rootState->setUniform("uTint", glm::vec3(1));
+    rootState->setPassUniform("uPointShadowFar[0]", 20.0f);
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    check(rootState->getRevision() == stateRevision &&
+              cacheCollector.getStateCacheMisses() == misses &&
+              cacheCollector.getStateCacheHits() > 0,
+          "Unchanged material state is reused while live pass uniforms update");
+    check(std::get<float>(cacheCollector.getRenderList()[0].state.getPassUniforms().at(
+              "uPointShadowFar[0]")) == 20.0f,
+          "Cached states see the current shadow-camera data");
+    rootMaterial->setDiffuse({0.3f, 0.4f, 0.5f});
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    check(cacheCollector.getRenderList()[0].state.getMaterial()->getDiffuse() ==
+              rootMaterial->getDiffuse(),
+          "Parent material edits invalidate resolved-state caching");
+    meshMaterial->setDiffuse({0.8f, 0.2f, 0.1f});
+    cacheCollector.collect(*cachedRoot, glm::mat4(1),{0, 0, 0}, false);
+    check(cacheCollector.getRenderList()[0].state.getMaterial()->getDiffuse() ==
+              meshMaterial->getDiffuse(),
+          "Local material edits invalidate resolved-state caching");
+    const auto placementA = glm::translate(glm::mat4(1),{3, 0, 0});
+    const auto placementB = glm::translate(glm::mat4(1),{-4, 0, 0});
+    const auto worldA = cachedMesh->getWorldBound(placementA);
+    const auto worldB = cachedMesh->getWorldBound(placementB);
+    const auto builds = cachedMesh->getWorldBoundBuildCount();
+    for (unsigned i = 0; i < 10; ++i){
+        cachedMesh->getWorldBound(placementA);
+        cachedMesh->getWorldBound(placementB);
+    }
+    check(cachedMesh->getWorldBoundBuildCount() == builds && worldA.getCenter().x > 0 &&
+              worldB.getCenter().x < 0,
+          "World bounds reuse distinct shared-node placements without mixing DAG parents");
     auto instance = vr::ModelInstance::create("with attachment", vr::GeometryFactory::createBox());
     auto attachment = std::make_shared<vr::Transform>();
     attachment->setMatrix(glm::translate(glm::mat4(1),{10, 0, 0}));
@@ -278,6 +331,66 @@ void rendering(const std::filesystem::path& path){
     check(glGetError() == GL_NO_ERROR,
           "Batching keeps valid GL state across forward and deferred passes");
 }
+
+void carRendering(const std::filesystem::path& path){
+    vr::Reader reader(path);
+    auto modelState = std::make_shared<vr::State>();
+    modelState->setUniform("uEnvironmentMaterial", true);
+    auto paintState = std::make_shared<vr::State>();
+    auto paint = std::make_shared<vr::Material>();
+    paint->setDiffuse({0.807f, 0.1f, 0.005f});
+    paint->setMetallic(0.88f);
+    paint->setRoughness(0.18f);
+    paint->setSpecular({0.75f, 0.75f, 0.75f});
+    paint->setShininess(700);
+    paintState->setMaterial(paint);
+    vr::Scene scene;
+    auto state = std::make_shared<vr::State>();
+    state->setUniform("uFog", false);
+    scene.getRoot()->setState(state);
+    scene.getRoot()->addChild(reader.readModel(
+        "models/porsche_911_gt3.glb", true,{{"*", modelState},{"EXT_Carpaint.004", paintState}}));
+    auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
+                                                 path / "shaders/phong-shading.fs");
+    vr::EnvironmentMap environment(path,
+                                   "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr");
+    vr::RenderVisitor renderer(program);
+    renderer.setCulling(false);
+    renderer.setEnvironment(&environment);
+    vr::DeferredRenderer deferred(path);
+    deferred.resize(width, height);
+    deferred.setPreviews(false);
+    deferred.setAmbientOcclusion(false);
+    deferred.setEnvironment(&environment);
+    const auto camera = scene.getCamera();
+    camera->setPerspective(48, float(width) / height, 0.1f, 40);
+    const auto render = [&](bool batching, bool useDeferred){
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, width, height);
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glDepthMask(GL_TRUE);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        vr::GLState::invalidate();
+        renderer.setInstancing(batching);
+        renderer.render(*scene.getRoot(), *camera, nullptr, nullptr,
+                        useDeferred ? &deferred : nullptr);
+        return vr::FramebufferImage::capture(0, 0, width, height);
+    };
+    for (const bool useDeferred :{false, true}){
+        camera->setLookAt({5, 2.5f, 6},{0, 0.7f, 0});
+        renderer.setShadingMode(vr::ShadingMode::CookTorrance);
+        const auto reference = render(false, useDeferred);
+        for (auto mode :
+             {vr::ShadingMode::Phong, vr::ShadingMode::BlinnPhong, vr::ShadingMode::CookTorrance}){
+            renderer.setShadingMode(mode);
+            const auto batched = render(true, useDeferred);
+            const auto changed = reference.countChangedPixels(batched, 2);
+            check(changed == 0, "The imported car's environment reflections preserve material "
+                                "color and roughness in every lighting mode");
+        }
+    }
+}
 } // namespace
 
 int main(int argc, char** argv){
@@ -302,10 +415,12 @@ int main(int argc, char** argv){
         try{
             caches();
             lights();
+            carRendering(argv[1]);
             rendering(argv[1]);
             {
                 vr::GLState::Scope trackedContext;
                 trackedState();
+                carRendering(argv[1]);
                 rendering(argv[1]);
             }
             std::cout << "Scene graph performance regressions passed\n";

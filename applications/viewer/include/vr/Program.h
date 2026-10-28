@@ -16,7 +16,8 @@ class Program{
 public:
     // Compiles shader stages and links them into one owned OpenGL program.
     Program(const std::filesystem::path& vertex, const std::filesystem::path& fragment,
-            const std::filesystem::path& geometry ={});
+            const std::filesystem::path& geometry ={},
+            const std::vector<std::string>& feedback ={});
 
     // Releases the linked OpenGL shader program.
     ~Program();

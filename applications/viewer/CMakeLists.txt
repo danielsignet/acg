@@ -30,6 +30,8 @@ add_library(vrlib STATIC
     src/vr/GLState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
+    src/vr/StreamBuffer.cpp
+    src/vr/GpuSkinning.cpp
     src/vr/GeometrySkin.cpp
     src/vr/GeometryTangents.cpp
     src/vr/GeometryRay.cpp
@@ -128,6 +130,7 @@ set(VIEWER_RESOURCES
     textures/alphatest.png
     fonts/arial.ttf
     shaders/phong-shading.vs
+    shaders/skinning-feedback.vs
     shaders/phong-shading.fs
     shaders/lighting.glsl
     shaders/display.glsl

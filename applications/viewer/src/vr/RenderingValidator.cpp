@@ -1,13 +1,13 @@
-#include <vr/ResourceLocator.h>
 #include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
 #include <vr/Application.h>
+#include <vr/LightCollector.h>
 #include <vr/OpenGL.h>
 #include <vr/RenderingValidator.h>
+#include <vr/ResourceLocator.h>
 #include <vr/SceneOverlay.h>
-#include <vr/LightCollector.h>
 #include <vr/SkeletalAnimation.h>
 
 namespace vr{
@@ -518,7 +518,10 @@ void RenderingValidator::validatePerformance(){
     const auto lights = app.m_pointLights;
     const bool culling = app.m_frustumCulling, previews = app.m_bufferPreviews;
     const int width = app.m_width, height = app.m_height;
+    // A cold redraw verifies culling exemptions; warm cached faces need no floor draws.
+    app.m_shadowRenderer->invalidate();
     app.render();
+    const auto coldShadows = app.m_shadowRenderer->getStats();
     const auto image = captureScene();
     const auto reticle = FramebufferImage::capture(width / 2 - 12, height / 2 - 12, 24, 24);
     app.handleKey(GLFW_KEY_F1);
@@ -537,7 +540,7 @@ void RenderingValidator::validatePerformance(){
     const auto unculled = std::count_if(app.m_renderer->getRenderList().begin(),
                                         app.m_renderer->getRenderList().end(),
                                         [](const auto& item){ return !item.cullingEnabled; });
-    require(unculled == 8 && shadows.unculled == unculled * shadows.passes,
+    require(unculled == 8 && coldShadows.unculled == unculled * coldShadows.passes,
             "All eight floors bypass camera, portal and per-light shadow volume rejection");
     const auto averages = app.m_profiler.summarize();
     require(averages.counterSamples == 1 &&

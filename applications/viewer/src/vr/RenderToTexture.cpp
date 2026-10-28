@@ -8,7 +8,7 @@ namespace vr{
 // Creates a complete depth framebuffer backed by one image or six cubemap faces.
 RenderToTexture::RenderToTexture(int resolution, bool cube)
     : m_framebuffers(cube ? 6 : 1), m_texture(Texture::depth(resolution, resolution, cube)),
-      m_cameras(cube ? 6 : 1){
+      m_cameras(cube ? 6 : 1), m_contentRevisions(cube ? 6 : 1){
     FramebufferState saved;
     m_texture->apply(cube ? 5 : 4);
     glGenFramebuffers(static_cast<GLsizei>(m_framebuffers.size()), m_framebuffers.data());
@@ -73,7 +73,16 @@ void RenderToTexture::renderFace(unsigned layer, const std::function<void(const 
     GLState::polygonMode(GL_FRONT_AND_BACK, GL_FILL);
     GLState::clearDepth(1);
     glClear(GL_DEPTH_BUFFER_BIT);
+    ++m_contentRevisions.at(layer);
     draw(*camera);
+}
+
+void RenderToTexture::copyDepthFrom(const RenderToTexture& source, unsigned layer){
+    GLState::bindFramebuffer(GL_READ_FRAMEBUFFER, source.m_framebuffers.at(0));
+    GLState::bindFramebuffer(GL_DRAW_FRAMEBUFFER, m_framebuffers.at(layer));
+    glBlitFramebuffer(0, 0, source.m_texture->getWidth(), source.m_texture->getHeight(), 0, 0,
+                      m_texture->getWidth(), m_texture->getHeight(), GL_DEPTH_BUFFER_BIT,
+                      GL_NEAREST);
 }
 
 // Reads an actual depth image for diagnostics without changing the caller target.

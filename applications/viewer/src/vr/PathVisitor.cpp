@@ -63,7 +63,30 @@ void PathVisitor::scoped(Node& node, const std::function<void()>& action){
         action();
         return;
     }
-    StackScope<State> stateScope(m_states, mergeState(m_states.back(), *node.getState()));
+    const auto& parent = m_states.back();
+    const auto& local = *node.getState();
+    const std::array<std::uint64_t, 4> key{parent.getRevision(), parent.getMaterialRevision(),
+                                           local.getRevision(), local.getMaterialRevision()};
+    auto found = m_stateCache.find(key);
+    if (!m_stateCaching || found == m_stateCache.end() ||
+        found->second.materialRevision != found->second.value.getMaterialRevision()){
+        ++m_stateCacheMisses;
+        auto resolved = mergeState(parent, local);
+        if (!m_stateCaching){
+            StackScope<State> scope(m_states, std::move(resolved));
+            action();
+            return;
+        }
+        if (m_stateCache.size() >= 2048){
+            m_stateCache.clear();
+        }
+        const auto revision = resolved.getMaterialRevision();
+        found =
+            m_stateCache.insert_or_assign(key, CachedState{std::move(resolved), revision}).first;
+    } else{
+        ++m_stateCacheHits;
+    }
+    StackScope<State> stateScope(m_states, found->second.value);
     action();
 }
 

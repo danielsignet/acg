@@ -1,18 +1,18 @@
 #pragma once
 #include "Animation.h"
-#include "FrameProfiler.h"
 #include "Controls.h"
 #include "DebugLines.h"
 #include "DeferredRenderer.h"
-#include "Reader.h"
-#include "SceneOverlay.h"
-#include "ShadowRenderer.h"
+#include "EnvironmentMap.h"
 #include "Flashlight.h"
+#include "FrameProfiler.h"
 #include "ModelInstance.h"
 #include "ModelPicker.h"
-#include "EnvironmentMap.h"
 #include "PlanarReflection.h"
+#include "Reader.h"
 #include "ReflectionProbes.h"
+#include "SceneOverlay.h"
+#include "ShadowRenderer.h"
 #include <GLFW/glfw3.h>
 
 namespace vr{
@@ -129,6 +129,9 @@ private:
     std::filesystem::path m_dotFile;
     std::shared_ptr<Scene> m_scene;
     std::shared_ptr<Program> m_program;
+    std::shared_ptr<GpuSkinning> m_gpuSkinning;
+    bool m_gpuSkinningEnabled = true;
+    bool m_shadowCaching = true, m_sceneCaching = true;
     std::unique_ptr<RenderVisitor> m_renderer;
     std::unique_ptr<DeferredRenderer> m_deferred;
     std::unique_ptr<EnvironmentMap> m_environment;

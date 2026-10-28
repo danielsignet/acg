@@ -30,6 +30,7 @@ add_library(vrlib STATIC
     src/vr/GLState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
+    src/vr/StreamBuffer.cpp
     src/vr/GeometrySkin.cpp
     src/vr/GeometryTangents.cpp
     src/vr/GeometryRay.cpp

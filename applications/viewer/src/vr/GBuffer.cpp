@@ -1,6 +1,7 @@
-#include <vr/GBuffer.h>
-#include <vr/FramebufferState.h>
 #include <stdexcept>
+#include <vr/FramebufferState.h>
+#include <vr/GBuffer.h>
+#include <vr/GLState.h>
 
 namespace vr{
 // Allocates floating-point surface data and a shared camera depth texture.
@@ -8,14 +9,14 @@ GBuffer::GBuffer(int width, int height, int samples)
     : m_depth(Texture::depth(width, height, false, samples)){
     FramebufferState saved;
     GLint attachments = 0, drawBuffers = 0;
-    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &attachments);
-    glGetIntegerv(GL_MAX_DRAW_BUFFERS, &drawBuffers);
+    GLState::getIntegerv(GL_MAX_COLOR_ATTACHMENTS, &attachments);
+    GLState::getIntegerv(GL_MAX_DRAW_BUFFERS, &drawBuffers);
     if (attachments < Count || drawBuffers < Count){
         throw std::runtime_error("Deferred shading requires seven color attachments");
     }
     glGenFramebuffers(1, &m_framebuffer);
     try{
-        glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+        GLState::bindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
         std::array<GLenum, Count> buffers{};
         for (unsigned i = 0; i < Count; ++i){
             const auto format = i == Position ? GL_RGBA32F : i == Albedo ? GL_RGBA8 : GL_RGBA16F;
@@ -34,39 +35,39 @@ GBuffer::GBuffer(int width, int height, int samples)
             throw std::runtime_error("Incomplete G-buffer");
         }
     } catch (...){
-        glDeleteFramebuffers(1, &m_framebuffer);
+        GLState::deleteFramebuffers(1, &m_framebuffer);
         throw;
     }
 }
 
 // Releases the framebuffer before its attachment textures.
 GBuffer::~GBuffer(){
-    glDeleteFramebuffers(1, &m_framebuffer);
+    GLState::deleteFramebuffers(1, &m_framebuffer);
 }
 
 // Binds and clears every surface attachment for a new geometry pass.
 void GBuffer::begin() const{
     bind();
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glDepthMask(GL_TRUE);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDisable(GL_BLEND);
-    glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    GLState::enable(GL_DEPTH_TEST);
+    GLState::depthFunc(GL_LESS);
+    GLState::depthMask(GL_TRUE);
+    GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    GLState::disable(GL_BLEND);
+    GLState::disable(GL_SCISSOR_TEST);
+    GLState::disable(GL_POLYGON_OFFSET_FILL);
+    GLState::polygonMode(GL_FRONT_AND_BACK, GL_FILL);
     const float clear[4] ={0, 0, 0, 0};
     for (unsigned i = 0; i < Count; ++i){
         glClearBufferfv(GL_COLOR, i, clear);
     }
-    glClearDepth(1);
+    GLState::clearDepth(1);
     glClear(GL_DEPTH_BUFFER_BIT);
 }
 
 // Binds all surface outputs, or one attachment for an alpha-only AO update.
 void GBuffer::bind(unsigned attachment) const{
-    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-    glViewport(0, 0, m_depth->getWidth(), m_depth->getHeight());
+    GLState::bindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    GLState::viewport(0, 0, m_depth->getWidth(), m_depth->getHeight());
     if (attachment < Count){
         glDrawBuffer(GL_COLOR_ATTACHMENT0 + attachment);
     } else{
@@ -90,7 +91,7 @@ std::vector<float> GBuffer::read(unsigned attachment) const{
         throw std::logic_error("Resolve the G-buffer before reading pixels");
     }
     FramebufferState saved;
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebuffer);
+    GLState::bindFramebuffer(GL_READ_FRAMEBUFFER, m_framebuffer);
     glReadBuffer(GL_COLOR_ATTACHMENT0 + attachment);
     std::vector<float> data(static_cast<std::size_t>(m_depth->getWidth()) * m_depth->getHeight() *
                             4);

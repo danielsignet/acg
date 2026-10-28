@@ -1,9 +1,10 @@
-#include <vr/ReflectionProbes.h>
-#include <vr/FramebufferState.h>
-#include <vr/ModelInstance.h>
 #include <algorithm>
 #include <set>
 #include <stdexcept>
+#include <vr/FramebufferState.h>
+#include <vr/GLState.h>
+#include <vr/ModelInstance.h>
+#include <vr/ReflectionProbes.h>
 
 namespace vr{
 namespace{
@@ -65,7 +66,7 @@ ReflectionProbes::ReflectionProbes(Scene& scene, EnvironmentMap& environment,
 // Releases the capture framebuffer while the OpenGL context is still current.
 ReflectionProbes::~ReflectionProbes(){
     if (m_framebuffer){
-        glDeleteFramebuffers(1, &m_framebuffer);
+        GLState::deleteFramebuffers(1, &m_framebuffer);
     }
 }
 
@@ -118,7 +119,7 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
     if (!m_framebuffer){
         glGenFramebuffers(1, &m_framebuffer);
     }
-    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    GLState::bindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
                            GL_TEXTURE_CUBE_MAP_POSITIVE_X + m_face, m_capture->getId(), 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth->getId(), 0);
@@ -126,17 +127,17 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
         throw std::runtime_error("Incomplete local reflection framebuffer");
     }
-    glViewport(0, 0, captureSize, captureSize);
-    glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_BLEND);
-    glDisable(GL_MULTISAMPLE);
-    glDisable(GL_SAMPLE_SHADING);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glDepthMask(GL_TRUE);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glFrontFace(GL_CCW);
-    glClearDepth(1);
+    GLState::viewport(0, 0, captureSize, captureSize);
+    GLState::disable(GL_SCISSOR_TEST);
+    GLState::disable(GL_BLEND);
+    GLState::disable(GL_MULTISAMPLE);
+    GLState::disable(GL_SAMPLE_SHADING);
+    GLState::enable(GL_DEPTH_TEST);
+    GLState::depthFunc(GL_LESS);
+    GLState::depthMask(GL_TRUE);
+    GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    GLState::frontFace(GL_CCW);
+    GLState::clearDepth(1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
         HideInstance hidden(*probe.instance);

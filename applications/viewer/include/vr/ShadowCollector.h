@@ -4,9 +4,8 @@
 namespace vr{
 class ShadowCollector : public PathVisitor{
 public:
-    // Initializes shadow collection with the depth shader's rendering defaults.
-    explicit ShadowCollector(const std::shared_ptr<Program>& program)
-        : PathVisitor(State::defaults(program)){
+    // Retains the constructor argument for callers; depth state is bound by ShadowRenderer.
+    explicit ShadowCollector(const std::shared_ptr<Program>& ={}) : PathVisitor(){
         setLodFading(true);
     }
 
@@ -26,6 +25,10 @@ public:
     void apply(Geometry& node) override;
 
 private:
+    State mergeState(const State& parent, const State& local) const override{
+        return parent.mergedShadow(local);
+    }
+
     // Restores the inherited room label after visiting a visible subtree.
     void within(Node& node, const std::function<void()>& action);
 

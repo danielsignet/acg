@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <limits>
 #include <stdexcept>
+#include <vr/GLState.h>
 #include <vr/Geometry.h>
 
 namespace vr{
@@ -20,7 +21,7 @@ Geometry::~Geometry(){
         glDeleteBuffers(1, &m_vbo);
     }
     if (m_vao){
-        glDeleteVertexArrays(1, &m_vao);
+        GLState::deleteVertexArrays(1, &m_vao);
     }
 }
 
@@ -96,7 +97,7 @@ void Geometry::bind() const{
         glGenBuffers(1, &m_vbo);
         glGenBuffers(1, &m_ebo);
     }
-    glBindVertexArray(m_vao);
+    GLState::bindVertexArray(m_vao);
     if (m_dirty){
         glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
         glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(m_vertices.size() * sizeof(Vertex)),
@@ -135,7 +136,7 @@ void Geometry::draw() const{
     }
     bind();
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
-    glBindVertexArray(0);
+    GLState::bindVertexArray(0);
 }
 
 // Streams model matrices and draws this mesh once for all supplied instances.
@@ -190,7 +191,7 @@ void Geometry::drawInstanced(const std::vector<glm::mat4>& models, bool surface)
     }
     glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT,
                             nullptr, static_cast<GLsizei>(models.size()));
-    glBindVertexArray(0);
+    GLState::bindVertexArray(0);
 }
 
 Geometry::SurfaceTransform Geometry::getSurfaceTransform(const glm::mat4& model) const{

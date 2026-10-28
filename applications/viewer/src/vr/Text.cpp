@@ -1,4 +1,5 @@
 #include <ft2build.h>
+#include <vr/GLState.h>
 #include <vr/Text.h>
 #include FT_FREETYPE_H
 #include <stdexcept>
@@ -16,17 +17,17 @@ Text::Text(const std::filesystem::path& root){
 // Releases the font texture and overlay buffers.
 Text::~Text(){
     glDeleteBuffers(1, &m_vbo);
-    glDeleteVertexArrays(1, &m_vao);
+    GLState::deleteVertexArrays(1, &m_vao);
     glDeleteTextures(1, &m_texture);
 }
 
 // Configures the OpenGL state used by the text overlay.
 void Text::begin(int width, int height){
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    glDisable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    GLState::disable(GL_DEPTH_TEST);
+    GLState::depthMask(GL_FALSE);
+    GLState::disable(GL_CULL_FACE);
+    GLState::enable(GL_BLEND);
+    GLState::blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     m_program->use();
     m_program->set("uScreen", glm::vec2(width, height));
     glActiveTexture(GL_TEXTURE0);
@@ -41,12 +42,12 @@ void Text::vertices(const std::vector<glm::vec4>& data, const glm::vec4& color, 
     }
     m_program->set("uColor", color);
     m_program->set("uSolid", solid);
-    glBindVertexArray(m_vao);
+    GLState::bindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(data.size() * sizeof(glm::vec4)),
                  data.data(), GL_STREAM_DRAW);
     glDrawArrays(GL_TRIANGLES, 0, static_cast<GLsizei>(data.size()));
-    glBindVertexArray(0);
+    GLState::bindVertexArray(0);
 }
 
 // Draws supported text glyphs at the requested screen position and size.
@@ -103,9 +104,9 @@ void Text::rectangles(const std::vector<glm::vec4>& rectangles, const glm::vec4&
 
 // Restores depth writing and disables overlay blending.
 void Text::end(){
-    glDisable(GL_BLEND);
-    glDepthMask(GL_TRUE);
-    glEnable(GL_DEPTH_TEST);
+    GLState::disable(GL_BLEND);
+    GLState::depthMask(GL_TRUE);
+    GLState::enable(GL_DEPTH_TEST);
 }
 
 // Rasterizes the supported font glyphs into a texture atlas.
@@ -171,10 +172,10 @@ void Text::uploadAtlas(const std::vector<unsigned char>& atlas){
 void Text::createBuffers(){
     glGenVertexArrays(1, &m_vao);
     glGenBuffers(1, &m_vbo);
-    glBindVertexArray(m_vao);
+    GLState::bindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), nullptr);
-    glBindVertexArray(0);
+    GLState::bindVertexArray(0);
 }
 } // namespace vr

@@ -1,11 +1,12 @@
-#include <vr/DeferredRenderer.h>
-#include <cmath>
-#include <vr/Camera.h>
-#include <vr/FramebufferState.h>
-#include <vr/Light.h>
-#include <vr/EnvironmentMap.h>
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
+#include <vr/Camera.h>
+#include <vr/DeferredRenderer.h>
+#include <vr/EnvironmentMap.h>
+#include <vr/FramebufferState.h>
+#include <vr/GLState.h>
+#include <vr/Light.h>
 
 namespace vr{
 namespace{
@@ -34,7 +35,7 @@ DeferredRenderer::DeferredRenderer(const std::filesystem::path& root){
     m_viewProgram =
         std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "gbuffer-view.fs");
     GLint units = 0;
-    glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
+    GLState::getIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &units);
     if (units < GBuffer::Count + State::MaxShadowMaps){
         throw std::runtime_error("Deferred lighting requires sixteen fragment texture units");
     }
@@ -80,8 +81,8 @@ void DeferredRenderer::setAntialiasing(AntialiasingMode mode){
     std::unique_ptr<ColorTarget> color;
     if (mode == AntialiasingMode::Msaa){
         GLint colorSamples = 0, depthSamples = 0;
-        glGetIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &colorSamples);
-        glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &depthSamples);
+        GLState::getIntegerv(GL_MAX_COLOR_TEXTURE_SAMPLES, &colorSamples);
+        GLState::getIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &depthSamples);
         if (std::min(colorSamples, depthSamples) < 4){
             throw std::runtime_error("MSAA 4x requires four color and depth texture samples");
         }
@@ -112,9 +113,9 @@ void DeferredRenderer::resolveGeometry(){
     FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::GBufferResolve);
     m_gbuffer->begin();
     screenPass();
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_ALWAYS);
-    glDepthMask(GL_TRUE);
+    GLState::enable(GL_DEPTH_TEST);
+    GLState::depthFunc(GL_ALWAYS);
+    GLState::depthMask(GL_TRUE);
     m_resolveProgram->use();
     for (unsigned i = 0; i < GBuffer::Count; ++i){
         m_multisampleBuffer->get(i)->apply(i);
@@ -135,23 +136,23 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
     }
     FramebufferState saved;
     GLint framebuffer = 0, viewport[4]{};
-    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &framebuffer);
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    GLState::getIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &framebuffer);
+    GLState::getIntegerv(GL_VIEWPORT, viewport);
     m_screenDraws = 0;
-    glDisable(GL_SAMPLE_SHADING);
-    glDisable(GL_MULTISAMPLE);
+    GLState::disable(GL_SAMPLE_SHADING);
+    GLState::disable(GL_MULTISAMPLE);
     const bool multisample = m_multisampleBuffer != nullptr;
     {
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Geometry);
         (multisample ? m_multisampleBuffer : m_gbuffer)->begin();
         if (multisample){
-            glEnable(GL_MULTISAMPLE);
-            glEnable(GL_SAMPLE_SHADING);
-            glMinSampleShading(1.0f);
+            GLState::enable(GL_MULTISAMPLE);
+            GLState::enable(GL_SAMPLE_SHADING);
+            GLState::minSampleShading(1.0f);
         }
         opaque(m_geometryProgram);
     }
-    glDisable(GL_SAMPLE_SHADING);
+    GLState::disable(GL_SAMPLE_SHADING);
     if (multisample){
         resolveGeometry();
     }
@@ -163,12 +164,12 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
             // Reuse ambient alpha so lighting still fits the existing sixteen sampler units.
             screenPass();
             m_multisampleBuffer->bind(GBuffer::Ambient);
-            glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+            GLState::colorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
             m_ambientProgram->use();
             getAmbientBuffer()->apply(0);
             m_ambientProgram->set("uAmbient", 0);
             drawQuad();
-            glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         }
     }
     {
@@ -186,8 +187,8 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
     }
     {
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Transparency);
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
+        GLState::enable(GL_DEPTH_TEST);
+        GLState::depthFunc(GL_LESS);
         transparent();
     }
     if (multisample){
@@ -301,8 +302,8 @@ void DeferredRenderer::postProcess(const Camera& camera){
 
 // Presents the selected output and optionally the surface and AO thumbnails.
 void DeferredRenderer::present(const Camera& camera, GLuint framebuffer, const GLint* viewport){
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
-    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    GLState::bindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+    GLState::viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     m_viewProgram->use();
     m_gbuffer->get(GBuffer::Position)->apply(1);
     m_gbuffer->get(GBuffer::Normal)->apply(2);
@@ -320,17 +321,17 @@ void DeferredRenderer::present(const Camera& camera, GLuint framebuffer, const G
     }
     m_viewProgram->set("uInverseProjection", glm::inverse(camera.getProjection()));
     m_viewProgram->set("uViewMode", static_cast<int>(m_view));
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_ALWAYS);
-    glDepthMask(GL_TRUE);
+    GLState::enable(GL_DEPTH_TEST);
+    GLState::depthFunc(GL_ALWAYS);
+    GLState::depthMask(GL_TRUE);
     drawQuad();
     if (m_previews){
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask(GL_FALSE);
+        GLState::disable(GL_DEPTH_TEST);
+        GLState::depthMask(GL_FALSE);
         for (unsigned i = 0; i < PreviewCount; ++i){
             const auto rect = previewRectangle(i);
-            glViewport(viewport[0] + rect.x, viewport[1] + m_height - rect.y - rect.w, rect.z,
-                       rect.w);
+            GLState::viewport(viewport[0] + rect.x, viewport[1] + m_height - rect.y - rect.w,
+                              rect.z, rect.w);
             m_viewProgram->set("uViewMode", static_cast<int>(i + 1));
             drawQuad();
         }

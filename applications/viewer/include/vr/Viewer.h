@@ -26,12 +26,14 @@ private:
 
     // Creates the OpenGL context before constructing application resources.
     void initialize();
+    void writeBenchmark() const;
     GLFWwindow* m_window = nullptr;
     std::unique_ptr<Application> m_application;
     std::filesystem::path m_root;
     std::filesystem::path m_scene = "scenes/house-patio.xml";
     std::filesystem::path m_screenshot;
     std::filesystem::path m_dotFile;
+    std::filesystem::path m_benchmark;
     bool m_initialized = false;
     bool m_hidden = false;
     bool m_validate = false;
@@ -39,6 +41,7 @@ private:
     bool m_noMenus = false;
     bool m_forward = false, m_noAO = false;
     bool m_noBump = false;
+    bool m_noVsync = false;
     bool m_lodDemoCallback = false;
     bool m_inside = false;
     bool m_noCulling = false;

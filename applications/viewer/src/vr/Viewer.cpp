@@ -1,7 +1,10 @@
-#include <vr/ResourceLocator.h>
 #include <algorithm>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <vr/GLState.h>
+#include <vr/ResourceLocator.h>
 #include <vr/Viewer.h>
 
 namespace vr{
@@ -58,6 +61,11 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_noBump = true;
         } else if (option == "--performance"){
             m_performance = true;
+        } else if (option == "--benchmark"){
+            m_benchmark = next();
+            m_performance = true;
+        } else if (option == "--no-vsync"){
+            m_noVsync = true;
         } else if (option == "--no-menus"){
             m_noMenus = true;
         } else if (option == "--hidden"){
@@ -114,7 +122,7 @@ bool Viewer::parseOptions(int argc, char** argv){
                          "[--buffer lit|positions|normals|albedo|specular|depth|"
                          "ambient|emissive|plane|ao] [--bloom] [--dof] "
                          "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
-                         "[--no-menus] [--no-bump] "
+                         "[--no-menus] [--no-bump] [--no-vsync] [--benchmark output.csv] "
                          "[--aa off|fxaa|msaa] "
                          "[--reflections off|environment|cubemaps] "
                          "[--shading phong|blinn|cook] "
@@ -125,6 +133,9 @@ bool Viewer::parseOptions(int argc, char** argv){
         }
     }
     m_root = ResourceLocator::findRoot(argv[0], m_root);
+    if (!m_benchmark.empty() && !m_frameLimit){
+        m_frameLimit = 240;
+    }
     return true;
 }
 
@@ -151,12 +162,12 @@ void Viewer::initialize(){
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))){
         throw std::runtime_error("OpenGL loading failed");
     }
-    glfwSwapInterval(m_hidden ? 0 : 1);
+    glfwSwapInterval(m_hidden || m_noVsync ? 0 : 1);
     std::cout << "OpenGL: " << glGetString(GL_VERSION) << "\nRenderer: " << glGetString(GL_RENDERER)
               << "\nGLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION)
               << "\nAssets: " << m_root.string() << '\n';
     m_application = std::make_unique<Application>(m_window, m_root, m_scene, m_dotFile);
-    m_application->m_vsync = !m_hidden;
+    m_application->m_vsync = !m_hidden && !m_noVsync;
     glfwSetWindowUserPointer(m_window, m_application.get());
     glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int, int action, int){
         if (action == GLFW_PRESS){
@@ -261,6 +272,7 @@ int Viewer::run(int argc, char** argv){
     if (m_noMenus){
         m_application->execute(Controls::Action::Hud);
     }
+    GLState::Scope trackedContext;
     double previous = glfwGetTime();
     int frames = 0;
     while (!glfwWindowShouldClose(m_window)){
@@ -303,6 +315,34 @@ int Viewer::run(int argc, char** argv){
             break;
         }
     }
+    if (!m_benchmark.empty()){
+        writeBenchmark();
+    }
     return 0;
+}
+
+void Viewer::writeBenchmark() const{
+    const auto& profiler = m_application->m_profiler;
+    const auto summary = profiler.summarize();
+    std::ofstream output(m_benchmark);
+    if (!output){
+        throw std::runtime_error("Cannot write frame benchmark: " + m_benchmark.string());
+    }
+    output << std::fixed << std::setprecision(6);
+    output << "width,height,vsync,samples,gpu_samples,frame_ms,p95_ms,peak_ms,fps";
+    for (const auto& stage : FrameProfiler::descriptions()){
+        output << ",\"cpu_" << stage.name << "_ms\",\"gpu_" << stage.name << "_ms\"";
+    }
+    output << '\n'
+           << m_application->m_width << ',' << m_application->m_height << ','
+           << m_application->m_vsync << ',' << summary.samples << ',' << summary.gpuSamples << ','
+           << summary.frameMs << ',' << summary.p95Ms << ',' << summary.peakMs << ','
+           << (summary.frameMs > 0 ? 1000 / summary.frameMs : 0);
+    for (std::size_t i = 0; i < FrameProfiler::StageCount; ++i){
+        output << ',' << summary.cpu[i] << ',' << summary.gpu[i];
+    }
+    output << '\n';
+    std::cout << "Frame benchmark: " << summary.frameMs << " ms / " << 1000 / summary.frameMs
+              << " FPS, P95 " << summary.p95Ms << " ms\n";
 }
 } // namespace vr

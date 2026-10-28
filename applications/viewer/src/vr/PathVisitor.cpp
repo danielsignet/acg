@@ -63,7 +63,7 @@ void PathVisitor::scoped(Node& node, const std::function<void()>& action){
         action();
         return;
     }
-    StackScope<State> stateScope(m_states, m_states.back().merged(*node.getState()));
+    StackScope<State> stateScope(m_states, mergeState(m_states.back(), *node.getState()));
     action();
 }
 

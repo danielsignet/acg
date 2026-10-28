@@ -1,8 +1,9 @@
-#include <vr/AmbientOcclusion.h>
-#include <vr/FramebufferState.h>
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <vr/AmbientOcclusion.h>
+#include <vr/FramebufferState.h>
+#include <vr/GLState.h>
 
 namespace vr{
 // Creates the deterministic hemisphere kernel and screen-space programs.
@@ -49,13 +50,13 @@ void AmbientOcclusion::render(const Camera& camera, const GBuffer& gbuffer){
         throw std::logic_error("Ambient occlusion viewport has not been initialized");
     }
     FramebufferState saved;
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    glDisable(GL_BLEND);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_SCISSOR_TEST);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    GLState::disable(GL_DEPTH_TEST);
+    GLState::depthMask(GL_FALSE);
+    GLState::disable(GL_BLEND);
+    GLState::disable(GL_CULL_FACE);
+    GLState::disable(GL_SCISSOR_TEST);
+    GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    GLState::polygonMode(GL_FRONT_AND_BACK, GL_FILL);
     gbuffer.get(GBuffer::Position)->apply(0);
     // AO follows real receiver planes, independently of normal-texture relief.
     gbuffer.get(GBuffer::Plane)->apply(1);

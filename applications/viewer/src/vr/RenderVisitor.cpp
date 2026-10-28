@@ -8,6 +8,7 @@
 #include <vr/DeferredRenderer.h>
 #include <vr/EnvironmentMap.h>
 #include <vr/FramebufferState.h>
+#include <vr/GLState.h>
 #include <vr/Geometry.h>
 #include <vr/LOD.h>
 #include <vr/Light.h>
@@ -25,7 +26,7 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
     setEye(camera.getPosition());
     m_stats ={};
     GLint viewport[4]{};
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    GLState::getIntegerv(GL_VIEWPORT, viewport);
     m_viewport = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
     m_environmentPrograms.clear();
     collectLights(root);
@@ -109,8 +110,8 @@ void RenderVisitor::drawRenderList(const Camera& camera){
             }
         }
     }
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
+    GLState::depthMask(GL_TRUE);
+    GLState::disable(GL_BLEND);
     m_stats.submitCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - submit)
             .count();
@@ -191,15 +192,15 @@ void RenderVisitor::drawInstance(const RenderNode& item, const std::shared_ptr<P
 void RenderVisitor::captureTransmission(){
     FramebufferState saved;
     GLint source = 0;
-    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &source);
+    GLState::getIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &source);
     const int width = static_cast<int>(m_viewport.z), height = static_cast<int>(m_viewport.w);
     if (!m_transmission || m_transmission->getTexture()->getWidth() != width ||
         m_transmission->getTexture()->getHeight() != height){
         m_transmission = std::make_unique<ColorTarget>(width, height);
     }
     m_transmission->bind();
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(source));
-    glDisable(GL_SCISSOR_TEST);
+    GLState::bindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(source));
+    GLState::disable(GL_SCISSOR_TEST);
     glBlitFramebuffer(static_cast<int>(m_viewport.x), static_cast<int>(m_viewport.y),
                       static_cast<int>(m_viewport.x) + width,
                       static_cast<int>(m_viewport.y) + height, 0, 0, width, height,
@@ -234,6 +235,14 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
         program.set("uEnvironmentBrdf", 15);
         program.set("uViewport", glm::vec2(m_viewport.z, m_viewport.w));
         program.set("uViewportOrigin", glm::vec2(m_viewport));
+        program.set("uView", m_camera->getView());
+        program.set("uProjection", m_camera->getProjection());
+        program.set("uEye", m_camera->getPosition());
+        program.set("uLightCount", static_cast<int>(m_lights.size()));
+        for (unsigned i = 0; i < m_lights.size(); ++i){
+            // Per-object light switches are already represented by uLightMask.
+            m_lights[i].node->apply(program, i, m_lights[i].model, true);
+        }
     }
     program.set("uEnvironmentEnabled", m_environment != nullptr);
     if (m_environmentCapture){
@@ -277,16 +286,9 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
                              : m_shadingMode == ShadingMode::BlinnPhong ? 1
                                                                         : 0);
     program.set("uModel", model);
-    program.set("uView", m_camera->getView());
-    program.set("uProjection", m_camera->getProjection());
     const auto basis = node.getSurfaceTransform(model);
     program.set("uNormal", basis.normal);
     program.set("uTangentSign", basis.tangentSign);
-    program.set("uEye", m_camera->getPosition());
-    program.set("uLightCount", static_cast<int>(m_lights.size()));
-    for (unsigned i = 0; i < m_lights.size(); ++i){
-        m_lights[i].node->apply(program, i, m_lights[i].model, state.getLightEnabled(i));
-    }
     if (models){
         node.drawInstanced(*models, true);
         ++m_stats.instancedDraws;

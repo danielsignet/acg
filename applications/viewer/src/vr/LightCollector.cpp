@@ -1,27 +1,47 @@
-#include <vr/LightCollector.h>
-#include <vr/Light.h>
 #include <stdexcept>
+#include <vr/LOD.h>
+#include <vr/Light.h>
+#include <vr/LightCollector.h>
+#include <vr/Transform.h>
 
 namespace vr{
 namespace{
-class LightCollector : public PathVisitor{
+class LightCollector : public NodeVisitor{
 public:
     // Collects one independent transformed light list for either rendering pipeline.
     std::vector<PositionedLight> collect(Node& root, const glm::vec3& eye){
-        setEye(eye);
+        m_eye = eye;
         root.accept(*this);
         return std::move(m_lights);
     }
 
 private:
     std::vector<PositionedLight> m_lights;
+    std::vector<glm::mat4> m_models{glm::mat4(1)};
+    glm::vec3 m_eye{0};
+
+    void apply(Transform& node) override{
+        m_models.push_back(node.getWorldMatrix(m_models.back()));
+        try{
+            traverse(node);
+        } catch (...){
+            m_models.pop_back();
+            throw;
+        }
+        m_models.pop_back();
+    }
+
+    void apply(LOD& node) override{
+        const auto center = glm::vec3(m_models.back() * glm::vec4(node.getCenter(), 1));
+        node.getChildren().at(node.selectLevel(glm::distance(m_eye, center)))->accept(*this);
+    }
 
     // Retains the transform accumulated along this light instance's graph path.
-    void light(Light& node, const glm::mat4& model, const State&) override{
+    void apply(Light& node) override{
         if (m_lights.size() >= State::MaxLights){
             throw std::runtime_error("Too many lights");
         }
-        m_lights.push_back({&node, model});
+        m_lights.push_back({&node, m_models.back()});
     }
 };
 } // namespace

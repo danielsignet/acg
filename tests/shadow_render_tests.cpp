@@ -1,18 +1,59 @@
-#include <vr/ShadowRenderer.h>
-#include <vr/DeferredRenderer.h>
-#include <vr/ShadowCameras.h>
-#include <vr/SceneGraph.h>
 #include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 #include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <stdexcept>
+#include <vr/DeferredRenderer.h>
+#include <vr/FramebufferState.h>
+#include <vr/SceneGraph.h>
+#include <vr/ShadowCameras.h>
+#include <vr/ShadowRenderer.h>
 
 namespace{
 constexpr int width = 640, height = 480;
 unsigned checks = 0;
 std::unique_ptr<vr::DeferredRenderer> deferred;
+
+// A group of shadow faces must restore caller state just like an isolated target pass.
+void callerState(const std::filesystem::path& path){
+    vr::FramebufferState restoreTestState;
+    vr::Scene scene;
+    auto sun = std::make_shared<vr::Light>();
+    sun->setPosition({0, 1, 0, 0});
+    scene.getRoot()->addChild(sun);
+    auto point = std::make_shared<vr::Light>();
+    point->setPosition({1, 3, 2, 1});
+    scene.getRoot()->addChild(point);
+    scene.getRoot()->addChild(vr::GeometryFactory::createBox());
+    vr::ShadowRenderer shadows(path, 64, 64);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(3, 7, 120, 90);
+    glDepthFunc(GL_GREATER);
+    glDepthMask(GL_FALSE);
+    glColorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_FALSE);
+    glEnable(GL_BLEND);
+    glEnable(GL_SCISSOR_TEST);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(2, 3);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    shadows.render(scene,{0, 0, 5}, true, false);
+    GLint viewport[4]{}, depth = 0, mode[2]{};
+    GLboolean mask[4]{}, write = GL_TRUE;
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glGetIntegerv(GL_DEPTH_FUNC, &depth);
+    glGetIntegerv(GL_POLYGON_MODE, mode);
+    glGetBooleanv(GL_COLOR_WRITEMASK, mask);
+    glGetBooleanv(GL_DEPTH_WRITEMASK, &write);
+    if (shadows.getStats().passes != 7 || viewport[0] != 3 || viewport[1] != 7 ||
+        viewport[2] != 120 || viewport[3] != 90 || depth != GL_GREATER || write != GL_FALSE ||
+        !mask[0] || mask[1] || !mask[2] || mask[3] || mode[0] != GL_LINE ||
+        !glIsEnabled(GL_BLEND) || !glIsEnabled(GL_SCISSOR_TEST) ||
+        !glIsEnabled(GL_POLYGON_OFFSET_FILL)){
+        throw std::runtime_error("A multi-face shadow batch must preserve caller raster state");
+    }
+    ++checks;
+}
 
 void check(bool value, const char* message){
     ++checks;
@@ -657,6 +698,7 @@ int main(int argc, char** argv){
             deferred->resize(width, height);
             deferred->setPreviews(false);
         }
+        callerState(argv[1]);
         run(argv[1]);
     } catch (const std::exception& e){
         std::cerr << "FAILED: " << e.what() << '\n';

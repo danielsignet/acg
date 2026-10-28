@@ -39,9 +39,12 @@ public:
     std::vector<float> readDepth(unsigned layer) const;
 
 private:
-    // Attaches one depth face and checks framebuffer completeness.
+    friend class ShadowRenderer;
+    // The shadow renderer owns one caller-state guard around all light faces.
+    void renderFace(unsigned layer, const std::function<void(const Camera&)>& draw);
+    // Binds the prevalidated framebuffer for one immutable depth face.
     void attach(unsigned layer) const;
-    GLuint m_framebuffer = 0;
+    std::vector<GLuint> m_framebuffers;
     std::shared_ptr<Texture> m_texture;
     std::vector<std::shared_ptr<Camera>> m_cameras;
 };

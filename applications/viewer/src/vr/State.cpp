@@ -1,5 +1,6 @@
 #include <functional>
 #include <stdexcept>
+#include <vr/GLState.h>
 #include <vr/State.h>
 
 namespace vr{
@@ -42,6 +43,22 @@ State State::defaults(const std::shared_ptr<Program>& program){
 }
 
 // Combines inherited values with explicitly supplied local overrides.
+State State::mergedShadow(const State& local) const{
+    State result = *this;
+    if (local.m_castShadows){
+        result.m_castShadows = local.m_castShadows;
+    }
+    if (auto texture = local.m_textures.find(0); texture != local.m_textures.end()){
+        result.m_textures[0] = texture->second;
+    }
+    for (const auto* name :{"uAlphaCutoff", "uLodRange"}){
+        if (auto uniform = local.m_uniforms.find(name); uniform != local.m_uniforms.end()){
+            result.m_uniforms[name] = uniform->second;
+        }
+    }
+    return result;
+}
+
 State State::merged(const State& local) const{
     State result = *this;
     if (local.m_lightingEnabled){
@@ -198,17 +215,17 @@ void State::apply() const{
     }
     m_program->use();
     if (getBlend()){
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glDepthMask(GL_FALSE);
+        GLState::enable(GL_BLEND);
+        GLState::blendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        GLState::depthMask(GL_FALSE);
     } else{
-        glDisable(GL_BLEND);
-        glDepthMask(GL_TRUE);
+        GLState::disable(GL_BLEND);
+        GLState::depthMask(GL_TRUE);
     }
     if (getCullFace()){
-        glEnable(GL_CULL_FACE);
+        GLState::enable(GL_CULL_FACE);
     } else{
-        glDisable(GL_CULL_FACE);
+        GLState::disable(GL_CULL_FACE);
     }
     m_program->set("uLighting", getLighting());
     m_program->set("uReceiveShadows", getReceiveShadows());

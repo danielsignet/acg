@@ -1,9 +1,10 @@
-#include <vr/PlanarReflection.h>
-#include <vr/FramebufferState.h>
-#include <vr/GeometryFactory.h>
-#include <glm/gtc/matrix_transform.hpp>
 #include <cmath>
+#include <glm/gtc/matrix_transform.hpp>
 #include <stdexcept>
+#include <vr/FramebufferState.h>
+#include <vr/GLState.h>
+#include <vr/GeometryFactory.h>
+#include <vr/PlanarReflection.h>
 
 namespace vr{
 // Reflects world coordinates through a normalized plane, including its translation.
@@ -63,22 +64,22 @@ void PlanarReflection::render(Scene& scene, const Camera& camera, EnvironmentMap
     }
     FramebufferState saved;
     m_target->bind();
-    glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glDepthMask(GL_TRUE);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glDisable(GL_SAMPLE_SHADING);
+    GLState::disable(GL_SCISSOR_TEST);
+    GLState::disable(GL_BLEND);
+    GLState::enable(GL_DEPTH_TEST);
+    GLState::depthFunc(GL_LESS);
+    GLState::depthMask(GL_TRUE);
+    GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    GLState::disable(GL_SAMPLE_SHADING);
     if (m_samples > 1){
-        glEnable(GL_MULTISAMPLE);
+        GLState::enable(GL_MULTISAMPLE);
     } else{
-        glDisable(GL_MULTISAMPLE);
+        GLState::disable(GL_MULTISAMPLE);
     }
     glClearColor(0.004f, 0.006f, 0.01f, 1);
-    glClearDepth(1);
+    GLState::clearDepth(1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glFrontFace(GL_CW);
+    GLState::frontFace(GL_CW);
     Camera reflected;
     reflected.setProjection(camera.getProjection());
     reflected.setView(camera.getView() * reflectionMatrix(plane));

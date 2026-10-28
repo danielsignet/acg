@@ -3,8 +3,10 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <map>
+#include <optional>
 #include <string>
 #include <variant>
+#include <vector>
 
 namespace vr{
 using Uniform =
@@ -46,6 +48,7 @@ private:
     static GLuint compileShader(const std::filesystem::path& path, GLenum type);
     GLuint m_id = 0;
     mutable std::map<std::string, GLint> m_locations;
+    mutable std::vector<std::optional<Uniform>> m_values;
     mutable int m_instancing = -1;
 };
 } // namespace vr

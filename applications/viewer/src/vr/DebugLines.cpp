@@ -1,6 +1,7 @@
 #include <vector>
 #include <vr/DebugLines.h>
 #include <vr/Frustum.h>
+#include <vr/GLState.h>
 
 namespace vr{
 // Creates the debug shader and reusable line buffers.
@@ -8,17 +9,17 @@ DebugLines::DebugLines(const std::filesystem::path& root){
     m_program = std::make_shared<Program>(root / "shaders/debug.vs", root / "shaders/debug.fs");
     glGenVertexArrays(1, &m_vao);
     glGenBuffers(1, &m_vbo);
-    glBindVertexArray(m_vao);
+    GLState::bindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), nullptr);
-    glBindVertexArray(0);
+    GLState::bindVertexArray(0);
 }
 
 // Releases the line buffers while the OpenGL context is alive.
 DebugLines::~DebugLines(){
     glDeleteBuffers(1, &m_vbo);
-    glDeleteVertexArrays(1, &m_vao);
+    GLState::deleteVertexArrays(1, &m_vao);
 }
 
 // Submits the twelve edges connecting the eight supplied corners.
@@ -33,21 +34,21 @@ void DebugLines::draw(const std::array<glm::vec3, 8>& corners, const glm::mat4& 
             }
         }
     }
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_BLEND);
+    GLState::disable(GL_DEPTH_TEST);
+    GLState::depthMask(GL_FALSE);
+    GLState::disable(GL_CULL_FACE);
+    GLState::disable(GL_BLEND);
     m_program->use();
     m_program->set("uVP", vp);
     m_program->set("uColor", color);
-    glBindVertexArray(m_vao);
+    GLState::bindVertexArray(m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(vertices.size() * sizeof(glm::vec3)),
                  vertices.data(), GL_STREAM_DRAW);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertices.size()));
-    glBindVertexArray(0);
-    glDepthMask(GL_TRUE);
-    glEnable(GL_DEPTH_TEST);
+    GLState::bindVertexArray(0);
+    GLState::depthMask(GL_TRUE);
+    GLState::enable(GL_DEPTH_TEST);
 }
 
 // Draws a valid world-space bound from the observer camera.

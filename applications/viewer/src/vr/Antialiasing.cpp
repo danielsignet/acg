@@ -1,5 +1,6 @@
 #include <vr/Antialiasing.h>
 #include <vr/FramebufferState.h>
+#include <vr/GLState.h>
 
 namespace vr{
 // Loads the display-space FXAA filter and the depth-preserving presentation pass.
@@ -23,15 +24,15 @@ void Antialiasing::configure(int width, int height, AntialiasingMode mode){
 
 // Configures a fullscreen pass independently of previous geometry state.
 void Antialiasing::screenPass(){
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(GL_FALSE);
-    glDisable(GL_BLEND);
-    glDisable(GL_CULL_FACE);
-    glDisable(GL_SCISSOR_TEST);
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    glDisable(GL_SAMPLE_SHADING);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    GLState::disable(GL_DEPTH_TEST);
+    GLState::depthMask(GL_FALSE);
+    GLState::disable(GL_BLEND);
+    GLState::disable(GL_CULL_FACE);
+    GLState::disable(GL_SCISSOR_TEST);
+    GLState::disable(GL_POLYGON_OFFSET_FILL);
+    GLState::disable(GL_SAMPLE_SHADING);
+    GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    GLState::polygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 // Filters the tone-mapped scene while leaving diagnostic channels and HUD untouched.
@@ -61,15 +62,15 @@ const std::shared_ptr<Texture>& Antialiasing::filter(const std::shared_ptr<Textu
 void Antialiasing::renderForward(const std::function<void()>& draw, FrameProfiler* profiler){
     m_screenDraws = 0;
     FramebufferState saved;
-    glDisable(GL_SAMPLE_SHADING);
-    glDisable(GL_MULTISAMPLE);
+    GLState::disable(GL_SAMPLE_SHADING);
+    GLState::disable(GL_MULTISAMPLE);
     if (m_mode == AntialiasingMode::Off){
         draw();
         return;
     }
     GLint framebuffer = 0, viewport[4]{};
-    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &framebuffer);
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    GLState::getIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &framebuffer);
+    GLState::getIntegerv(GL_VIEWPORT, viewport);
     if (!m_forward){
         const int samples = m_mode == AntialiasingMode::Msaa ? 4 : 1;
         m_forward = std::make_unique<ColorTarget>(
@@ -81,9 +82,9 @@ void Antialiasing::renderForward(const std::function<void()>& draw, FrameProfile
     }
     m_forward->bind();
     if (m_mode == AntialiasingMode::Msaa){
-        glEnable(GL_MULTISAMPLE);
+        GLState::enable(GL_MULTISAMPLE);
     }
-    glDepthMask(GL_TRUE);
+    GLState::depthMask(GL_TRUE);
     glClearColor(0.035f, 0.052f, 0.078f, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     draw();
@@ -94,8 +95,8 @@ void Antialiasing::renderForward(const std::function<void()>& draw, FrameProfile
     const auto& color = m_resolved ? m_resolved->getTexture() : m_forward->getTexture();
     const auto& output = filter(color);
     screenPass();
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(framebuffer));
-    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+    GLState::bindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(framebuffer));
+    GLState::viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     m_program->use();
     output->apply(0);
     (m_resolved ? m_resolved : m_forward)->getDepth()->apply(1);
@@ -103,9 +104,9 @@ void Antialiasing::renderForward(const std::function<void()>& draw, FrameProfile
     m_program->set("uDepth", 1);
     m_program->set("uFxaa", false);
     m_program->set("uWriteDepth", true);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_ALWAYS);
-    glDepthMask(GL_TRUE);
+    GLState::enable(GL_DEPTH_TEST);
+    GLState::depthFunc(GL_ALWAYS);
+    GLState::depthMask(GL_TRUE);
     m_quad.draw();
     ++m_screenDraws;
 }

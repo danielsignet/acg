@@ -1,6 +1,7 @@
 #pragma once
 #include "Node.h"
 #include "NodeVisitor.h"
+#include "StreamBuffer.h"
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -22,6 +23,16 @@ struct Vertex{
     glm::vec4 tangent{0};
     SkinWeights skin;
 };
+
+// Render attributes stay full precision; CPU-only joint weights never enter this layout.
+struct GpuVertex{
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoord;
+    glm::vec4 tangent;
+};
+
+static_assert(sizeof(GpuVertex) == 48, "Unexpected GPU vertex packing");
 
 class Geometry : public Node{
 public:
@@ -107,6 +118,7 @@ private:
 
     // Binds the VAO and uploads changed vertices and indices for either draw path.
     void bind() const;
+    void bindAttributes(GLuint buffer) const;
 
     // Builds a balanced hierarchy over triangle bounds without issuing OpenGL calls.
     void buildRayTree() const;
@@ -120,8 +132,9 @@ private:
 
     std::vector<Vertex> m_vertices;
     std::vector<unsigned> m_indices;
-    mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0, m_instances = 0;
-    mutable GLuint m_instanceNormals = 0;
+    mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0;
+    mutable StreamBuffer m_vertexStream, m_instanceStream, m_normalStream;
+    mutable std::vector<GpuVertex> m_uploadVertices;
     mutable std::vector<std::pair<glm::mat4, SurfaceTransform>> m_surfaceTransforms;
     mutable bool m_dirty = true;
     mutable bool m_vertexDirty = false, m_rayDirty = false;

@@ -95,6 +95,50 @@ void Texture::apply(unsigned layer) const{
         return;
     }
     if (m_renderFormat){
+        if (m_cubeLayers){
+            if (!m_id){
+                glGenTextures(1, &m_id);
+                glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_id);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER,
+                                m_levels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAX_LEVEL, m_levels - 1);
+                for (unsigned level = 0; level < m_levels; ++level){
+                    const int size = std::max(1, m_width >> level);
+                    glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, level, m_renderFormat, size, size,
+                                 m_cubeLayers * 6, 0, GL_RGBA, GL_FLOAT, nullptr);
+                }
+            } else{
+                glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, m_id);
+            }
+            return;
+        }
+        if (m_cube){
+            if (!m_id){
+                glGenTextures(1, &m_id);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, m_id);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER,
+                                m_levels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, m_levels - 1);
+                for (unsigned level = 0; level < m_levels; ++level){
+                    const int size = std::max(1, m_width >> level);
+                    for (unsigned face = 0; face < 6; ++face){
+                        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, level, m_renderFormat,
+                                     size, size, 0, GL_RGBA, GL_FLOAT, nullptr);
+                    }
+                }
+            } else{
+                glBindTexture(GL_TEXTURE_CUBE_MAP, m_id);
+            }
+            return;
+        }
         if (!m_id){
             glGenTextures(1, &m_id);
             glBindTexture(GL_TEXTURE_2D, m_id);
@@ -174,6 +218,29 @@ void Texture::uploadDepth() const{
     }
 }
 } // namespace vr
+
+// Creates a floating-point cubemap with an explicitly allocated mip chain.
+std::shared_ptr<vr::Texture> vr::Texture::colorCube(int size, unsigned levels){
+    if (levels == 0 || levels > 16 || (1u << (levels - 1)) > static_cast<unsigned>(size)){
+        throw std::invalid_argument("Invalid cubemap mip count");
+    }
+    auto texture = std::shared_ptr<Texture>(new Texture(size, size, true));
+    texture->m_depth = false;
+    texture->m_renderFormat = GL_RGBA16F;
+    texture->m_levels = levels;
+    return texture;
+}
+
+// Packs multiple HDR reflection cubemaps into one sampler binding.
+std::shared_ptr<vr::Texture> vr::Texture::colorCubeArray(int size, unsigned levels,
+                                                         unsigned layers){
+    if (layers == 0 || layers > 16){
+        throw std::invalid_argument("Invalid reflection cubemap layer count");
+    }
+    auto texture = colorCube(size, levels);
+    texture->m_cubeLayers = layers;
+    return texture;
+}
 
 // Creates a nearest or linearly sampled color attachment without CPU pixel storage.
 std::shared_ptr<vr::Texture> vr::Texture::colorTarget(int width, int height, GLenum format,

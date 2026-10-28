@@ -33,6 +33,10 @@ public:
     // Creates a nearest or linearly sampled color attachment without CPU pixel storage.
     static std::shared_ptr<Texture> colorTarget(int width, int height, GLenum format = GL_RGBA16F,
                                                 bool linear = false, int samples = 1);
+    // Creates a floating-point cubemap with an explicitly allocated mip chain.
+    static std::shared_ptr<Texture> colorCube(int size, unsigned levels);
+    // Packs multiple HDR reflection cubemaps into one sampler binding.
+    static std::shared_ptr<Texture> colorCubeArray(int size, unsigned levels, unsigned layers);
 
     // Returns the OpenGL texture identifier after upload.
     GLuint getId() const{
@@ -41,9 +45,10 @@ public:
 
     // Returns the sampler target for a color, depth or cubemap texture.
     GLenum getTarget() const{
-        return m_samples > 1 ? GL_TEXTURE_2D_MULTISAMPLE
-               : m_cube      ? GL_TEXTURE_CUBE_MAP
-                             : GL_TEXTURE_2D;
+        return m_samples > 1  ? GL_TEXTURE_2D_MULTISAMPLE
+               : m_cubeLayers ? GL_TEXTURE_CUBE_MAP_ARRAY
+               : m_cube       ? GL_TEXTURE_CUBE_MAP
+                              : GL_TEXTURE_2D;
     }
 
     // Returns the number of coverage samples stored per pixel.
@@ -89,6 +94,8 @@ private:
     GLenum m_renderFormat = 0;
     bool m_linearTarget = false;
     int m_samples = 1;
+    unsigned m_levels = 1;
+    unsigned m_cubeLayers = 0;
     std::vector<unsigned char> m_rgba;
     mutable GLuint m_id = 0;
 };

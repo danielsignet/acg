@@ -26,7 +26,15 @@ bool Viewer::parseOptions(int argc, char** argv){
             }
             return std::string(argv[++i]);
         };
-        if (option == "--aa"){
+        if (option == "--shading"){
+            const auto mode = next();
+            if (mode != "phong" && mode != "blinn" && mode != "cook"){
+                throw std::invalid_argument("Unknown shading model: " + mode);
+            }
+            m_startShading = mode == "blinn"  ? ShadingMode::BlinnPhong
+                             : mode == "cook" ? ShadingMode::CookTorrance
+                                              : ShadingMode::Phong;
+        } else if (option == "--aa"){
             const auto mode = next();
             if (mode != "off" && mode != "fxaa" && mode != "msaa"){
                 throw std::invalid_argument("Unknown antialiasing mode: " + mode);
@@ -34,12 +42,22 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_antialiasingMode = mode == "fxaa"   ? AntialiasingMode::Fxaa
                                  : mode == "msaa" ? AntialiasingMode::Msaa
                                                   : AntialiasingMode::Off;
+        } else if (option == "--reflections"){
+            const auto mode = next();
+            if (mode != "off" && mode != "environment" && mode != "cubemaps"){
+                throw std::invalid_argument("Unknown reflection mode: " + mode);
+            }
+            m_reflectionMode = mode == "off"        ? ReflectionMode::Off
+                               : mode == "cubemaps" ? ReflectionMode::Cubemaps
+                                                    : ReflectionMode::Environment;
         } else if (option == "--forward"){
             m_forward = true;
         } else if (option == "--no-ao"){
             m_noAO = true;
         } else if (option == "--performance"){
             m_performance = true;
+        } else if (option == "--no-menus"){
+            m_noMenus = true;
         } else if (option == "--hidden"){
             m_hidden = true;
         } else if (option == "--validate"){
@@ -94,7 +112,10 @@ bool Viewer::parseOptions(int argc, char** argv){
                          "[--buffer lit|positions|normals|albedo|specular|depth|"
                          "ambient|emissive|plane|ao] [--bloom] [--dof] "
                          "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
+                         "[--no-menus] "
                          "[--aa off|fxaa|msaa] "
+                         "[--reflections off|environment|cubemaps] "
+                         "[--shading phong|blinn|cook] "
                          "[--screenshot file.png] [--dot file.dot]\n";
             return false;
         } else{
@@ -180,6 +201,14 @@ int Viewer::run(int argc, char** argv){
             throw std::runtime_error(m_application->m_status);
         }
     }
+    while (m_application->m_reflectionMode != m_reflectionMode){
+        m_application->execute(Controls::Action::Reflections);
+    }
+    if (m_startShading != ShadingMode::Phong){
+        m_application->execute(m_startShading == ShadingMode::BlinnPhong
+                                   ? Controls::Action::BlinnPhongShader
+                                   : Controls::Action::CookTorranceShader);
+    }
     if (m_lodDemoCallback){
         m_application->execute(Controls::Action::LodTour);
     }
@@ -223,6 +252,9 @@ int Viewer::run(int argc, char** argv){
     }
     if (m_performance){
         m_application->execute(Controls::Action::Performance);
+    }
+    if (m_noMenus){
+        m_application->execute(Controls::Action::Hud);
     }
     double previous = glfwGetTime();
     int frames = 0;

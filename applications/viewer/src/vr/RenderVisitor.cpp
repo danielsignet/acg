@@ -8,6 +8,9 @@
 #include <vr/Light.h>
 #include <vr/RenderVisitor.h>
 #include <vr/DeferredRenderer.h>
+#include <vr/EnvironmentMap.h>
+#include <vr/PlanarReflection.h>
+#include <vr/FramebufferState.h>
 
 namespace vr{
 // Collects lights and geometry, invokes the optional preparation hook, then draws the scene.
@@ -19,6 +22,10 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
     m_globalState = root.getState() ? m_states.front().merged(*root.getState()) : m_states.front();
     setEye(camera.getPosition());
     m_stats ={};
+    GLint viewport[4]{};
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    m_viewport = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
+    m_environmentPrograms.clear();
     collectLights(root);
     collectGeometry(root, camera, frozen ? *frozen : camera.getProjection() * camera.getView(),
                     portals);
@@ -54,8 +61,16 @@ void RenderVisitor::collectGeometry(Node& root, const Camera& camera,
 
 // Draws opaque instances first and transparent instances in stable back-to-front order.
 void RenderVisitor::drawRenderList(const Camera& camera){
+    m_globalState.setUniform("uBrdfMode", m_shadingMode == ShadingMode::CookTorrance ? 2
+                                          : m_shadingMode == ShadingMode::BlinnPhong ? 1
+                                                                                     : 0);
     std::vector<const RenderNode*> opaque, transparent;
     for (const auto& item : m_culler.getRenderList()){
+        const auto mirror = item.state.getUniforms().find("uMirror");
+        if ((m_clipPlane || m_environmentCapture) && mirror != item.state.getUniforms().end() &&
+            std::get<bool>(mirror->second)){
+            continue;
+        }
         (item.state.getBlend() ? transparent : opaque).push_back(&item);
     }
     const auto distance = [&](const RenderNode* item){
@@ -80,16 +95,21 @@ void RenderVisitor::drawRenderList(const Camera& camera){
                 }
             });
     } else{
+        if (m_environment){
+            FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Environment);
+            m_environment->drawSky(camera, m_linearOutput);
+            ++m_stats.screenDraws;
+        }
         {
             FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Forward);
             for (const auto* item : opaque){
-                drawInstance(*item);
+                drawInstance(*item,{}, m_linearOutput);
             }
         }
         {
             FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Transparency);
             for (const auto* item : transparent){
-                drawInstance(*item);
+                drawInstance(*item,{}, m_linearOutput);
             }
         }
     }
@@ -112,6 +132,26 @@ void RenderVisitor::drawInstance(const RenderNode& item, const std::shared_ptr<P
     }
 }
 
+// Resolves color into a separate texture, including multisample and reflected views.
+void RenderVisitor::captureTransmission(){
+    FramebufferState saved;
+    GLint source = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &source);
+    const int width = static_cast<int>(m_viewport.z), height = static_cast<int>(m_viewport.w);
+    if (!m_transmission || m_transmission->getTexture()->getWidth() != width ||
+        m_transmission->getTexture()->getHeight() != height){
+        m_transmission = std::make_unique<ColorTarget>(width, height);
+    }
+    m_transmission->bind();
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, static_cast<GLuint>(source));
+    glDisable(GL_SCISSOR_TEST);
+    glBlitFramebuffer(static_cast<int>(m_viewport.x), static_cast<int>(m_viewport.y),
+                      static_cast<int>(m_viewport.x) + width,
+                      static_cast<int>(m_viewport.y) + height, 0, 0, width, height,
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    ++m_stats.screenCopies;
+}
+
 // Submits a mesh with its resolved transform and rendering state.
 void RenderVisitor::drawGeometry(const RenderNode& item,
                                  const std::shared_ptr<Program>& overrideProgram,
@@ -119,11 +159,50 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     auto& node = *item.geometry;
     const auto& model = item.model;
     auto state = item.state;
+    const auto glassUniform = state.getUniforms().find("uGlass");
+    const bool glass =
+        glassUniform != state.getUniforms().end() && std::get<bool>(glassUniform->second);
+    if (glass){
+        captureTransmission();
+    }
     if (overrideProgram){
         state.setProgram(overrideProgram);
     }
     state.apply();
     const auto& program = *state.getProgram();
+    if (m_environmentPrograms.insert(program.getId()).second){
+        if (m_environment){
+            m_environment->apply(program);
+        }
+        program.set("uEnvironment", 14);
+        program.set("uEnvironmentBrdf", 15);
+        program.set("uViewport", glm::vec2(m_viewport.z, m_viewport.w));
+        program.set("uViewportOrigin", glm::vec2(m_viewport));
+    }
+    program.set("uEnvironmentEnabled", m_environment != nullptr);
+    if (m_environmentCapture){
+        program.set("uReflectionMode", static_cast<int>(ReflectionMode::Environment));
+    }
+    const auto mirror = state.getUniforms().find("uMirror");
+    const bool mirrorSurface =
+        mirror != state.getUniforms().end() && std::get<bool>(mirror->second);
+    const auto reflection = mirrorSurface && m_reflection ? m_reflection->getTexture() : nullptr;
+    program.set("uMirrorAvailable", reflection != nullptr);
+    if (reflection){
+        reflection->apply(3);
+    }
+    if (glass){
+        m_transmission->getTexture()->apply(3);
+        const auto& bound = node.getBound();
+        const auto halfSize = bound.getExtent();
+        const glm::vec3 center(model * glm::vec4(bound.getCenter(), 1));
+        const float radius = std::max({glm::length(glm::vec3(model[0])) * halfSize.x,
+                                       glm::length(glm::vec3(model[1])) * halfSize.y,
+                                       glm::length(glm::vec3(model[2])) * halfSize.z});
+        program.set("uGlassSphere", glm::vec4(center, radius));
+    }
+    program.set("uClipEnabled", m_clipPlane.has_value());
+    program.set("uClipPlane", m_clipPlane.value_or(glm::vec4(0)));
     program.set("uLinearOutput", linearOutput);
     const auto coverage = state.getUniforms().find("uLodRange");
     program.set("uLodRange", coverage == state.getUniforms().end()
@@ -138,6 +217,9 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     program.set("uLightMask", lightMask);
     program.set("uToon", m_shadingMode == ShadingMode::Toon);
     program.set("uNormalMapping", m_shadingMode != ShadingMode::UnmappedPhong);
+    program.set("uBrdfMode", m_shadingMode == ShadingMode::CookTorrance ? 2
+                             : m_shadingMode == ShadingMode::BlinnPhong ? 1
+                                                                        : 0);
     program.set("uModel", model);
     program.set("uView", m_camera->getView());
     program.set("uProjection", m_camera->getProjection());

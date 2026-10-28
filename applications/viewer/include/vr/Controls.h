@@ -44,6 +44,8 @@ public:
         PhongShader,
         ToonShader,
         UnmappedPhongShader,
+        BlinnPhongShader,
+        CookTorranceShader,
         Shadows,
         Flashlight,
         Bloom,
@@ -59,7 +61,9 @@ public:
         EmissiveBuffer,
         PlaneBuffer,
         OcclusionBuffer,
-        Subdivision
+        Subdivision,
+        CarHeadlights,
+        Reflections
     };
 
     struct Binding{
@@ -78,7 +82,7 @@ public:
     };
 
     // Shares shader and buffer choices between menu rendering and keyboard selection.
-    static constexpr const std::array<ShaderOption, 12>& getShaderOptions(){
+    static constexpr const std::array<ShaderOption, 14>& getShaderOptions(){
         return m_shaderOptions;
     }
 
@@ -101,7 +105,7 @@ public:
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 19>& getBindings(){
+    static const std::array<Binding, 23>& getBindings(){
         return m_bindings;
     }
 
@@ -134,7 +138,7 @@ public:
     }
 
 private:
-    inline static constexpr std::array<ShaderOption, 12> m_shaderOptions{
+    inline static constexpr std::array<ShaderOption, 14> m_shaderOptions{
         {{Action::PhongShader, ShadingMode::Phong, BufferView::Lit, GLFW_KEY_1,
           "1  Phong + normals"},
          {Action::ToonShader, ShadingMode::Toon, BufferView::Lit, GLFW_KEY_2, "2  Toon"},
@@ -153,10 +157,18 @@ private:
          {Action::OcclusionBuffer, ShadingMode::Phong, BufferView::Occlusion, GLFW_KEY_A,
           "A  Occlusion"},
          {Action::UnmappedPhongShader, ShadingMode::UnmappedPhong, BufferView::Lit, GLFW_KEY_N,
-          "N  Phong (plain)"}}};
+          "N  Phong (plain)"},
+         {Action::BlinnPhongShader, ShadingMode::BlinnPhong, BufferView::Lit, GLFW_KEY_H,
+          "H  Blinn-Phong"},
+         {Action::CookTorranceShader, ShadingMode::CookTorrance, BufferView::Lit, GLFW_KEY_P,
+          "P  Cook-Torrance"}}};
 
-    inline static constexpr std::array<Binding, 19> m_bindings{
+    inline static constexpr std::array<Binding, 23> m_bindings{
         {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
+         {Action::Antialiasing, GLFW_KEY_F3, "F3", "Anti-aliasing"},
+         {Action::Subdivision, GLFW_KEY_F4, "F4", "Subdivision"},
+         {Action::Reflections, GLFW_KEY_F5, "F5", "Reflections"},
+         {Action::Hud, GLFW_KEY_TAB, "Tab", "Menus"},
          {Action::AmbientOcclusion, GLFW_KEY_O, "O", "Ambient occlusion"},
          {Action::Performance, GLFW_KEY_F1, "F1", "Performance"},
          {Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},

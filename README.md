@@ -37,10 +37,11 @@ WSL requires a graphical session such as WSLg.
 | RMB + Q/E | Move down/up |
 | RMB + Shift | Move faster |
 | 1-5 or light buttons | Toggle the four colored lights and daylight |
-| Z or Shader | Select Phong with normal maps (1), plain Phong (N), Toon (2), or individual G-buffer views; use the mouse or menu keys 3-0 and A |
+| Z or Shader | Select Phong with normal maps (1), plain Phong (N), Toon (2), Blinn–Phong (H), Cook–Torrance (P), or individual G-buffer views; use the mouse or menu keys 3-0 and A |
 | G or Multiview | Show/hide all G-buffer channel previews together; enables deferred rendering; click a preview to expand it, click again to return |
 | B or Bloom | Toggle bloom |
-| AA button | Cycle Off → FXAA → MSAA 4x in expected cost order; works in forward and deferred and resets performance averages |
+| F3 or Anti-aliasing | Cycle Off → FXAA → MSAA 4x in expected cost order; works in forward and deferred and resets performance averages |
+| F5 or Reflections | Cycle Off → Environment (HDRI) → Cubemaps (local scene captures); preserves diffuse skylight, disables the planar mirror in Off, and resets performance averages |
 | V or DoF | Toggle depth of field; focus follows the surface under the crosshair, and no target leaves the image sharp |
 | J or Shadows | Toggle shadows |
 | L or Flashlight | Toggle the camera-mounted flashlight |
@@ -51,7 +52,9 @@ WSL requires a graphical session such as WSLg.
 | F1 | Show/hide performance: CPU/GPU time and percentage breakdown; Reset averages clears measurements after changing settings |
 | F | Freeze/resume the culling camera, model animations and moving lights; show/hide the camera's debug volumes |
 | Space | Reset the camera |
-| Crosshair / Subdivide button | Aim at a highlighted model and toggle one cached subdivision level for that instance; generated in memory on first use |
+| F4 or Subdivide | Aim at a highlighted model and toggle one cached subdivision level for that instance; generated in memory on first use; No target when nothing is selected |
+| Headlights button by the crosshair | Shown when targeting the car; toggle its headlamps and light beams, initially off |
+| Tab or Hide menus | Hide/show the menu bars and buffer previews; crosshair and target actions stay visible, including in F1 |
 | R | Reload the scene and shaders |
 | Esc | Close the performance view or menu, then the program |
 
@@ -59,3 +62,6 @@ WSL requires a graphical session such as WSLg.
 
 Based on Anders Backman/vrguru's VRLib under the [MIT license](LICENSE).
 Bundled dependencies and assets retain their original notices.
+
+Sky HDRI: [Kloofendal 48d Partly Cloudy (Pure Sky)](https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky), Greg Zaal and Jarod Guest, [CC0](https://polyhaven.com/license).
+Filmic tone curve: [Krzysztof Narkowicz](https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/), CC0.

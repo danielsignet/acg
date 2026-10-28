@@ -3,6 +3,7 @@
 #include <vr/Camera.h>
 #include <vr/FramebufferState.h>
 #include <vr/Light.h>
+#include <vr/EnvironmentMap.h>
 #include <algorithm>
 #include <stdexcept>
 
@@ -174,6 +175,15 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Lighting);
         light(camera, state, lights);
     }
+    if (m_environment){
+        FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Environment);
+        const auto& buffer = multisample ? m_multisampleBuffer : m_gbuffer;
+        const auto mode = state.getUniforms().find("uBrdfMode");
+        m_environment->drawDeferred(
+            camera, *buffer, multisample ? buffer->get(GBuffer::Ambient) : getAmbientBuffer(),
+            mode == state.getUniforms().end() ? 0 : std::get<int>(mode->second));
+        ++m_screenDraws;
+    }
     {
         FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Transparency);
         glEnable(GL_DEPTH_TEST);
@@ -207,6 +217,7 @@ void DeferredRenderer::light(const Camera& camera, const State& state,
     auto lighting = state;
     lighting.setProgram(program);
     lighting.apply();
+    program->set("uEnvironmentEnabled", m_environment != nullptr);
     screenPass();
     state.applyShadowMaps(*program, GBuffer::Count);
     for (unsigned i = 0; i < GBuffer::Count; ++i){

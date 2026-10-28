@@ -42,8 +42,12 @@ std::shared_ptr<Node> Reader::getAsset(const std::string& id) const{
 }
 
 // Caches each import variant independently while retaining hierarchy by default.
-std::shared_ptr<Node> Reader::readModel(const std::filesystem::path& file, bool flatten){
+std::shared_ptr<Node> Reader::readModel(const std::filesystem::path& file, bool flatten,
+                                        const MaterialOverrides& materials){
     const auto path = resolve(file);
+    if (!materials.empty()){
+        return ModelReader(*this).read(path, flatten, materials);
+    }
     const auto key = std::make_pair(path.generic_string(), flatten);
     if (auto cached = m_models[key].lock()){
         return cached;

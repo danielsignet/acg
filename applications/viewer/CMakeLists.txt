@@ -15,6 +15,9 @@ add_library(vrlib STATIC
     src/vr/DepthOfField.cpp
     src/vr/AmbientOcclusion.cpp
     src/vr/Antialiasing.cpp
+    src/vr/EnvironmentMap.cpp
+    src/vr/PlanarReflection.cpp
+    src/vr/ReflectionProbes.cpp
     src/vr/FrameProfiler.cpp
     src/vr/PerformanceOverlay.cpp
     src/vr/Node.cpp
@@ -108,11 +111,13 @@ set(VIEWER_RESOURCES
     textures/grid.png
     textures/detail.png
     textures/brick-normal.png
+    textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr
     textures/alphatest.png
     fonts/arial.ttf
     shaders/phong-shading.vs
     shaders/phong-shading.fs
     shaders/lighting.glsl
+    shaders/display.glsl
     shaders/surface.glsl
     shaders/lod-fade.glsl
     shaders/gbuffer.fs
@@ -123,6 +128,14 @@ set(VIEWER_RESOURCES
     shaders/gbuffer-resolve.fs
     shaders/msaa-ambient.fs
     shaders/antialiasing.fs
+    shaders/brdf.glsl
+    shaders/environment.glsl
+    shaders/glass.glsl
+    shaders/environment-bake.fs
+    shaders/environment-sky.fs
+    shaders/environment-deferred.fs
+    shaders/environment-deferred-msaa.fs
+    shaders/environment-deferred.glsl
     shaders/ssao.fs
     shaders/ssao-resolve.fs
     shaders/post-process.fs

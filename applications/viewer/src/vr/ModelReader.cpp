@@ -6,17 +6,21 @@
 #include <assimp/postprocess.h>
 #include <iostream>
 #include <stdexcept>
+#include <set>
 
 namespace vr{
 // Preserves imported transforms, or merges an explicitly selected static variant.
-std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path, bool flatten){
+std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path, bool flatten,
+                                        const MaterialOverrides& materials){
     Assimp::Importer importer;
     unsigned flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals |
                      aiProcess_JoinIdenticalVertices | aiProcess_SortByPType |
                      aiProcess_ValidateDataStructure;
     if (flatten){
-        flags |= aiProcess_PreTransformVertices | aiProcess_OptimizeMeshes |
-                 aiProcess_RemoveRedundantMaterials;
+        flags |= aiProcess_PreTransformVertices | aiProcess_OptimizeMeshes;
+        if (materials.empty()){
+            flags |= aiProcess_RemoveRedundantMaterials;
+        }
     }
     const auto* scene = importer.ReadFile(path.string(), flags);
     if (!scene || !scene->mRootNode){
@@ -29,8 +33,24 @@ std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path, bool 
     // Assimp flips glTF's V coordinates. Keep imported and regenerated tangent frames consistent.
     m_normalY = extension == ".gltf" || extension == ".glb" ? -1.0f : 1.0f;
     m_materials.clear();
+    std::set<std::string> matched;
     for (unsigned index = 0; index < scene->mNumMaterials; ++index){
-        m_materials.push_back(readMaterial(*scene->mMaterials[index], *scene));
+        const auto& imported = *scene->mMaterials[index];
+        auto state = readMaterial(imported, *scene);
+        aiString name;
+        imported.Get(AI_MATKEY_NAME, name);
+        for (const auto& selector :{std::string("*"), std::string(name.C_Str())}){
+            if (const auto found = materials.find(selector); found != materials.end()){
+                *state = state->merged(*found->second);
+                matched.insert(selector);
+            }
+        }
+        m_materials.push_back(std::move(state));
+    }
+    for (const auto& entry : materials){
+        if (!matched.count(entry.first)){
+            throw std::runtime_error("Unknown material override: " + entry.first);
+        }
     }
     m_meshes.clear();
     for (unsigned index = 0; index < scene->mNumMeshes; ++index){
@@ -61,6 +81,16 @@ std::shared_ptr<State> ModelReader::readMaterial(const aiMaterial& imported, con
     }
     auto state = std::make_shared<State>();
     state->setMaterial(material);
+    float metallic = 0, roughness = 0.35f;
+    if (imported.Get(AI_MATKEY_METALLIC_FACTOR, metallic) == AI_SUCCESS){
+        material->setMetallic(std::clamp(metallic, 0.0f, 1.0f));
+    }
+    if (imported.Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) == AI_SUCCESS){
+        material->setRoughness(std::clamp(roughness, 0.0f, 1.0f));
+    }
+    if (imported.Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS){
+        state->setUniform("uEmissive", glm::vec3(color.r, color.g, color.b));
+    }
     aiString image;
     if (imported.GetTexture(aiTextureType_DIFFUSE, 0, &image) == AI_SUCCESS){
         state->setTexture(0, readTexture(image, scene));

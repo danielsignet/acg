@@ -135,10 +135,17 @@ void SceneReader::readAssets(Xml* root){
             if (std::string(asset->name()) != "model"){
                 throw std::runtime_error("Unknown asset element");
             }
-            m_reader.registerNode(
-                required(asset, "id"),
-                m_reader.readModel(portablePath(required(asset, "file")),
-                                   boolean(attribute(asset, "flatten", "false"))));
+            MaterialOverrides materials;
+            for (auto* child = asset->first_node(); child; child = child->next_sibling()){
+                if (std::string(child->name()) != "material" ||
+                    !materials.emplace(required(child, "name"), readState(child)).second){
+                    throw std::runtime_error("Model overrides require unique named materials");
+                }
+            }
+            m_reader.registerNode(required(asset, "id"),
+                                  m_reader.readModel(portablePath(required(asset, "file")),
+                                                     boolean(attribute(asset, "flatten", "false")),
+                                                     materials));
             m_modelAssets.insert(required(asset, "id"));
         }
     }
@@ -197,10 +204,18 @@ std::shared_ptr<Light> SceneReader::readLight(Xml* xml, const std::string& name)
         throw std::runtime_error("Light position w must be zero or one");
     }
     light->setPosition({position[0], position[1], position[2], position[3]});
+    light->setEnabled(boolean(attribute(xml, "enabled", "true")));
     light->setAmbient(vec3(attribute(xml, "ambient", "0.035 0.035 0.035")));
     light->setDiffuse(vec3(attribute(xml, "diffuse", "1 1 1")));
     light->setSpecular(vec3(attribute(xml, "specular", "1 1 1")));
     light->setAttenuation(vec3(attribute(xml, "attenuation", "1 0.025 0.006")));
+    if (xml->first_attribute("direction")){
+        light->setSpot(vec3(attribute(xml, "direction")), number(attribute(xml, "inner", "8")),
+                       number(attribute(xml, "outer", "16")));
+    }
+    if (xml->first_attribute("range")){
+        light->setRange(number(attribute(xml, "range")));
+    }
     if (auto* state = xml->first_node("state")){
         light->setState(readState(state));
     }
@@ -308,7 +323,8 @@ std::shared_ptr<State> SceneReader::readState(Xml* xml){
 // Reads only the material properties provided by the source.
 void SceneReader::readMaterial(Xml* xml, State& state){
     if (xml->first_attribute("diffuse") || xml->first_attribute("ambient") ||
-        xml->first_attribute("specular") || xml->first_attribute("shininess")){
+        xml->first_attribute("specular") || xml->first_attribute("shininess") ||
+        xml->first_attribute("roughness") || xml->first_attribute("metallic")){
         auto material = std::make_shared<Material>();
         if (xml->first_attribute("diffuse")){
             material->setDiffuse(vec3(attribute(xml, "diffuse")));
@@ -321,6 +337,12 @@ void SceneReader::readMaterial(Xml* xml, State& state){
         }
         if (xml->first_attribute("shininess")){
             material->setShininess(number(attribute(xml, "shininess")));
+        }
+        if (xml->first_attribute("roughness")){
+            material->setRoughness(number(attribute(xml, "roughness")));
+        }
+        if (xml->first_attribute("metallic")){
+            material->setMetallic(number(attribute(xml, "metallic")));
         }
         state.setMaterial(material);
     }
@@ -344,6 +366,22 @@ void SceneReader::readTextures(Xml* xml, State& state){
 
 // Reads built-in and arbitrary typed shader-uniform overrides.
 void SceneReader::readUniforms(Xml* xml, State& state){
+    if (xml->first_attribute("glass")){
+        state.setUniform("uGlass", boolean(attribute(xml, "glass")));
+    }
+    if (xml->first_attribute("ior")){
+        const auto ior = number(attribute(xml, "ior"));
+        if (!(ior >= 1 && ior <= 3)){
+            throw std::runtime_error("Index of refraction must be 1..3");
+        }
+        state.setUniform("uIor", ior);
+    }
+    if (xml->first_attribute("environment")){
+        state.setUniform("uEnvironmentMaterial", boolean(attribute(xml, "environment")));
+    }
+    if (xml->first_attribute("mirror")){
+        state.setUniform("uMirror", boolean(attribute(xml, "mirror")));
+    }
     if (xml->first_attribute("normalScale")){
         state.setUniform("uNormalScale", number(attribute(xml, "normalScale")));
     }

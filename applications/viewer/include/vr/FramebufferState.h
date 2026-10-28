@@ -17,6 +17,9 @@ public:
 private:
     GLint m_drawFramebuffer = 0, m_readFramebuffer = 0, m_viewport[4]{}, m_depthFunction = 0,
           m_polygonMode[2]{};
+    GLint m_frontFace = GL_CCW, m_blendSourceRgb = GL_ONE, m_blendDestinationRgb = GL_ZERO,
+          m_blendSourceAlpha = GL_ONE, m_blendDestinationAlpha = GL_ZERO,
+          m_blendEquationRgb = GL_FUNC_ADD, m_blendEquationAlpha = GL_FUNC_ADD;
     GLboolean m_colorMask[4]{}, m_depthMask = GL_TRUE;
     bool m_depthTestEnabled = false, m_blendEnabled = false, m_cullFaceEnabled = false,
          m_scissorEnabled = false, m_polygonOffsetEnabled = false;

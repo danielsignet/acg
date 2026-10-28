@@ -9,18 +9,33 @@ namespace vr{
 const std::array<FrameProfiler::Description, FrameProfiler::StageCount>&
 FrameProfiler::descriptions(){
     static const std::array<Description, StageCount> stages{
-        {{"Frame incl. swap", false},{"Input / animation", false},
-         {"Render total", true},{"Shadow maps", true},
-         {"Portal traversal", false},{"Light collection", false},
-         {"Scene graph culling", false},{"G-buffer geometry", true},
-         {"Deferred lighting", true},{"Transparent surfaces", true},
-         {"Bloom (7 draws)", true},{"DoF (3 draws)", true},
-         {"Composite / tone map", true},{"Present / previews", true},
-         {"Debug volumes", true},{"HUD / performance view", true},
-         {"Swap / VSync wait", false},{"Forward surfaces", true},
-         {"Ambient occlusion", true},{"Window events / commands", false},
-         {"Model raycast / BVH", false},{"CPU subdivision", false},
-         {"MSAA surface resolve", true},{"AA filter / color resolve", true}}};
+        {{"Frame incl. swap", false},
+         {"Input / animation", false},
+         {"Render total", true},
+         {"Shadow maps", true},
+         {"Portal traversal", false},
+         {"Light collection", false},
+         {"Scene graph culling", false},
+         {"G-buffer geometry", true},
+         {"Deferred lighting", true},
+         {"Transparent surfaces", true},
+         {"Bloom (7 draws)", true},
+         {"DoF (3 draws)", true},
+         {"Composite / tone map", true},
+         {"Present / previews", true},
+         {"Debug volumes", true},
+         {"HUD / performance view", true},
+         {"Swap / VSync wait", false},
+         {"Forward surfaces", true},
+         {"Ambient occlusion", true},
+         {"Window events / commands", false},
+         {"Model raycast / BVH", false},
+         {"CPU subdivision", false},
+         {"MSAA surface resolve", true},
+         {"AA filter / color resolve", true},
+         {"Sky / environment lighting", true},
+         {"Planar mirror capture", true},
+         {"Local cubemap capture / filter", true}}};
     return stages;
 }
 
@@ -77,6 +92,8 @@ FrameProfiler::breakdown(const Summary& summary){
                                           {"Model raycast / BVH", false},
                                           {"Input / animation", false},
                                           {"Subdivision", false},
+                                          {"Planar mirror"},
+                                          {"Local cubemaps"},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
@@ -88,7 +105,7 @@ FrameProfiler::breakdown(const Summary& summary){
     add(0,{Stage::Shadows});
     add(1,{Stage::Portals, Stage::Lights, Stage::Culling});
     add(2,{Stage::Geometry, Stage::Forward});
-    add(3,{Stage::Lighting, Stage::Transparency});
+    add(3,{Stage::Lighting, Stage::Transparency, Stage::Environment});
     add(4,{Stage::Bloom, Stage::DepthOfField, Stage::Composite, Stage::Present,
             Stage::GBufferResolve, Stage::Antialiasing});
     add(5,{Stage::Debug, Stage::Overlay});
@@ -97,6 +114,8 @@ FrameProfiler::breakdown(const Summary& summary){
     add(8,{Stage::Picking});
     add(9,{Stage::Events, Stage::Update});
     add(10,{Stage::Subdivision});
+    add(11,{Stage::Reflection});
+    add(12,{Stage::Cubemaps});
     // Commands run inside event polling; attribute their work exactly once.
     slices[9].cpuMs = std::max(0.0, slices[9].cpuMs - slices[10].cpuMs);
     const double cpu = summary.cpu[static_cast<std::size_t>(Stage::Frame)];

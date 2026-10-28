@@ -3,6 +3,8 @@
 #include <utility>
 
 namespace vr{
+using MaterialOverrides = std::map<std::string, std::shared_ptr<State>>;
+
 class Reader{
 public:
     // Stores the resource root used for model and texture lookup.
@@ -10,7 +12,8 @@ public:
     }
 
     // Shares imported hierarchies, or explicitly flattened static model variants.
-    std::shared_ptr<Node> readModel(const std::filesystem::path& file, bool flatten = false);
+    std::shared_ptr<Node> readModel(const std::filesystem::path& file, bool flatten = false,
+                                    const MaterialOverrides& materials ={});
 
     // Builds an XML scene using this reader's shared resource caches.
     std::shared_ptr<Scene> readScene(const std::filesystem::path& file);

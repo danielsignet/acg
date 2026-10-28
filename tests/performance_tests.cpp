@@ -72,6 +72,10 @@ void breakdownTests(){
     const auto forward = Profiler::breakdown(summary);
     check(forward[2].cpuMs == 13 && forward[2].gpuMs == 7 && forward[3].cpuMs == 5,
           "Forward surface submission belongs to geometry rather than deferred lighting");
+    time(Stage::Cubemaps, 2, 1);
+    const auto reflections = Profiler::breakdown(summary);
+    check(reflections[12].cpuMs == 2 && reflections[12].gpuMs == 1,
+          "Cubemap capture and filtering have a distinct CPU/GPU percentage share");
     for (const auto& slice : Profiler::breakdown({})){
         check(slice.cpuPercent == 0 && slice.gpuPercent == 0,
               "Empty histories produce finite, empty charts");

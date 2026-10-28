@@ -6,6 +6,7 @@ uniform vec3 uEye;
 uniform int uPass;
 uniform bool uBloomEnabled, uDofEnabled;
 #include "dof.glsl"
+#include "display.glsl"
 
 // Rejects half-resolution foreground colors when reconstructing a blurred background.
 vec3 farColor(float radius, vec3 fallback){
@@ -59,7 +60,7 @@ void main(){
     if (uBloomEnabled){
         color += texture(uBloom, texCoord).rgb * 0.25;
     }
-    color = pow(max(color, vec3(0)) / (max(color, vec3(0)) + vec3(0.65)), vec3(1.0 / 2.2));
+    color = displayColor(color);
     vec4 position = texture(uPosition, texCoord);
     int flags = int(round(texture(uEmissive, texCoord).a));
     if (position.w > 0.0 && (flags & 2) != 0){

@@ -12,6 +12,8 @@
 #include <optional>
 
 namespace vr{
+class EnvironmentMap;
+
 class DeferredRenderer final{
 public:
     static constexpr unsigned PreviewCount = GBuffer::Count + 2;
@@ -30,6 +32,12 @@ public:
 
     // Applies the selected technique around an existing forward draw callback.
     void renderForward(const std::function<void()>& draw);
+
+    // Shares precomputed sky lighting without transferring ownership.
+    void setEnvironment(EnvironmentMap* environment){
+        m_environment = environment;
+    }
+
     // Renders opaque surfaces, screen-space lighting, transparency and post effects.
     void render(const Camera& camera, const State& state,
                 const std::vector<PositionedLight>& lights,
@@ -113,6 +121,7 @@ public:
 
 private:
     FrameProfiler* m_profiler = nullptr;
+    EnvironmentMap* m_environment = nullptr;
     // Draws and counts one screen-aligned quad.
     void drawQuad();
     unsigned m_screenDraws = 0;

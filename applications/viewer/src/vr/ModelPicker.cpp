@@ -4,13 +4,16 @@
 #include <limits>
 
 namespace vr{
-// Finds the closest visible opaque model along a world-space ray, testing bounds first.
+// Finds the closest visible model, including glass, while ignoring transparent debug walls.
 std::optional<ModelHit> pickModel(const std::vector<RenderNode>& items, const glm::vec3& eye,
                                   const glm::vec3& direction){
     std::optional<ModelHit> hit;
     float nearest = std::numeric_limits<float>::infinity();
     for (const auto& item : items){
-        if (item.state.getBlend()){
+        const auto glass = item.state.getUniforms().find("uGlass");
+        const bool refractive =
+            glass != item.state.getUniforms().end() && std::get<bool>(glass->second);
+        if (item.state.getBlend() && !refractive){
             continue;
         }
         const auto inverse = glm::inverse(item.model);

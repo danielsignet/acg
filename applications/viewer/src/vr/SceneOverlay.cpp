@@ -18,26 +18,32 @@ constexpr ToolbarButton shadowButton{Action::Shadows, 316, 124};
 constexpr ToolbarButton rendererButton{Action::Renderer, 78, 88};
 constexpr ToolbarButton aoButton{Action::AmbientOcclusion, 656, 96};
 constexpr ToolbarButton flashlightButton{Action::Flashlight, 180, 124};
-constexpr float shaderRowHeight = 32;
+constexpr float shaderRowHeight = 28;
 constexpr float shaderMenuTop = -8 - shaderRowHeight * Controls::getShaderOptions().size();
 constexpr ToolbarButton bloomButton{Action::Bloom, 452, 90};
 constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
 constexpr ToolbarButton multiviewButton{Action::BufferPreviews, 764, 156};
-constexpr ToolbarButton aaButton{Action::Antialiasing, 12, 144};
-constexpr float aaTop = 64;
+constexpr ToolbarButton aaButton{Action::Antialiasing, 12, 232};
+constexpr ToolbarButton reflectionsButton{Action::Reflections, 256, 260};
+constexpr float secondaryTop = 56;
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
 
-constexpr std::array<ToolbarButton, 8> buttons{{{Action::PointRed, 78, 56},
+constexpr std::array<ToolbarButton, 7> buttons{{{Action::PointRed, 78, 56},
                                                 {Action::PointGreen, 142, 56},
                                                 {Action::PointBlue, 206, 56},
                                                 {Action::PointWhite, 270, 56},
                                                 {Action::PointSun, 334, 56},
                                                 shaderButton,
-                                                {Action::Culling, 602, 120},
-                                                {Action::Subdivision, 738, 180}}};
+                                                {Action::Culling, 602, 120}}};
 
 const char* shaderName(ShadingMode mode){
+    if (mode == ShadingMode::BlinnPhong){
+        return "Blinn-Phong";
+    }
+    if (mode == ShadingMode::CookTorrance){
+        return "Cook-Torrance";
+    }
     return mode == ShadingMode::Phong  ? "Phong + NM"
            : mode == ShadingMode::Toon ? "Toon"
                                        : "Plain Phong";
@@ -47,14 +53,16 @@ const char* shaderName(ShadingMode mode){
 // Draws the complete HUD without modifying the scene.
 void SceneOverlay::draw(const Application& application){
     m_text.begin(application.m_width, application.m_height);
-    drawHeader(application);
+    const bool menus = application.m_showHud && application.m_showMenus;
+    if (menus){
+        drawHeader(application);
+    }
     if (application.m_profiler.getEnabled()){
         drawPerformance(application);
-    } else{
-        drawFocus(application);
+    } else if (menus){
         drawLabels(application);
     }
-    if (application.m_deferredEnabled && application.m_bufferPreviews &&
+    if (menus && application.m_deferredEnabled && application.m_bufferPreviews &&
         !application.m_profiler.getEnabled()){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
             const auto rect = application.m_deferred->previewRectangle(i);
@@ -68,15 +76,57 @@ void SceneOverlay::draw(const Application& application){
                         {0.85f, 0.92f, 0.96f, 1});
         }
     }
-    drawFooter(application);
+    if (menus){
+        drawFooter(application);
+    }
+    drawFocus(application);
     m_text.end();
+}
+
+// Anchors the selected model's action buttons beside the crosshair.
+glm::vec4 SceneOverlay::targetActionRectangle(const Application& app, unsigned row){
+    const float left =
+        std::min(static_cast<float>(app.m_width) - 194,
+                 std::max(app.m_width * 0.5f + 14, app.m_profiler.getEnabled() ? 616.0f : 0.0f));
+    return{left, app.m_height * 0.5f + 48 + row * 34, 180, 28};
+}
+
+// Shares the visible menu-hide button bounds between rendering and click handling.
+glm::vec4 SceneOverlay::menuToggleRectangle(const Application& app){
+    return{static_cast<float>(app.m_width) - 160, secondaryTop, 148, 28};
 }
 
 // Dispatches a framebuffer-coordinate click to a toolbar or shader-menu action.
 void SceneOverlay::click(Application& app, float x, float y){
-    if (x >= aaButton.x && x <= aaButton.x + aaButton.width && y >= aaTop && y <= aaTop + 28){
-        app.execute(aaButton.action);
+    const auto inside = [&](const glm::vec4& rect){
+        return x >= rect.x && x < rect.x + rect.z && y >= rect.y && y < rect.y + rect.w;
+    };
+    if (app.m_target){
+        if (inside(targetActionRectangle(app, 0))){
+            app.execute(Action::Subdivision);
+            return;
+        }
+        if (app.carTargeted() && inside(targetActionRectangle(app, 1))){
+            app.execute(Action::CarHeadlights);
+            return;
+        }
+    }
+    if (app.m_profiler.getEnabled() && inside(performanceResetRectangle())){
+        app.execute(Action::ResetAverages);
         return;
+    }
+    if (!app.m_showHud || !app.m_showMenus){
+        return;
+    }
+    if (inside(menuToggleRectangle(app))){
+        app.execute(Action::Hud);
+        return;
+    }
+    for (const auto& button :{aaButton, reflectionsButton}){
+        if (inside({button.x, secondaryTop, button.width, 28})){
+            app.execute(button.action);
+            return;
+        }
     }
     for (const auto& button :{bloomButton, dofButton, aoButton, rendererButton, multiviewButton}){
         if (x >= button.x && x <= button.x + button.width && y >= 12 && y <= 44){
@@ -94,13 +144,6 @@ void SceneOverlay::click(Application& app, float x, float y){
         return;
     }
     const float bottom = static_cast<float>(app.m_height - FooterHeight);
-    if (app.m_profiler.getEnabled()){
-        const auto reset = performanceResetRectangle();
-        if (x >= reset.x && x < reset.x + reset.z && y >= reset.y && y < reset.y + reset.w){
-            app.execute(Action::ResetAverages);
-            return;
-        }
-    }
     if (app.m_profiler.getEnabled() && y > HeaderHeight && y < bottom){
         return;
     }
@@ -153,9 +196,21 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(0, 0, static_cast<float>(app.m_width), HeaderHeight,
                      {0.025f, 0.04f, 0.065f, 0.96f});
     m_text.draw("ACG", 24, 12, 22,{0.94f, 0.96f, 1, 1});
-    m_text.rectangle(aaButton.x, aaTop, aaButton.width, 28,{0.07f, 0.14f, 0.19f, 0.85f});
-    m_text.draw(std::string("AA: ") + antialiasingName(app.m_antialiasingMode) + "  >",
-                aaButton.x + 10, aaTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+    m_text.rectangle(aaButton.x, secondaryTop, aaButton.width, 28,{0.24f, 0.4f, 0.43f, 1});
+    m_text.rectangle(aaButton.x + 1, secondaryTop + 1, aaButton.width - 2, 26,
+                     {0.07f, 0.14f, 0.19f, 0.95f});
+    m_text.draw(std::string("Anti-aliasing: ") + antialiasingName(app.m_antialiasingMode) +
+                    " [F3]  >",
+                aaButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+    m_text.rectangle(reflectionsButton.x, secondaryTop, reflectionsButton.width, 28,
+                     {0.24f, 0.4f, 0.43f, 1});
+    m_text.rectangle(reflectionsButton.x + 1, secondaryTop + 1, reflectionsButton.width - 2, 26,
+                     {0.07f, 0.14f, 0.19f, 0.95f});
+    m_text.draw(std::string("Reflections: ") + reflectionName(app.m_reflectionMode) + " [F5]  >",
+                reflectionsButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+    const auto hide = menuToggleRectangle(app);
+    m_text.rectangle(hide.x, hide.y, hide.z, hide.w,{0.09f, 0.16f, 0.2f, 1});
+    m_text.draw("Hide menus [Tab]", hide.x + 10, hide.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});
     m_text.rectangle(flashlightButton.x, 12, flashlightButton.width, 32,{0.09f, 0.13f, 0.18f, 1});
     m_text.draw(std::string("Flashlight: ") + (app.m_flashlight->getEnabled() ? "ON" : "OFF") +
                     " [L]",
@@ -223,6 +278,23 @@ void SceneOverlay::drawFocus(const Application& app){
                   << " m";
             m_text.draw(focus.str(), x + 14, y + 30, 11,{1, 0.82f, 0.35f, 1});
         }
+    } else{
+        m_text.draw("No target", x + 14, y + 12, 12,{0.75f, 0.8f, 0.84f, 0.9f});
+    }
+    if (app.m_target){
+        const auto subdivide = targetActionRectangle(app, 0);
+        m_text.rectangle(subdivide.x, subdivide.y, subdivide.z, subdivide.w,
+                         {0.04f, 0.09f, 0.13f, 0.9f});
+        m_text.draw(std::string("Subdivide: ") +
+                        (app.m_target->instance->getSubdivided() ? "ON" : "OFF") + " [F4]",
+                    subdivide.x + 10, subdivide.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+        if (app.carTargeted()){
+            const auto headlights = targetActionRectangle(app, 1);
+            m_text.rectangle(headlights.x, headlights.y, headlights.z, headlights.w,
+                             {0.04f, 0.09f, 0.13f, 0.9f});
+            m_text.draw(std::string("Headlights: ") + (app.m_carHeadlightsEnabled ? "ON" : "OFF"),
+                        headlights.x + 10, headlights.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+        }
     }
 }
 
@@ -249,7 +321,7 @@ void SceneOverlay::drawFooter(const Application& app){
     drawToolbar(app, top);
     m_text.draw(
         "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: lamps   F: freeze view/scene   "
-        "G: buffers   F1: performance   Space: reset   R: reload   Esc: close",
+        "G: buffers   F1: performance   Tab: menus   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     const auto& shadowStats = app.m_shadowRenderer->getStats();
     const auto status = app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
@@ -287,10 +359,6 @@ void SceneOverlay::drawToolbar(const Application& app, float top){
             if (enabled){
                 foreground ={0.3f, 0.9f, 0.78f, 1};
             }
-        } else if (button.action == Action::Subdivision){
-            text = std::string("Subdivide: ") + (!app.m_target ? "aim at model"
-                                                 : app.m_target->instance->getSubdivided() ? "ON"
-                                                                                           : "OFF");
         }
         m_text.rectangle(button.x, top, button.width, 32, background);
         m_text.draw(text, button.x + 7, top + 7, 11, foreground);

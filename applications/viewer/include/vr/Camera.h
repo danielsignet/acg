@@ -27,6 +27,11 @@ public:
         m_view = matrix;
     }
 
+    // Shares an existing projection with auxiliary render cameras.
+    void setProjection(const glm::mat4& matrix){
+        m_projection = matrix;
+    }
+
     // Returns the world-to-camera view matrix.
     const glm::mat4& getView() const{
         return m_view;

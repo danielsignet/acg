@@ -36,6 +36,7 @@ private:
     bool m_hidden = false;
     bool m_validate = false;
     bool m_performance = false;
+    bool m_noMenus = false;
     bool m_forward = false, m_noAO = false;
     bool m_lodDemoCallback = false;
     bool m_inside = false;
@@ -43,6 +44,8 @@ private:
     bool m_bloom = false, m_depthOfField = false, m_noBufferPreviews = false;
     BufferView m_bufferView = BufferView::Lit;
     AntialiasingMode m_antialiasingMode = AntialiasingMode::Off;
+    ReflectionMode m_reflectionMode = ReflectionMode::Environment;
+    ShadingMode m_startShading = ShadingMode::Phong;
     bool m_noShadows = false;
     bool m_portalDemo = false, m_noPortals = false, m_solidWalls = false;
     int m_frameLimit = 0;

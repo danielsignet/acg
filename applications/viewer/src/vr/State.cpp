@@ -4,6 +4,19 @@
 #include <vr/State.h>
 
 namespace vr{
+std::shared_ptr<State::Uniforms> State::emptyUniforms(){
+    static auto empty = std::make_shared<Uniforms>();
+    return empty;
+}
+
+void State::setPassUniform(const std::string& name, Uniform value){
+    if (!m_passUniforms){
+        m_passUniforms = std::make_shared<Uniforms>();
+        changed();
+    }
+    (*m_passUniforms)[name] = std::move(value);
+}
+
 // Creates the complete initial rendering state for the supplied shader program.
 State State::defaults(const std::shared_ptr<Program>& program){
     State s;
@@ -52,15 +65,19 @@ State State::mergedShadow(const State& local) const{
         result.m_textures[0] = texture->second;
     }
     for (const auto* name :{"uAlphaCutoff", "uLodRange"}){
-        if (auto uniform = local.m_uniforms.find(name); uniform != local.m_uniforms.end()){
-            result.m_uniforms[name] = uniform->second;
+        if (auto uniform = local.m_uniforms->find(name); uniform != local.m_uniforms->end()){
+            result.setUniform(name, uniform->second);
         }
     }
+    result.changed();
     return result;
 }
 
 State State::merged(const State& local) const{
     State result = *this;
+    if (local.m_passUniforms){
+        result.m_passUniforms = local.m_passUniforms;
+    }
     if (local.m_lightingEnabled){
         result.m_lightingEnabled = local.m_lightingEnabled;
     }
@@ -102,9 +119,10 @@ State State::merged(const State& local) const{
     if (local.m_heightMap){
         result.m_heightMap = local.m_heightMap;
     }
-    for (const auto& entry : local.m_uniforms){
-        result.m_uniforms[entry.first] = entry.second;
+    for (const auto& entry : *local.m_uniforms){
+        result.setUniform(entry.first, entry.second);
     }
+    result.changed();
     return result;
 }
 
@@ -114,10 +132,11 @@ bool State::sameRenderState(const State& other) const{
         (m_material && other.m_material && m_material->sameValues(*other.m_material));
     return material && m_program == other.m_program && m_textures == other.m_textures &&
            m_normalMap == other.m_normalMap && m_heightMap == other.m_heightMap &&
-           m_uniforms == other.m_uniforms && m_shadowMaps == other.m_shadowMaps &&
-           m_lightEnabled == other.m_lightEnabled && m_lightingEnabled == other.m_lightingEnabled &&
-           m_cullFace == other.m_cullFace && m_blend == other.m_blend &&
-           m_castShadows == other.m_castShadows && m_receiveShadows == other.m_receiveShadows;
+           *m_uniforms == *other.m_uniforms && m_passUniforms == other.m_passUniforms &&
+           m_shadowMaps == other.m_shadowMaps && m_lightEnabled == other.m_lightEnabled &&
+           m_lightingEnabled == other.m_lightingEnabled && m_cullFace == other.m_cullFace &&
+           m_blend == other.m_blend && m_castShadows == other.m_castShadows &&
+           m_receiveShadows == other.m_receiveShadows;
 }
 
 std::size_t State::renderKey() const{
@@ -154,7 +173,11 @@ void State::setLightEnabled(unsigned index, bool enabled){
     if (index >= MaxLights){
         throw std::out_of_range("Light index");
     }
+    if (m_lightEnabled[index] == enabled){
+        return;
+    }
     m_lightEnabled[index] = enabled;
+    changed();
 }
 
 // Returns the enabled state of one validated light slot.
@@ -170,7 +193,12 @@ void State::setTexture(unsigned layer, std::shared_ptr<Texture> texture){
     if (layer >= MaxTextures){
         throw std::out_of_range("Texture unit");
     }
+    if (auto found = m_textures.find(layer);
+        found != m_textures.end() && found->second == texture){
+        return;
+    }
     m_textures[layer] = std::move(texture);
+    changed();
 }
 
 // Overrides the tangent-space normal texture; null explicitly removes an inherited map.
@@ -178,7 +206,11 @@ void State::setNormalMap(std::shared_ptr<Texture> texture){
     if (texture && (texture->isDepth() || texture->getTarget() != GL_TEXTURE_2D)){
         throw std::invalid_argument("Normal map must be a 2D color texture");
     }
+    if (m_normalMap && *m_normalMap == texture){
+        return;
+    }
     m_normalMap = std::move(texture);
+    changed();
 }
 
 // Overrides a scalar height texture; null removes an inherited bump map.
@@ -186,7 +218,11 @@ void State::setHeightMap(std::shared_ptr<Texture> texture){
     if (texture && (texture->isDepth() || texture->getTarget() != GL_TEXTURE_2D)){
         throw std::invalid_argument("Height map must be a 2D color texture");
     }
+    if (m_heightMap && *m_heightMap == texture){
+        return;
+    }
     m_heightMap = std::move(texture);
+    changed();
 }
 
 // Assigns a validated 2D or cubemap depth texture outside the material texture slots.
@@ -199,7 +235,11 @@ void State::setShadowMap(unsigned index, std::shared_ptr<Texture> texture){
                         static_cast<GLenum>(index == 0 ? GL_TEXTURE_2D : GL_TEXTURE_CUBE_MAP))){
         throw std::invalid_argument("Shadow map target");
     }
+    if (m_shadowMaps[index] == texture){
+        return;
+    }
     m_shadowMaps[index] = std::move(texture);
+    changed();
 }
 
 // Returns the texture assigned to one layer, if any.
@@ -241,9 +281,9 @@ void State::apply() const{
         m_program->set("uTextures[" + std::to_string(i) + "]", static_cast<int>(i));
         m_program->set("uHasTexture[" + std::to_string(i) + "]", static_cast<bool>(texture));
     }
-    const auto bump = m_uniforms.find("uBumpMapping");
+    const auto bump = m_uniforms->find("uBumpMapping");
     const bool useHeight =
-        getHeightMap() && (bump == m_uniforms.end() || std::get<bool>(bump->second));
+        getHeightMap() && (bump == m_uniforms->end() || std::get<bool>(bump->second));
     // Height and RGB normal maps share a sampler to retain the 16-unit GL 4.1 budget.
     const auto surfaceMap = useHeight ? getHeightMap() : getNormalMap();
     if (surfaceMap){
@@ -255,8 +295,15 @@ void State::apply() const{
     m_program->set("uSurfaceMap", static_cast<int>(MaxTextures));
     m_program->set("uHasNormalMap", static_cast<bool>(surfaceMap) && !useHeight);
     m_program->set("uHasHeightMap", useHeight);
-    for (const auto& value : m_uniforms){
-        m_program->set(value.first, value.second);
+    for (const auto& value : *m_uniforms){
+        if (!m_passUniforms || !m_passUniforms->count(value.first)){
+            m_program->set(value.first, value.second);
+        }
+    }
+    if (m_passUniforms){
+        for (const auto& value : *m_passUniforms){
+            m_program->set(value.first, value.second);
+        }
     }
     applyShadowMaps(*m_program);
 }

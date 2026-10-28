@@ -1,7 +1,9 @@
 #pragma once
 #include "NodeVisitor.h"
 #include "State.h"
+#include <array>
 #include <functional>
+#include <map>
 #include <vector>
 
 namespace vr{
@@ -42,6 +44,19 @@ public:
         m_lodFading = enabled;
     }
 
+    void setStateCaching(bool enabled){
+        m_stateCaching = enabled;
+        m_stateCache.clear();
+    }
+
+    std::size_t getStateCacheHits() const{
+        return m_stateCacheHits;
+    }
+
+    std::size_t getStateCacheMisses() const{
+        return m_stateCacheMisses;
+    }
+
 protected:
     virtual State mergeState(const State& parent, const State& local) const{
         return parent.merged(local);
@@ -73,5 +88,15 @@ protected:
     };
 
     std::vector<InstancePath> m_instances{{nullptr, glm::mat4(1)}};
+
+private:
+    struct CachedState{
+        State value;
+        std::uint64_t materialRevision;
+    };
+
+    std::map<std::array<std::uint64_t, 4>, CachedState> m_stateCache;
+    bool m_stateCaching = true;
+    std::size_t m_stateCacheHits = 0, m_stateCacheMisses = 0;
 };
 } // namespace vr

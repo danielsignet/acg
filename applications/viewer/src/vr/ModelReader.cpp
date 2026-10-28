@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <set>
 #include <numeric>
+#include <cmath>
 
 namespace vr{
 // Preserves imported transforms, or merges an explicitly selected static variant.
@@ -116,6 +117,19 @@ std::shared_ptr<State> ModelReader::readMaterial(const aiMaterial& imported, con
             state->setUniform("uNormalY", m_normalY);
         } else{
             std::cout << "Normal texture requires unsupported UV set " << uvSet << '\n';
+        }
+    }
+    uvSet = 0;
+    if (imported.GetTexture(aiTextureType_HEIGHT, 0, &image, nullptr, &uvSet) == AI_SUCCESS){
+        if (uvSet == 0){
+            state->setHeightMap(readTexture(image, scene));
+            float scale = 1;
+            imported.Get(AI_MATKEY_BUMPSCALING, scale);
+            if (std::isfinite(scale)){
+                state->setUniform("uHeightScale", 0.03f * scale);
+            }
+        } else{
+            std::cout << "Height texture requires unsupported UV set " << uvSet << '\n';
         }
     }
     return state;

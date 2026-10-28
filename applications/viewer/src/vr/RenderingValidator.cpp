@@ -37,6 +37,7 @@ void RenderingValidator::run(){
     const bool previews = m_application.m_bufferPreviews;
     m_application.m_bufferPreviews = false;
     validateNormalMapping();
+    validateBumpMapping();
     validateMaterialGallery();
     validateDragon();
     validateReflections();
@@ -96,6 +97,57 @@ void RenderingValidator::validateNormalMapping(){
     require(!app.m_deferredEnabled && app.m_shadingMode == ShadingMode::Phong,
             "The same normal-map menu works in the forward renderer");
     app.execute(Action::Renderer);
+    app.m_scene->getCamera()->setView(view);
+}
+
+// Checks height-map controls, visible relief, render-path parity and reload persistence.
+void RenderingValidator::validateBumpMapping(){
+    auto& app = m_application;
+    if (!app.m_scene->findTransform("plinthA")){
+        return;
+    }
+    const auto view = app.m_scene->getCamera()->getView();
+    const auto shader = app.m_shadingMode;
+    const auto enabled = app.m_bumpMappingEnabled;
+    const auto lights = app.m_pointLights;
+    app.m_scene->getCamera()->setLookAt({-4, 1.8f, 4},{-6, 0.4f, 0});
+    app.execute(Controls::Action::PhongShader);
+    if (!app.m_bumpMappingEnabled){
+        app.handleKey(GLFW_KEY_F6);
+    }
+    app.render();
+    const auto bumped = captureScene();
+    const auto position = app.m_deferred->getGBuffer().read(GBuffer::Position);
+    const auto albedo = app.m_deferred->getGBuffer().read(GBuffer::Albedo);
+    app.handleClick(540, 70);
+    app.render();
+    require(!app.m_bumpMappingEnabled && app.m_pointLights == lights &&
+                captureScene().countChangedPixels(bumped) > 100,
+            "The Bump maps button changes visible surface relief without toggling lights");
+    require(position == app.m_deferred->getGBuffer().read(GBuffer::Position) &&
+                albedo == app.m_deferred->getGBuffer().read(GBuffer::Albedo),
+            "Height relief preserves geometric positions and albedo");
+    require(app.m_profiler.getHistory().empty(),
+            "Changing bump mapping resets performance averages");
+    app.reload();
+    require(
+        !app.m_bumpMappingEnabled &&
+            !std::get<bool>(app.m_scene->getRoot()->getState()->getUniforms().at("uBumpMapping")),
+        "Reload preserves the height-map toggle in the loaded graph");
+    app.execute(Controls::Action::Renderer);
+    app.m_scene->getCamera()->setLookAt({-4, 1.8f, 4},{-6, 0.4f, 0});
+    app.render();
+    const auto forward = captureScene();
+    app.handleKey(GLFW_KEY_F6);
+    app.render();
+    require(app.m_bumpMappingEnabled && captureScene().countChangedPixels(forward) > 100,
+            "F6 also changes height relief in the forward renderer");
+    app.execute(Controls::Action::Renderer);
+    if (app.m_bumpMappingEnabled != enabled){
+        app.handleKey(GLFW_KEY_F6);
+    }
+    app.m_shadingMode = shader;
+    app.m_renderer->setShadingMode(shader);
     app.m_scene->getCamera()->setView(view);
 }
 

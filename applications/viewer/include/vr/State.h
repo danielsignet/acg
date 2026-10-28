@@ -95,6 +95,14 @@ public:
         return m_normalMap.value_or(nullptr);
     }
 
+    // Overrides a scalar height texture; null removes an inherited bump map.
+    void setHeightMap(std::shared_ptr<Texture> texture);
+
+    // Returns the height texture independently of RGB normal and color textures.
+    std::shared_ptr<Texture> getHeightMap() const{
+        return m_heightMap.value_or(nullptr);
+    }
+
     // Stores one typed shader-uniform override by name.
     void setUniform(const std::string& name, Uniform value){
         m_uniforms[name] = std::move(value);
@@ -140,6 +148,7 @@ private:
     std::shared_ptr<Program> m_program;
     std::map<unsigned, std::shared_ptr<Texture>> m_textures;
     std::optional<std::shared_ptr<Texture>> m_normalMap;
+    std::optional<std::shared_ptr<Texture>> m_heightMap;
     std::map<std::string, Uniform> m_uniforms;
 };
 } // namespace vr

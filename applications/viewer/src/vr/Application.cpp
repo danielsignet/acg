@@ -202,7 +202,7 @@ void Application::execute(Controls::Action action){
          action == Action::FreezeFrustum || action == Action::PhongShader ||
          action == Action::BlinnPhongShader || action == Action::CookTorranceShader ||
          action == Action::UnmappedPhongShader || action == Action::ToonShader ||
-         action == Action::Roof)){
+         action == Action::Roof || action == Action::BumpMapping)){
         m_reflectionProbes->invalidate();
     }
     if (action == Action::Renderer){
@@ -213,6 +213,12 @@ void Application::execute(Controls::Action action){
         m_status = m_deferredEnabled
                        ? "Deferred rendering"
                        : "Forward rendering; AO, G-buffer views and post effects use Deferred [F2]";
+    } else if (action == Action::BumpMapping){
+        m_bumpMappingEnabled = !m_bumpMappingEnabled;
+        m_scene->getRoot()->getState()->setUniform("uBumpMapping", m_bumpMappingEnabled);
+        m_profiler.resetAverages();
+        m_status = m_bumpMappingEnabled ? "Height-map bump mapping on; averages reset"
+                                        : "Height-map bump mapping off; averages reset";
     } else if (action == Action::Reflections){
         m_reflectionMode = nextReflection(m_reflectionMode);
         m_environment->setReflectionMode(m_reflectionMode);
@@ -709,6 +715,7 @@ void Application::applyRenderSettings(Scene& scene) const{
     }
     scene.getRoot()->getState()->setCullFace(m_cullFaceEnabled);
     scene.getRoot()->getState()->setUniform("uMultiTexture", m_multitextureEnabled);
+    scene.getRoot()->getState()->setUniform("uBumpMapping", m_bumpMappingEnabled);
     if (auto roof = scene.findTransform("roof")){
         roof->setVisible(m_roofEnabled);
     }

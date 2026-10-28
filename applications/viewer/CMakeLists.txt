@@ -118,6 +118,7 @@ set(VIEWER_RESOURCES
     textures/grid.png
     textures/detail.png
     textures/brick-normal.png
+    textures/brick-height.png
     textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr
     textures/alphatest.png
     fonts/arial.ttf
@@ -126,6 +127,7 @@ set(VIEWER_RESOURCES
     shaders/lighting.glsl
     shaders/display.glsl
     shaders/surface.glsl
+    shaders/bump-mapping.glsl
     shaders/lod-fade.glsl
     shaders/gbuffer.fs
     shaders/screen-quad.vs

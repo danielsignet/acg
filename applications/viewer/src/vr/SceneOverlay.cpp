@@ -26,6 +26,7 @@ constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
 constexpr ToolbarButton multiviewButton{Action::BufferPreviews, 764, 156};
 constexpr ToolbarButton aaButton{Action::Antialiasing, 12, 232};
 constexpr ToolbarButton reflectionsButton{Action::Reflections, 256, 260};
+constexpr ToolbarButton bumpButton{Action::BumpMapping, 528, 260};
 constexpr float secondaryTop = 56;
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
@@ -45,7 +46,7 @@ const char* shaderName(ShadingMode mode){
     if (mode == ShadingMode::CookTorrance){
         return "Cook-Torrance";
     }
-    return mode == ShadingMode::Phong  ? "Phong + NM"
+    return mode == ShadingMode::Phong  ? "Phong + detail"
            : mode == ShadingMode::Toon ? "Toon"
                                        : "Plain Phong";
 }
@@ -127,7 +128,7 @@ void SceneOverlay::click(Application& app, float x, float y){
         app.execute(Action::Hud);
         return;
     }
-    for (const auto& button :{aaButton, reflectionsButton}){
+    for (const auto& button :{aaButton, reflectionsButton, bumpButton}){
         if (inside({button.x, secondaryTop, button.width, 28})){
             app.execute(button.action);
             return;
@@ -213,6 +214,9 @@ void SceneOverlay::drawHeader(const Application& app){
                      {0.07f, 0.14f, 0.19f, 0.95f});
     m_text.draw(std::string("Reflections: ") + reflectionName(app.m_reflectionMode) + " [F5]  >",
                 reflectionsButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+    m_text.rectangle(bumpButton.x, secondaryTop, bumpButton.width, 28,{0.09f, 0.16f, 0.2f, 1});
+    m_text.draw(std::string("Bump maps: ") + (app.m_bumpMappingEnabled ? "ON" : "OFF") + " [F6]",
+                bumpButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
     const auto hide = menuToggleRectangle(app);
     m_text.rectangle(hide.x, hide.y, hide.z, hide.w,{0.09f, 0.16f, 0.2f, 1});
     m_text.draw("Hide menus [Tab]", hide.x + 10, hide.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});

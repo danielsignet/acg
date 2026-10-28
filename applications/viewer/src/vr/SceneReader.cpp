@@ -350,6 +350,10 @@ void SceneReader::readMaterial(Xml* xml, State& state){
 
 // Resolves texture layers and explicit removal of inherited textures.
 void SceneReader::readTextures(Xml* xml, State& state){
+    if (xml->first_attribute("heightMap")){
+        const auto path = attribute(xml, "heightMap");
+        state.setHeightMap(path == "none" ? nullptr : m_reader.readTexture(portablePath(path)));
+    }
     if (xml->first_attribute("normalMap")){
         const auto path = attribute(xml, "normalMap");
         state.setNormalMap(path == "none" ? nullptr : m_reader.readTexture(portablePath(path)));
@@ -384,6 +388,9 @@ void SceneReader::readUniforms(Xml* xml, State& state){
     }
     if (xml->first_attribute("normalScale")){
         state.setUniform("uNormalScale", number(attribute(xml, "normalScale")));
+    }
+    if (xml->first_attribute("heightScale")){
+        state.setUniform("uHeightScale", number(attribute(xml, "heightScale")));
     }
     if (xml->first_attribute("opacity")){
         const auto opacity = number(attribute(xml, "opacity"));

@@ -30,6 +30,8 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uNormalMapping", true);
     s.setUniform("uNormalScale", 1.0f);
     s.setUniform("uNormalY", 1.0f);
+    s.setUniform("uBumpMapping", true);
+    s.setUniform("uHeightScale", 0.03f);
     s.setUniform("uEnvironmentMaterial", false);
     s.setUniform("uReflectionProbe", 0);
     s.setUniform("uMirror", false);
@@ -81,6 +83,9 @@ State State::merged(const State& local) const{
     if (local.m_normalMap){
         result.m_normalMap = local.m_normalMap;
     }
+    if (local.m_heightMap){
+        result.m_heightMap = local.m_heightMap;
+    }
     for (const auto& entry : local.m_uniforms){
         result.m_uniforms[entry.first] = entry.second;
     }
@@ -117,6 +122,14 @@ void State::setNormalMap(std::shared_ptr<Texture> texture){
         throw std::invalid_argument("Normal map must be a 2D color texture");
     }
     m_normalMap = std::move(texture);
+}
+
+// Overrides a scalar height texture; null removes an inherited bump map.
+void State::setHeightMap(std::shared_ptr<Texture> texture){
+    if (texture && (texture->isDepth() || texture->getTarget() != GL_TEXTURE_2D)){
+        throw std::invalid_argument("Height map must be a 2D color texture");
+    }
+    m_heightMap = std::move(texture);
 }
 
 // Assigns a validated 2D or cubemap depth texture outside the material texture slots.
@@ -171,15 +184,20 @@ void State::apply() const{
         m_program->set("uTextures[" + std::to_string(i) + "]", static_cast<int>(i));
         m_program->set("uHasTexture[" + std::to_string(i) + "]", static_cast<bool>(texture));
     }
-    const auto normalMap = getNormalMap();
-    if (normalMap){
-        normalMap->apply(MaxTextures);
+    const auto bump = m_uniforms.find("uBumpMapping");
+    const bool useHeight =
+        getHeightMap() && (bump == m_uniforms.end() || std::get<bool>(bump->second));
+    // Height and RGB normal maps share a sampler to retain the 16-unit GL 4.1 budget.
+    const auto surfaceMap = useHeight ? getHeightMap() : getNormalMap();
+    if (surfaceMap){
+        surfaceMap->apply(MaxTextures);
     } else{
         glActiveTexture(GL_TEXTURE0 + MaxTextures);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
-    m_program->set("uNormalMap", static_cast<int>(MaxTextures));
-    m_program->set("uHasNormalMap", static_cast<bool>(normalMap));
+    m_program->set("uSurfaceMap", static_cast<int>(MaxTextures));
+    m_program->set("uHasNormalMap", static_cast<bool>(surfaceMap) && !useHeight);
+    m_program->set("uHasHeightMap", useHeight);
     for (const auto& value : m_uniforms){
         m_program->set(value.first, value.second);
     }

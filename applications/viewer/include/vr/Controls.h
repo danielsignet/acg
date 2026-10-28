@@ -64,7 +64,8 @@ public:
         Subdivision,
         CarHeadlights,
         ModelAnimation,
-        Reflections
+        Reflections,
+        BumpMapping
     };
 
     struct Binding{
@@ -106,7 +107,7 @@ public:
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 23>& getBindings(){
+    static const std::array<Binding, 24>& getBindings(){
         return m_bindings;
     }
 
@@ -141,7 +142,7 @@ public:
 private:
     inline static constexpr std::array<ShaderOption, 14> m_shaderOptions{
         {{Action::PhongShader, ShadingMode::Phong, BufferView::Lit, GLFW_KEY_1,
-          "1  Phong + normals"},
+          "1  Phong + detail"},
          {Action::ToonShader, ShadingMode::Toon, BufferView::Lit, GLFW_KEY_2, "2  Toon"},
          {Action::PositionBuffer, ShadingMode::Phong, BufferView::Position, GLFW_KEY_3,
           "3  Positions"},
@@ -164,11 +165,12 @@ private:
          {Action::CookTorranceShader, ShadingMode::CookTorrance, BufferView::Lit, GLFW_KEY_P,
           "P  Cook-Torrance"}}};
 
-    inline static constexpr std::array<Binding, 23> m_bindings{
+    inline static constexpr std::array<Binding, 24> m_bindings{
         {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
          {Action::Antialiasing, GLFW_KEY_F3, "F3", "Anti-aliasing"},
          {Action::Subdivision, GLFW_KEY_F4, "F4", "Subdivision"},
          {Action::Reflections, GLFW_KEY_F5, "F5", "Reflections"},
+         {Action::BumpMapping, GLFW_KEY_F6, "F6", "Bump maps"},
          {Action::Hud, GLFW_KEY_TAB, "Tab", "Menus"},
          {Action::AmbientOcclusion, GLFW_KEY_O, "O", "Ambient occlusion"},
          {Action::Performance, GLFW_KEY_F1, "F1", "Performance"},

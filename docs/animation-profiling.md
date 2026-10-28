@@ -18,6 +18,9 @@ not added a second time. Input is outside that total. CPU-only stages display `-
 column. Paused or already synchronized meshes record zero skinning work; the view also shows
 processed vertex and joint-influence counts per frame.
 
+The later [render pipeline speedups](render-pipeline-speedups.md) add separate GPU skinning
+and exact CPU skin-position/bounds rows. Full CPU skinning remains available as a fallback.
+
 `UpdateContext` carries an optional profiler through callbacks; disabled profiling performs
 no timestamp queries. The benchmark uses `FrameProfiler(false)` to collect CPU scopes without
 creating an OpenGL context. The finite history still serves the live UI, while the benchmark

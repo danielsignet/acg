@@ -109,5 +109,6 @@ images with normal maps, tint overrides, light masks, LOD coverage, transparency
 nonuniform and sheared transforms. Existing application validation also checks exact headlight
 restoration, shadows, mirrors, cubemap capture, culling, picking and scene reload.
 
-Spatial BVHs above instances, HLOD, general occlusion, GPU skinning and dirty shadow/probe
-scheduling remain separate future features; they are not prerequisites for these changes.
+Spatial BVHs above instances, HLOD, general occlusion and dirty probe scheduling remain
+separate future features. GPU skinning and shadow depth caching are now implemented in
+[render pipeline speedups](render-pipeline-speedups.md), with their own verification and timings.

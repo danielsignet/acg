@@ -36,6 +36,9 @@ reuse unchanged data across passes. See [performance verification](docs/scenegra
 for the measurements, regression coverage and benchmark command.
 The performance view separates input, animation sampling, skeleton transforms, skin palettes,
 CPU vertex skinning and remaining scene work; see [animation profiling](docs/animation-profiling.md).
+Packed vertex buffers, fenced upload rings, resolved scene-state/world-bound caches,
+GPU skinning once per pose and static/dynamic shadow depth reuse are described in
+[render pipeline speedups](docs/render-pipeline-speedups.md), including comparison switches.
 
 ## Controls
 

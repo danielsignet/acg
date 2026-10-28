@@ -25,6 +25,20 @@ public:
 
     // Validates and overrides the specular highlight exponent.
     void setShininess(float value);
+    // Sets perceptual microfacet roughness in [0,1].
+    void setRoughness(float value);
+    // Sets the blend between dielectric and conductor behavior in [0,1].
+    void setMetallic(float value);
+
+    // Returns perceptual roughness, retaining an explicit zero for polished materials.
+    float getRoughness() const{
+        return m_roughness;
+    }
+
+    // Returns the conductor fraction of this material.
+    float getMetallic() const{
+        return m_metallic;
+    }
 
     // Returns the ambient color contribution.
     const glm::vec3& getAmbient() const{
@@ -57,9 +71,11 @@ private:
     glm::vec3 m_diffuse{0.72f};
     glm::vec3 m_specular{0.45f};
     float m_shininess = 48.0f;
+    float m_roughness = 0.35f, m_metallic = 0;
     bool m_hasAmbient = false;
     bool m_hasDiffuse = false;
     bool m_hasSpecular = false;
     bool m_hasShininess = false;
+    bool m_hasRoughness = false, m_hasMetallic = false;
 };
 } // namespace vr

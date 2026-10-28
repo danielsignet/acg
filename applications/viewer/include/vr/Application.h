@@ -10,6 +10,9 @@
 #include "Flashlight.h"
 #include "ModelInstance.h"
 #include "ModelPicker.h"
+#include "EnvironmentMap.h"
+#include "PlanarReflection.h"
+#include "ReflectionProbes.h"
 #include <GLFW/glfw3.h>
 
 namespace vr{
@@ -61,6 +64,12 @@ private:
 
     // Restores the user's rendering toggles on a loaded scene.
     void applyRenderSettings(Scene& scene) const;
+
+    // Reports whether the selected instance belongs to the car exhibit.
+    bool carTargeted() const;
+
+    // Keeps the car's beams and emissive headlamp surfaces on the same switch.
+    void applyCarHeadlights(Scene& scene) const;
 
     // Attaches the light-ring animation while preserving its user settings.
     std::shared_ptr<OrbitCallback> createLightOrbit(Scene& scene) const;
@@ -122,6 +131,9 @@ private:
     std::shared_ptr<Program> m_program;
     std::unique_ptr<RenderVisitor> m_renderer;
     std::unique_ptr<DeferredRenderer> m_deferred;
+    std::unique_ptr<EnvironmentMap> m_environment;
+    std::unique_ptr<PlanarReflection> m_reflection;
+    std::unique_ptr<ReflectionProbes> m_reflectionProbes;
     std::unique_ptr<ShadowRenderer> m_shadowRenderer;
     std::unique_ptr<Flashlight> m_flashlight;
     std::optional<ModelHit> m_target;
@@ -139,6 +151,7 @@ private:
     bool m_shaderMenuOpen = false;
     BufferView m_bufferView = BufferView::Lit;
     AntialiasingMode m_antialiasingMode = AntialiasingMode::Off;
+    ReflectionMode m_reflectionMode = ReflectionMode::Environment;
     bool m_deferredEnabled = true, m_ambientOcclusionEnabled = true;
     bool m_bloomEnabled = false, m_depthOfFieldEnabled = false, m_bufferPreviews = true;
     glm::vec3 m_position{0};
@@ -163,11 +176,13 @@ private:
     bool m_debugBounds = false;
     bool m_roofEnabled = true;
     bool m_showHud = true;
+    bool m_showMenus = true;
     bool m_vsync = true;
     bool m_houseView = false;
     bool m_portalCulling = true;
     bool m_transparentWalls = true;
     bool m_shadowsEnabled = true;
+    bool m_carHeadlightsEnabled = false;
     double m_framesPerSecond = 0;
     double m_portalCpuMs = 0;
     double m_lastSubdivisionMs = 0;

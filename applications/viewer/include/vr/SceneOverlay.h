@@ -6,7 +6,7 @@ class Application;
 
 class SceneOverlay final{
 public:
-    static constexpr int HeaderHeight = 56;
+    static constexpr int HeaderHeight = 96;
     static constexpr int FooterHeight = 96;
 
     // Creates the text renderer used by the application HUD.
@@ -19,6 +19,14 @@ public:
     void click(Application& application, float x, float y);
 
 private:
+    friend class RenderingValidator;
+
+    // Anchors the selected model's action buttons beside the crosshair.
+    static glm::vec4 targetActionRectangle(const Application& application, unsigned row);
+
+    // Shares the visible menu-hide button bounds between rendering and click handling.
+    static glm::vec4 menuToggleRectangle(const Application& application);
+
     // Shares the reset button bounds between drawing and click handling.
     static glm::vec4 performanceResetRectangle();
 

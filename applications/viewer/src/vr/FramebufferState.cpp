@@ -8,6 +8,13 @@ FramebufferState::FramebufferState(){
     glGetIntegerv(GL_VIEWPORT, m_viewport);
     glGetIntegerv(GL_DEPTH_FUNC, &m_depthFunction);
     glGetIntegerv(GL_POLYGON_MODE, m_polygonMode);
+    glGetIntegerv(GL_FRONT_FACE, &m_frontFace);
+    glGetIntegerv(GL_BLEND_SRC_RGB, &m_blendSourceRgb);
+    glGetIntegerv(GL_BLEND_DST_RGB, &m_blendDestinationRgb);
+    glGetIntegerv(GL_BLEND_SRC_ALPHA, &m_blendSourceAlpha);
+    glGetIntegerv(GL_BLEND_DST_ALPHA, &m_blendDestinationAlpha);
+    glGetIntegerv(GL_BLEND_EQUATION_RGB, &m_blendEquationRgb);
+    glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &m_blendEquationAlpha);
     glGetBooleanv(GL_COLOR_WRITEMASK, m_colorMask);
     glGetBooleanv(GL_DEPTH_WRITEMASK, &m_depthMask);
     glGetDoublev(GL_DEPTH_CLEAR_VALUE, &m_clearDepth);
@@ -32,6 +39,12 @@ FramebufferState::~FramebufferState(){
     glDepthFunc(static_cast<GLenum>(m_depthFunction));
     glClearDepth(m_clearDepth);
     glColorMask(m_colorMask[0], m_colorMask[1], m_colorMask[2], m_colorMask[3]);
+    glFrontFace(static_cast<GLenum>(m_frontFace));
+    glBlendFuncSeparate(
+        static_cast<GLenum>(m_blendSourceRgb), static_cast<GLenum>(m_blendDestinationRgb),
+        static_cast<GLenum>(m_blendSourceAlpha), static_cast<GLenum>(m_blendDestinationAlpha));
+    glBlendEquationSeparate(static_cast<GLenum>(m_blendEquationRgb),
+                            static_cast<GLenum>(m_blendEquationAlpha));
     const auto restore = [](GLenum flag, bool enabled){
         if (enabled){
             glEnable(flag);

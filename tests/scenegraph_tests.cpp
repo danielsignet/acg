@@ -410,6 +410,40 @@ private:
         }
         check(originalTriangles == flattenedTriangles,
               "Static import keeps all triangles of the original model instances");
+        auto gold = std::make_shared<vr::State>();
+        auto goldMaterial = std::make_shared<vr::Material>();
+        goldMaterial->setMetallic(1);
+        goldMaterial->setRoughness(0.2f);
+        gold->setMaterial(goldMaterial);
+        auto chest = std::make_shared<vr::State>();
+        auto chestMaterial = std::make_shared<vr::Material>();
+        chestMaterial->setDiffuse({0.95f, 0.72f, 0.25f});
+        chest->setMaterial(chestMaterial);
+        const auto originalRobot = reader.readModel("models/5426_C3PO_Robot_Star_Wars.obj");
+        const auto goldRobot = reader.readModel("models/5426_C3PO_Robot_Star_Wars.obj", false,
+                                                {{"*", gold},{"Chest", chest}});
+        Probe robotProbe;
+        goldRobot->accept(robotProbe);
+        unsigned goldArmor = 0;
+        for (const auto& draw : robotProbe.draws){
+            const auto& material = *draw.state.getMaterial();
+            check(material.getMetallic() == 1 && material.getRoughness() == 0.2f,
+                  "Global asset material overrides apply to every imported mesh");
+            goldArmor += near(material.getDiffuse(),{0.95f, 0.72f, 0.25f});
+        }
+        check(goldArmor > 0 && originalRobot != goldRobot &&
+                  reader.readModel("models/5426_C3PO_Robot_Star_Wars.obj") == originalRobot,
+              "Named overrides refine shared defaults without mutating other cached assets");
+        Probe originalRobotProbe;
+        originalRobot->accept(originalRobotProbe);
+        check(originalRobotProbe.draws.front().state.getMaterial()->getMetallic() == 0,
+              "An independent unmodified asset keeps its original material properties");
+        rejects(
+            [&]{
+                reader.readModel("models/5426_C3PO_Robot_Star_Wars.obj", false,
+                                 {{"missing-material", gold}});
+            },
+            "Unknown imported material names must report an error");
         reader.readModel("models/monkey.obj");
         auto crate = reader.readModel("models/texturedBox.obj");
         Probe cp;
@@ -602,11 +636,14 @@ private:
         check(points, "Keys 1-5 identify the four colored lights and daylight");
         check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
               "L toggles the flashlight independently of F's culling inspection");
-        check(vr::Controls::getBindings().size() == 19 &&
+        check(vr::Controls::getBindings().size() == 23 &&
                   vr::Controls::find(GLFW_KEY_F1)->action == Action::Performance &&
                   !vr::Controls::find(GLFW_KEY_P) &&
                   vr::Controls::find(GLFW_KEY_V)->action == Action::DepthOfField &&
-                  !vr::Controls::find(GLFW_KEY_F3),
+                  vr::Controls::find(GLFW_KEY_F3)->action == Action::Antialiasing &&
+                  vr::Controls::find(GLFW_KEY_F4)->action == Action::Subdivision &&
+                  vr::Controls::find(GLFW_KEY_F5)->action == Action::Reflections &&
+                  vr::Controls::find(GLFW_KEY_TAB)->action == Action::Hud,
               "The compact shortcuts include profiling, renderer selection and AO");
         check(vr::Controls::find(GLFW_KEY_F2)->action == Action::Renderer &&
                   vr::Controls::find(GLFW_KEY_O)->action == Action::AmbientOcclusion &&

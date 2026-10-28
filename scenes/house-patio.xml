@@ -10,8 +10,25 @@
     <model id="cow-0.1" file="models/cow/cow_0.1.obj" />
     <model id="cow-0.05" file="models/cow/cow_0.05.obj" />
     <model id="cow-0.01" file="models/cow/cow_0.01.obj" />
-    <model id="porsche" file="models/porsche_911_gt3.glb" flatten="true" />
-    <model id="c3po" file="models/5426_C3PO_Robot_Star_Wars.obj" />
+    <model id="porsche" file="models/porsche_911_gt3.glb" flatten="true">
+      <material name="*" environment="true" />
+      <material name="EXT_Carpaint.004" diffuse="0.807 0.1 0.005" metallic="0.88" roughness="0.18" specular="0.75 0.75 0.75" shininess="700" />
+      <material name="EXT_Rim.004" diffuse="0.5 0.53 0.57" metallic="1" roughness="0.16" specular="0.5 0.53 0.57" shininess="800" />
+      <material name="EXT_Glass_Windows.001" diffuse="0.9 0.94 0.97" metallic="1" roughness="0.025" specular="0.9 0.94 0.97" shininess="1024" />
+      <material name="INT_Windows.001" diffuse="0.9 0.94 0.97" metallic="1" roughness="0.025" specular="0.9 0.94 0.97" shininess="1024" />
+      <material name="MIRROR.001" diffuse="0.95 0.95 0.95" metallic="1" roughness="0.015" specular="0.95 0.95 0.95" shininess="1024" />
+      <material name="EXT_Glass_light_EXT.001" blend="true" opacity="0.12" castShadows="false" roughness="0.025" specular="0.6 0.6 0.6" shininess="1024" />
+      <material name="Material.001" diffuse="0.9 0.94 1" emissive="5 5.3 5.8" metallic="0" roughness="0.05" castShadows="false">
+        <uniform name="uEmissionSwitchable" type="bool" value="true" />
+      </material>
+      <material name="EXT_Front_Light_chrome.001" diffuse="0.8 0.8 0.8" metallic="1" roughness="0.08" specular="0.8 0.8 0.8" shininess="1024" />
+    </model>
+    <model id="c3po" file="models/5426_C3PO_Robot_Star_Wars.obj">
+      <material name="*" environment="true" metallic="1" roughness="0.22" ambient="0 0 0" specular="0.95 0.72 0.25" shininess="600" />
+      <material name="Chest" diffuse="0.95 0.72 0.25" />
+      <material name="Stomach" diffuse="0.95 0.72 0.25" />
+      <material name="Stomach_1" diffuse="0.12 0.09 0.035" roughness="0.4" />
+    </model>
     <model id="altair" file="models/Altair Model/altair.obj" flatten="true" />
   </assets>
   <visibility exterior="patio">
@@ -159,13 +176,6 @@
         <state tint="0.9 1 1.12" />
         <instance ref="altair" />
       </transform>
-      <transform name="carPlinth" translate="18 0.12 -7" scale="6.4 0.24 8.4" rotate="0 0 0">
-        <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
-        <instance ref="box" />
-      </transform>
-      <transform name="carExhibit" translate="18 0.258 -7" scale="1.35 1.35 1.35" rotate="0 -30 0">
-        <instance ref="porsche" />
-      </transform>
       <transform name="terraceEdge-25" translate="-25 0.28 -3" scale="0.28 0.56 26" rotate="0 0 0">
         <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
         <instance ref="box" />
@@ -198,6 +208,98 @@
         <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
         <instance ref="box" />
       </transform>
+    </group>
+  </group>
+  <group name="materialGallery" room="patio">
+    <state ambient="0.05 0.05 0.05" specular="0.04 0.04 0.04" environment="true">
+      <uniform name="uFog" type="bool" value="false" />
+    </state>
+    <transform name="materialPatioFloor" culling="false" translate="0 -0.12 -55.5" scale="44 0.24 23">
+      <state environment="false" diffuse="0.19 0.22 0.25" ambient="0.22 0.24 0.26" roughness="0.85" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="whitePlasticPlinth" translate="-12 0.32 -51.5" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="whitePlastic" translate="-12 1.99 -51.5" scale="1.35 1.35 1.35">
+      <state diffuse="0.72 0.72 0.72" specular="0.04 0.04 0.04" roughness="0.16" metallic="0" shininess="900" />
+      <instance ref="material-sphere" name="White plastic" selectable="true" />
+    </transform>
+    <transform name="redPlasticPlinth" translate="-4 0.32 -51.5" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="redPlastic" translate="-4 1.99 -51.5" scale="1.35 1.35 1.35">
+      <state diffuse="0.55 0.025 0.018" specular="0.04 0.04 0.04" roughness="0.28" metallic="0" shininess="220" />
+      <instance ref="material-sphere" name="Red plastic" selectable="true" />
+    </transform>
+    <transform name="blueCeramicPlinth" translate="4 0.32 -51.5" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="blueCeramic" translate="4 1.99 -51.5" scale="1.35 1.35 1.35">
+      <state diffuse="0.025 0.12 0.42" specular="0.04 0.04 0.04" roughness="0.42" metallic="0" shininess="70" />
+      <instance ref="material-sphere" name="Blue ceramic" selectable="true" />
+    </transform>
+    <transform name="roughStonePlinth" translate="12 0.32 -51.5" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="roughStone" translate="12 1.99 -51.5" scale="1.35 1.35 1.35">
+      <state diffuse="0.25 0.27 0.25" specular="0.04 0.04 0.04" roughness="0.88" metallic="0" shininess="3" />
+      <instance ref="material-sphere" name="Rough stone" selectable="true" />
+    </transform>
+    <transform name="goldMetalPlinth" translate="-10 0.32 -58" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="goldMetal" translate="-10 1.99 -58" scale="1.35 1.35 1.35">
+      <state diffuse="0.95 0.72 0.25" specular="0.95 0.72 0.25" roughness="0.16" metallic="1" shininess="900" />
+      <instance ref="material-sphere" name="Gold" selectable="true" />
+    </transform>
+    <transform name="copperMetalPlinth" translate="-2 0.32 -58" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="copperMetal" translate="-2 1.99 -58" scale="1.35 1.35 1.35">
+      <state diffuse="0.95 0.56 0.38" specular="0.95 0.56 0.38" roughness="0.26" metallic="1" shininess="280" />
+      <instance ref="material-sphere" name="Copper" selectable="true" />
+    </transform>
+    <transform name="chromeMetalPlinth" translate="6 0.32 -58" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="chromeMetal" translate="6 1.99 -58" scale="1.35 1.35 1.35">
+      <state diffuse="0.9 0.92 0.94" specular="0.9 0.92 0.94" roughness="0.07" metallic="1" shininess="1024" />
+      <instance ref="material-sphere" name="Polished metal" selectable="true" />
+    </transform>
+    <transform name="roughMetalPlinth" translate="14 0.32 -58" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="roughMetal" translate="14 1.99 -58" scale="1.35 1.35 1.35">
+      <state diffuse="0.56 0.62 0.68" specular="0.56 0.62 0.68" roughness="0.68" metallic="1" shininess="10" />
+      <instance ref="material-sphere" name="Rough metal" selectable="true" />
+    </transform>
+    <transform name="glassPlinth" translate="0 0.32 -48" scale="3.2 0.64 3.2">
+      <state environment="false" diffuse="0.13 0.16 0.19" roughness="0.7" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="clearGlass" translate="0 1.99 -48" scale="1.35 1.35 1.35">
+      <state glass="true" ior="1.5" blend="true" castShadows="false" diffuse="0.97 0.995 0.99" roughness="0.04" />
+      <instance ref="material-sphere" name="Clear glass" selectable="true" />
+    </transform>
+    <transform name="materialMirror" translate="0 0.35 -44.18" rotate="0 180 0" scale="19 1.5 1">
+      <state mirror="true" environment="false" lighting="false" castShadows="true" cull="true" diffuse="0 0 0" />
+      <instance ref="alphatest-panel" selectable="false" />
+    </transform>
+    <group name="mirrorFrame">
+      <state environment="true" diffuse="0.25 0.28 0.3" roughness="0.25" metallic="1" />
+      <transform name="mirrorFrameLeft" translate="-19.15 2.45 -44.38" scale="0.3 4.8 0.36"><instance ref="box" selectable="false" /></transform>
+      <transform name="mirrorFrameRight" translate="19.15 2.45 -44.38" scale="0.3 4.8 0.36"><instance ref="box" selectable="false" /></transform>
+      <transform name="mirrorFrameTop" translate="0 4.7 -44.38" scale="38 0.3 0.36"><instance ref="box" selectable="false" /></transform>
+      <transform name="mirrorFrameBottom" translate="0 0.2 -44.38" scale="38 0.3 0.36"><instance ref="box" selectable="false" /></transform>
     </group>
   </group>
   <group name="house">
@@ -562,6 +664,19 @@
       <transform name="ceiling" translate="0 5.14 -30" scale="42.4 0.32 28.4">
         <instance ref="box" />
       </transform>
+    </transform>
+  </group>
+  <group name="carDisplay" room="patio">
+    <state><uniform name="uFog" type="bool" value="false" /></state>
+    <transform name="carPlinth" translate="18 0.12 -7" scale="6.4 0.24 8.4">
+      <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.55 0.6 0.65" shininess="90" />
+      <instance ref="box" />
+    </transform>
+    <transform name="carExhibit" translate="18 0.258 -7" scale="1.35 1.35 1.35" rotate="0 -30 0">
+      <state><uniform name="uEmissionEnabled" type="bool" value="false" /></state>
+      <instance ref="porsche" />
+      <light name="carHeadlightLeft" enabled="false" position="-0.67 0.724 2.18 1" direction="0 -0.08 1" inner="8" outer="16" range="30" diffuse="18 18.5 20" specular="2 2 2.2" ambient="0 0 0" attenuation="1 0.05 0.02" />
+      <light name="carHeadlightRight" enabled="false" position="0.67 0.724 2.18 1" direction="0 -0.08 1" inner="8" outer="16" range="30" diffuse="18 18.5 20" specular="2 2 2.2" ambient="0 0 0" attenuation="1 0.05 0.02" />
     </transform>
   </group>
 </scene>

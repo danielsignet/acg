@@ -104,6 +104,18 @@ void picking(){
     check(vr::pickModel(collect(*root).getRenderList(),{0, 0, 8},{0, 0, -1})->instance ==
               model.get(),
           "Transparent viewing walls allow selecting visible models behind them");
+    auto glass = vr::ModelInstance::create("glass", vr::GeometryFactory::createSphere(16, 12));
+    auto glassState = std::make_shared<vr::State>();
+    glassState->setBlend(true);
+    glassState->setUniform("uGlass", true);
+    glass->setState(glassState);
+    auto glassPlacement = std::make_shared<vr::Transform>();
+    glassPlacement->setMatrix(glm::scale(glm::translate(glm::mat4(1),{0, 0, 6}), glm::vec3(0.4f)));
+    glassPlacement->addChild(glass);
+    root->addChild(glassPlacement);
+    const auto glassHit = vr::pickModel(collect(*root).getRenderList(),{0, 0, 8},{0, 0, -1});
+    check(glassHit && glassHit->instance == glass.get(),
+          "Explicitly selectable refractive glass is targeted ahead of the model behind it");
 }
 
 // Checks filtered alpha sampling, see-through hits, subdivision UVs and deeper hits in one mesh.

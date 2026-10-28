@@ -7,6 +7,7 @@
 #include <vr/OpenGL.h>
 #include <vr/RenderingValidator.h>
 #include <vr/SceneOverlay.h>
+#include <vr/LightCollector.h>
 
 namespace vr{
 // Reports an unmet rendering-validation requirement.
@@ -24,11 +25,19 @@ FramebufferImage RenderingValidator::captureScene() const{
                                      m_application.m_height - lower - upper);
 }
 
+// Clicks a target action using the same crosshair-relative bounds as the overlay.
+void RenderingValidator::clickTargetAction(unsigned row){
+    const auto rect = SceneOverlay::targetActionRectangle(m_application, row);
+    m_application.handleClick(rect.x + 8, rect.y + 8);
+}
+
 // Executes the configured application or validation sequence.
 void RenderingValidator::run(){
     const bool previews = m_application.m_bufferPreviews;
     m_application.m_bufferPreviews = false;
     validateNormalMapping();
+    validateMaterialGallery();
+    validateReflections();
     validateAmbientOcclusion();
     validateDeferred();
     validatePerformance();
@@ -88,6 +97,161 @@ void RenderingValidator::validateNormalMapping(){
     app.m_scene->getCamera()->setView(view);
 }
 
+// Checks material-gallery controls, reflected geometry and persistent BRDF selection.
+void RenderingValidator::validateMaterialGallery(){
+    auto& app = m_application;
+    if (!app.m_scene->findTransform("materialMirror")){
+        return;
+    }
+    const auto view = app.m_scene->getCamera()->getView();
+    const auto lights = app.m_pointLights;
+    app.m_scene->getCamera()->setLookAt({23, 7, -63},{0, 2.3f, -44.18f});
+    app.handleKey(GLFW_KEY_Z);
+    app.handleKey(GLFW_KEY_P);
+    app.render();
+    const auto cook = captureScene();
+    require(app.m_shadingMode == ShadingMode::CookTorrance && app.m_reflection->getRendered() &&
+                app.m_reflection->getStats().draws > 8,
+            "Cook-Torrance renders the rear patio and its independently culled mirror view");
+    app.handleKey(GLFW_KEY_Z);
+    app.handleKey(GLFW_KEY_H);
+    app.render();
+    require(app.m_shadingMode == ShadingMode::BlinnPhong &&
+                cook.countChangedPixels(captureScene()) > 200 && app.m_pointLights == lights,
+            "The shared shader menu switches BRDF lighting without changing the light controls");
+    app.reload();
+    require(app.m_shadingMode == ShadingMode::BlinnPhong &&
+                app.m_renderer->getShadingMode() == ShadingMode::BlinnPhong && app.m_environment,
+            "Reload preserves the selected BRDF and reconstructs the HDR environment");
+    const auto gold = app.m_scene->findTransform("goldMetal")->getState()->getMaterial();
+    require(gold && gold->getMetallic() == 1 && std::abs(gold->getRoughness() - 0.16f) < 1e-6f,
+            "The scene reader retains the gallery's explicit physical material parameters");
+    if (auto left = app.m_scene->findLight("carHeadlightLeft")){
+        const auto right = app.m_scene->findLight("carHeadlightRight");
+        require(right && left->getSpot() && right->getSpot() && left->getRange() > 0,
+                "Both car headlights are finite spotlight beams");
+        require(!left->getEnabled() && !right->getEnabled() && !app.m_carHeadlightsEnabled,
+                "The car's headlamps start switched off");
+        app.m_scene->getCamera()->setLookAt({24, 3.5f, 2},{18, 1.1f, -7});
+        app.render();
+        require(app.carTargeted(), "The car exposes its contextual headlights button");
+        for (const bool deferred :{true, false}){
+            if (app.m_deferredEnabled != deferred){
+                app.execute(Controls::Action::Renderer);
+            }
+            app.render();
+            const auto unlitCar = captureScene();
+            const auto headlightPasses = app.m_shadowRenderer->getStats().passes;
+            clickTargetAction(1);
+            app.render();
+            require(left->getEnabled() && right->getEnabled() && app.m_carHeadlightsEnabled &&
+                        captureScene().countChangedPixels(unlitCar) > 150 &&
+                        app.m_shadowRenderer->getStats().passes == headlightPasses + 12,
+                    "The car button enables visible beams and shadows in both renderers");
+            clickTargetAction(1);
+            app.render();
+            require(!left->getEnabled() && !right->getEnabled() &&
+                        captureScene().hash() == unlitCar.hash() &&
+                        app.m_shadowRenderer->getStats().passes == headlightPasses,
+                    "Switching headlights off restores illumination and skips their shadows");
+        }
+        app.execute(Controls::Action::Renderer);
+        app.m_scene->getCamera()->setLookAt({0, 8, 12},{0, 30, 13});
+        app.render();
+        clickTargetAction(1);
+        require(!app.carTargeted() && !app.m_carHeadlightsEnabled,
+                "The headlights button is inactive without the car under the crosshair");
+        app.m_scene->getCamera()->setLookAt({24, 3.5f, 2},{18, 1.1f, -7});
+        app.render();
+        bool paint = false, windows = false, rubber = false;
+        for (const auto& item : app.m_renderer->getRenderList()){
+            if (item.instance && item.instance->getName() == "porsche"){
+                const auto& material = *item.state.getMaterial();
+                paint |= material.getMetallic() == 0.88f;
+                windows |= material.getMetallic() == 1 && material.getRoughness() < 0.03f;
+                rubber |= material.getMetallic() == 0 && material.getRoughness() > 0.8f;
+            }
+        }
+        require(paint && windows && rubber,
+                "The car retains separate metallic paint, mirror windows and rough nonmetals");
+    }
+    if (app.m_scene->findTransform("clearGlass")){
+        app.m_scene->getCamera()->setLookAt({8, 4.2f, -44.8f},{0, 1.99f, -48});
+        app.render();
+        require(app.m_target && app.m_target->instance->getName() == "Clear glass" &&
+                    app.m_renderer->getStats().screenCopies == 1,
+                "Glass is selectable and captures its own background");
+        app.m_scene->getCamera()->setLookAt({0, 4, -61},{0, 2.3f, -44.18f});
+        app.render();
+        require(app.m_reflection->getRendered() && app.m_reflection->getStats().screenCopies == 1,
+                "Reflected glass captures the independently visible scene in the mirror");
+    }
+    for (const auto& eye :{glm::vec3(24, 3.5f, 2), glm::vec3(0, 2, -37)}){
+        app.m_scene->getCamera()->setLookAt(eye,{0, 2.3f, -44.18f});
+        app.render();
+        require(!app.m_reflection->getRendered() && !app.m_reflection->getTexture() &&
+                    app.performanceCounters()[static_cast<std::size_t>(
+                        FrameProfiler::Counter::MirrorDraws)] == 0,
+                "The wall-mounted mirror submits no reflection draws from the patio or house");
+    }
+    app.m_scene->getCamera()->setLookAt({0, 3, -55},{0, 3, -65});
+    app.render();
+    require(!app.m_reflection->getRendered(),
+            "Looking away from the gallery mirror skips its reflection pass");
+    app.execute(Controls::Action::PhongShader);
+    app.m_scene->getCamera()->setView(view);
+}
+
+// Checks reflection-source controls, local captures, disabled passes and persistence.
+void RenderingValidator::validateReflections(){
+    auto& app = m_application;
+    if (!app.m_scene->findTransform("carExhibit")){
+        return;
+    }
+    const auto view = app.m_scene->getCamera()->getView();
+    const auto shading = app.m_shadingMode;
+    app.execute(Controls::Action::CookTorranceShader);
+    app.m_scene->getCamera()->setLookAt({24, 3.5f, 2},{18, 1.1f, -7});
+    app.render();
+    const auto original = captureScene();
+    const auto albedo = app.m_deferred->getGBuffer().read(GBuffer::Albedo);
+    app.handleClick(460, 76);
+    require(app.m_reflectionMode == ReflectionMode::Cubemaps,
+            "The reflection button advances Environment to Cubemaps");
+    for (unsigned frame = 0; frame < 90; ++frame){
+        app.render();
+        require(app.m_reflectionProbes && app.m_reflectionProbes->getFaces() <= 1,
+                "Local reflections respect the one-cube-face-per-frame capture budget");
+    }
+    require(app.m_reflectionProbes->getReadyCount() > 0 &&
+                captureScene().countChangedPixels(original) > 1000 &&
+                app.m_deferred->getGBuffer().read(GBuffer::Albedo) == albedo,
+            "Local cubemaps change reflected radiance without changing material albedo");
+    app.execute(Controls::Action::Renderer);
+    app.render();
+    require(app.m_reflectionMode == ReflectionMode::Cubemaps,
+            "Forward rendering retains the selected local reflection source");
+    app.execute(Controls::Action::Renderer);
+    app.handleKey(GLFW_KEY_F5);
+    app.render();
+    require(app.m_reflectionMode == ReflectionMode::Off && app.m_reflectionProbes->getFaces() == 0,
+            "F5 switches Cubemaps off and stops auxiliary cube captures");
+    app.m_scene->getCamera()->setLookAt({0, 4, -61},{0, 2.3f, -44.18f});
+    app.render();
+    require(!app.m_reflection->getRendered(),
+            "Reflection Off also skips the visible planar mirror");
+    app.reload();
+    require(app.m_reflectionMode == ReflectionMode::Off,
+            "Scene reload preserves the reflection comparison mode");
+    app.handleKey(GLFW_KEY_F5);
+    require(app.m_reflectionMode == ReflectionMode::Environment,
+            "F5 completes the Off, Environment, Cubemaps cycle");
+    app.m_shadingMode = shading;
+    app.m_renderer->setShadingMode(shading);
+    app.m_scene->getCamera()->setView(view);
+    app.render();
+}
+
 // Checks reticle targeting, per-instance subdivision and exact restoration through the UI.
 void RenderingValidator::validateModelTargeting(){
     auto& app = m_application;
@@ -101,12 +265,11 @@ void RenderingValidator::validateModelTargeting(){
             "The highlighted surface supplies this frame's exact ray-hit focus distance");
     auto* target = app.m_target->instance;
     const auto original = captureScene();
-    const float y = static_cast<float>(app.m_height - SceneOverlay::FooterHeight + 28);
     app.handleKey(GLFW_KEY_F1);
     app.m_profiler.beginFrame(0.02);
     {
         FrameProfiler::Scope events(&app.m_profiler, FrameProfiler::Stage::Events);
-        app.handleClick(750, y);
+        clickTargetAction(0);
     }
     app.render();
     app.m_profiler.endFrame();
@@ -123,17 +286,22 @@ void RenderingValidator::validateModelTargeting(){
     app.render();
     require(target->getSubdivided() && captureScene().countChangedPixels(original) > 100,
             "The generic subdivision button changes the targeted model's rendered geometry");
-    app.handleClick(750, y);
+    app.handleKey(GLFW_KEY_F4);
     app.render();
     require(!target->getSubdivided() && captureScene().hash() == original.hash(),
-            "Turning subdivision off restores the original scene pixels");
+            "F4 restores the original scene pixels after clicking the subdivision button");
     camera->setLookAt({0, 8, 12},{0, 30, 13});
     app.render();
     require(!app.m_target, "Aiming into empty space clears the highlighted model");
     require(!app.m_deferred->getFocusDistance(),
             "Empty-space targeting clears the previous DoF focus");
-    app.handleClick(750, y);
-    require(!target->getSubdivided(), "Subdivision without a targeted model changes no geometry");
+    const auto status = app.m_status;
+    clickTargetAction(0);
+    require(!target->getSubdivided() && app.m_status == status,
+            "The hidden context button cannot subdivide a model without a target");
+    app.handleKey(GLFW_KEY_F4);
+    require(!target->getSubdivided() && app.m_status == "No target",
+            "F4 handles an absent target in the same way as the button");
     CullVisitor objects;
     objects.collect(*app.m_scene->getRoot(), glm::mat4(1),{}, false);
     for (const auto& name :{"Red point light", "Green point light", "Blue point light",
@@ -154,11 +322,11 @@ void RenderingValidator::validateModelTargeting(){
                 std::string("The crosshair selects ") + name);
         require(app.m_deferred->getFocusDistance() == std::optional<float>(app.m_target->distance),
                 "Changing target updates its surface focus distance in the same frame");
-        app.handleClick(750, y);
+        clickTargetAction(0);
         app.render();
         require(found->instance->getSubdivided(),
                 std::string("The targeted procedural mesh subdivides: ") + name);
-        app.handleClick(750, y);
+        clickTargetAction(0);
         require(!found->instance->getSubdivided(), "Procedural meshes restore their original");
         if (leaf){
             const auto corner = glm::vec3(found->model * glm::vec4(-0.95f, 0.05f, 0, 1));
@@ -185,12 +353,16 @@ void RenderingValidator::validatePerformance(){
     const int width = app.m_width, height = app.m_height;
     app.render();
     const auto image = captureScene();
+    const auto reticle = FramebufferImage::capture(width / 2 - 12, height / 2 - 12, 24, 24);
     app.handleKey(GLFW_KEY_F1);
     app.m_profiler.beginFrame(0.08);
     app.render();
     app.m_profiler.endFrame();
     require(app.m_profiler.getEnabled() && captureScene().countChangedPixels(image) > 1000,
             "F1 opens the measured performance view");
+    require(FramebufferImage::capture(width / 2 - 12, height / 2 - 12, 24, 24).hash() ==
+                reticle.hash(),
+            "F1 preserves the visible crosshair at the optical center");
     require(app.m_pointLights == lights && app.m_frustumCulling == culling &&
                 app.m_bufferPreviews == previews && !app.m_frozenEye,
             "Performance inspection preserves lights, culling, previews and the live camera");
@@ -198,17 +370,38 @@ void RenderingValidator::validatePerformance(){
     const auto unculled = std::count_if(app.m_renderer->getRenderList().begin(),
                                         app.m_renderer->getRenderList().end(),
                                         [](const auto& item){ return !item.cullingEnabled; });
-    require(unculled == 7 && shadows.unculled == unculled * shadows.passes,
-            "All seven floors bypass camera, portal and per-light shadow volume rejection");
+    require(unculled == 8 && shadows.unculled == unculled * shadows.passes,
+            "All eight floors bypass camera, portal and per-light shadow volume rejection");
     const auto averages = app.m_profiler.summarize();
     require(averages.counterSamples == 1 &&
                 averages.counters[static_cast<std::size_t>(FrameProfiler::Counter::ColorDraws)] ==
-                    app.m_renderer->getStats().draws,
+                    app.m_renderer->getStats().draws +
+                        (app.m_reflection->getRendered() ? app.m_reflection->getStats().draws : 0),
             "The performance view averages the actual rendered scene counters");
     require(shadows.boundsTested + shadows.unculled == shadows.instances + shadows.rejected &&
-                app.m_deferred->getScreenDraws() == 7 &&
+                app.m_deferred->getScreenDraws() == 8 &&
                 app.m_renderer->getStats().visitedNodes > 0,
             "Profiler counters describe actual shadow rejection and screen submissions");
+    const auto header = FramebufferImage::capture(0, height - SceneOverlay::HeaderHeight, width,
+                                                  SceneOverlay::HeaderHeight);
+    app.handleKey(GLFW_KEY_TAB);
+    app.render();
+    require(!app.m_showMenus && app.m_profiler.getEnabled() &&
+                FramebufferImage::capture(width / 2 - 12, height / 2 - 12, 24, 24).hash() ==
+                    reticle.hash() &&
+                FramebufferImage::capture(0, height - SceneOverlay::HeaderHeight, width,
+                                          SceneOverlay::HeaderHeight)
+                        .hash() != header.hash(),
+            "Tab hides both menu bars while retaining F1 and the crosshair");
+    const auto aa = app.m_antialiasingMode;
+    app.handleClick(50, 76);
+    require(app.m_antialiasingMode == aa, "Hidden menus do not receive viewport clicks");
+    app.handleKey(GLFW_KEY_TAB);
+    const auto hide = SceneOverlay::menuToggleRectangle(app);
+    app.handleClick(hide.x + 8, hide.y + 8);
+    require(!app.m_showMenus, "The menu-hide button and Tab share the same action");
+    app.handleKey(GLFW_KEY_TAB);
+    app.render();
     app.handleKey(GLFW_KEY_J);
     app.handleClick(450, 126);
     require(app.m_profiler.getEnabled() && app.m_profiler.getHistory().empty() &&
@@ -267,8 +460,12 @@ void RenderingValidator::validateAmbientOcclusion(){
     app.render();
     require(!app.m_deferredEnabled && app.m_bufferView == BufferView::Lit &&
                 !app.m_deferred->getPreviews() && app.m_renderer->getStats().draws > 0 &&
+                app.m_deferred->getScreenDraws() == 0 &&
                 app.performanceCounters()[static_cast<std::size_t>(
-                    FrameProfiler::Counter::ScreenDraws)] == 0,
+                    FrameProfiler::Counter::ScreenDraws)] ==
+                    app.m_renderer->getStats().screenDraws +
+                        (app.m_reflection->getRendered() ? app.m_reflection->getStats().screenDraws
+                                                         : 0),
             "F2 uses the existing forward path without running deferred screen passes");
     const bool bloom = app.m_bloomEnabled;
     app.handleKey(GLFW_KEY_B);
@@ -311,7 +508,7 @@ void RenderingValidator::validateDeferred(){
     app.handleClick(830, 28);
     app.render();
     require(app.m_bufferPreviews && app.m_deferred->getPreviews() &&
-                app.m_deferred->getScreenDraws() == 7 + DeferredRenderer::PreviewCount,
+                app.m_deferred->getScreenDraws() == 8 + DeferredRenderer::PreviewCount,
             "The Multiview button displays every channel and counts its presentation draws");
     const auto preview = app.m_deferred->previewRectangle(2);
     app.handleClick(static_cast<float>(preview.x + 8), static_cast<float>(preview.y + 8));
@@ -852,6 +1049,22 @@ void RenderingValidator::validateShadows(){
     app.render();
     const auto shadowed = captureScene();
     const auto shadowPasses = app.m_shadowRenderer->getStats().passes;
+    unsigned expectedPasses = 0;
+    bool directional = false;
+    const auto activeLights =
+        collectLights(*app.m_scene->getRoot(), app.m_scene->getCamera()->getPosition());
+    for (unsigned i = 0; i < activeLights.size(); ++i){
+        const auto& light = activeLights[i];
+        if (!light.node->getEnabled() || !app.m_scene->getRoot()->getState()->getLightEnabled(i)){
+            continue;
+        }
+        if (light.node->getPosition().w != 0){
+            expectedPasses += 6;
+        } else if (!directional){
+            ++expectedPasses;
+            directional = true;
+        }
+    }
     const auto originalShadows = app.m_shadowsEnabled;
     app.handleKey(GLFW_KEY_J);
     app.render();
@@ -861,9 +1074,9 @@ void RenderingValidator::validateShadows(){
             "J disables depth passes and visibly removes shadows");
     app.handleClick(360, 28);
     app.render();
-    require(app.m_shadowsEnabled == originalShadows && shadowPasses == 25 &&
+    require(app.m_shadowsEnabled == originalShadows && shadowPasses == expectedPasses &&
                 app.m_shadowRenderer->getStats().passes == shadowPasses,
-            "The shadow button and J share the same action for all five scene lights");
+            "The shadow button and J share the same action for every enabled scene light");
     // The existing displacement callback is the path used by arrow/Page Up/Down input.
     const auto lightOffset = app.m_lightOrbitCallback->getOffset();
     const bool orbitEnabled = app.m_lightOrbitCallback->getEnabled();
@@ -900,9 +1113,11 @@ void RenderingValidator::validateFlashlight(){
     app.lookAt({-14, 2, -20},{-14, 0.3f, -27});
     app.render();
     const auto dark = captureScene();
+    const auto baselinePasses = app.m_shadowRenderer->getStats().passes;
     app.handleKey(GLFW_KEY_L);
     app.render();
-    require(app.m_flashlight->getEnabled() && app.m_shadowRenderer->getStats().passes == 6 &&
+    require(app.m_flashlight->getEnabled() &&
+                app.m_shadowRenderer->getStats().passes == baselinePasses + 6 &&
                 captureScene().countChangedPixels(dark) > 100,
             "L illuminates the room with an independently shadowed flashlight");
     const auto beam = app.m_scene->findLight("flashlight");
@@ -911,7 +1126,9 @@ void RenderingValidator::validateFlashlight(){
     app.render();
     require(glm::length(glm::vec3(beam->getPosition()) - position - glm::vec3(1, 0, 0)) < 0.0001f &&
                 glm::length(beam->getSpotDirection() - app.m_front) < 0.0001f &&
-                glm::length(app.m_shadowRenderer->getPointTarget()->getCameras()[0]->getPosition() -
+                glm::length(app.m_shadowRenderer->getPointTarget(baselinePasses / 6)
+                                ->getCameras()[0]
+                                ->getPosition() -
                             glm::vec3(beam->getPosition())) < 0.0001f,
             "Flashlight position, beam and shadow camera follow the live camera");
     app.handleClick(200, 28);
@@ -947,7 +1164,9 @@ void RenderingValidator::validateAntialiasing(){
                 app.m_profiler.summarize().samples == 0,
             "The AA button advances the technique and clears averages");
     app.render();
-    app.handleClick(50, 76);
+    app.handleKey(GLFW_KEY_F3);
+    require(app.m_antialiasingMode == nextAntialiasing(nextAntialiasing(initial)),
+            "F3 advances AA in the same cycle as the button");
     const auto mode = app.m_antialiasingMode;
     app.execute(Controls::Action::Renderer);
     app.render();
@@ -979,7 +1198,7 @@ void RenderingValidator::validateControls(){
     require(app.m_shaderMenuOpen, "Z opens the shading menu");
     app.handleClick(
         440, static_cast<float>(app.m_height - SceneOverlay::FooterHeight - 8 -
-                                32 * static_cast<int>(Controls::getShaderOptions().size()) + 48));
+                                28 * static_cast<int>(Controls::getShaderOptions().size()) + 42));
     app.render();
     require(app.m_shadingMode == ShadingMode::Toon && !app.m_shaderMenuOpen &&
                 app.m_renderer->getShadingMode() == ShadingMode::Toon &&

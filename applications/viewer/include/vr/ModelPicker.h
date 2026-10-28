@@ -8,7 +8,7 @@ struct ModelHit{
     float distance;
 };
 
-// Finds the closest visible opaque model along a world-space ray, testing bounds first.
+// Finds the closest visible model, including glass, while ignoring transparent debug walls.
 std::optional<ModelHit> pickModel(const std::vector<RenderNode>& items, const glm::vec3& eye,
                                   const glm::vec3& direction);
 } // namespace vr

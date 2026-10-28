@@ -44,6 +44,16 @@ void Application::reload(){
     renderer->setCulling(m_frustumCulling);
     renderer->setShadingMode(m_shadingMode);
     auto deferred = std::make_unique<DeferredRenderer>(m_root);
+    auto environment = std::make_unique<EnvironmentMap>(
+        m_root, "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr");
+    environment->setReflectionMode(m_reflectionMode);
+    renderer->setEnvironment(environment.get());
+    deferred->setEnvironment(environment.get());
+    if (auto daylight = scene->findLight("houseDaylight")){
+        daylight->setPosition(glm::vec4(environment->getSunDirection(), 0));
+    }
+    auto reflection = std::make_unique<PlanarReflection>(program);
+    renderer->setReflection(reflection.get());
     deferred->setProfiler(&m_profiler);
     deferred->resize(m_width, m_height);
     deferred->setAntialiasing(m_antialiasingMode);
@@ -60,6 +70,9 @@ void Application::reload(){
     m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
     m_deferred = std::move(deferred);
+    m_environment = std::move(environment);
+    m_reflection = std::move(reflection);
+    m_reflectionProbes.reset();
     m_scene = std::move(scene);
     m_program = std::move(program);
     m_lightOrbitCallback = std::move(lightOrbit);
@@ -181,6 +194,16 @@ void Application::handleClick(float x, float y){
 // Executes the shared action used by keyboard, toolbar and validation paths.
 void Application::execute(Controls::Action action){
     using Action = Controls::Action;
+    if (m_reflectionProbes &&
+        (action == Action::Subdivision || action == Action::CarHeadlights ||
+         action == Action::Shadows || action == Action::Flashlight ||
+         action == Action::GlobalLighting || Controls::pointLightIndex(action) ||
+         action == Action::FreezeFrustum || action == Action::PhongShader ||
+         action == Action::BlinnPhongShader || action == Action::CookTorranceShader ||
+         action == Action::UnmappedPhongShader || action == Action::ToonShader ||
+         action == Action::Roof)){
+        m_reflectionProbes->invalidate();
+    }
     if (action == Action::Renderer){
         m_deferredEnabled = !m_deferredEnabled;
         m_bufferView = BufferView::Lit;
@@ -189,6 +212,12 @@ void Application::execute(Controls::Action action){
         m_status = m_deferredEnabled
                        ? "Deferred rendering"
                        : "Forward rendering; AO, G-buffer views and post effects use Deferred [F2]";
+    } else if (action == Action::Reflections){
+        m_reflectionMode = nextReflection(m_reflectionMode);
+        m_environment->setReflectionMode(m_reflectionMode);
+        m_profiler.resetAverages();
+        m_status =
+            std::string("Reflections: ") + reflectionName(m_reflectionMode) + "; averages reset";
     } else if (action == Action::Antialiasing){
         try{
             const auto next = nextAntialiasing(m_antialiasingMode);
@@ -200,9 +229,18 @@ void Application::execute(Controls::Action action){
         } catch (const std::exception& error){
             m_status = error.what();
         }
+    } else if (action == Action::CarHeadlights){
+        if (!carTargeted()){
+            return;
+        }
+        m_carHeadlightsEnabled = !m_carHeadlightsEnabled;
+        applyCarHeadlights(*m_scene);
+        m_profiler.resetAverages();
+        m_status = m_carHeadlightsEnabled ? "Car headlights on; averages reset"
+                                          : "Car headlights off; averages reset";
     } else if (action == Action::Subdivision){
         if (!m_target){
-            m_status = "Aim at a model to subdivide it";
+            m_status = "No target";
             return;
         }
         try{
@@ -242,8 +280,10 @@ void Application::execute(Controls::Action action){
         m_depthOfFieldEnabled = !m_depthOfFieldEnabled;
         m_deferred->setDepthOfField(m_depthOfFieldEnabled);
     } else if (action == Action::BufferPreviews){
-        const bool visible = m_deferredEnabled && m_bufferPreviews && !m_profiler.getEnabled();
+        const bool visible =
+            m_showMenus && m_deferredEnabled && m_bufferPreviews && !m_profiler.getEnabled();
         m_bufferPreviews = !visible;
+        m_showMenus = true;
         m_deferredEnabled = true;
         m_profiler.setEnabled(false);
         m_shaderMenuOpen = false;
@@ -265,12 +305,16 @@ void Application::execute(Controls::Action action){
         m_status = m_shadowsEnabled ? "Shadows enabled" : "Shadows disabled";
     } else if (action == Action::ShaderMenu){
         m_profiler.setEnabled(false);
+        m_showMenus = true;
         m_shaderMenuOpen = !m_shaderMenuOpen;
     } else if (action == Action::PhongShader || action == Action::ToonShader ||
-               action == Action::UnmappedPhongShader){
-        m_shadingMode = action == Action::PhongShader  ? ShadingMode::Phong
-                        : action == Action::ToonShader ? ShadingMode::Toon
-                                                       : ShadingMode::UnmappedPhong;
+               action == Action::UnmappedPhongShader || action == Action::BlinnPhongShader ||
+               action == Action::CookTorranceShader){
+        m_shadingMode = action == Action::PhongShader          ? ShadingMode::Phong
+                        : action == Action::ToonShader         ? ShadingMode::Toon
+                        : action == Action::BlinnPhongShader   ? ShadingMode::BlinnPhong
+                        : action == Action::CookTorranceShader ? ShadingMode::CookTorrance
+                                                               : ShadingMode::UnmappedPhong;
         m_renderer->setShadingMode(m_shadingMode);
         m_bufferView = BufferView::Lit;
         m_deferred->setView(m_bufferView);
@@ -356,7 +400,10 @@ void Application::execute(Controls::Action action){
             roof->setVisible(m_roofEnabled);
         }
     } else if (action == Action::Hud){
-        m_showHud = !m_showHud;
+        m_showMenus = !m_showMenus;
+        if (!m_showMenus){
+            m_shaderMenuOpen = false;
+        }
     } else if (action == Action::PortalCulling){
         m_portalCulling = !m_portalCulling;
     } else if (action == Action::TransparentWalls){
@@ -439,8 +486,28 @@ void Application::render(){
         FrameProfiler::Scope portals(&m_profiler, FrameProfiler::Stage::Portals);
         updatePortalVisibility(camera, vp);
     }
-    m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_bufferPreviews &&
+    m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_showMenus && m_bufferPreviews &&
                             !m_profiler.getEnabled());
+    {
+        FrameProfiler::Scope pass(&m_profiler, FrameProfiler::Stage::Cubemaps);
+        if (m_reflectionMode == ReflectionMode::Cubemaps){
+            if (!m_reflectionProbes){
+                m_reflectionProbes =
+                    std::make_unique<ReflectionProbes>(*m_scene, *m_environment, m_program);
+            }
+            m_reflectionProbes->update(*m_scene, camera, *m_environment, m_shadingMode,
+                                       m_portalResult, !m_frozenEye.has_value());
+        } else if (m_reflectionProbes){
+            m_reflectionProbes->idle();
+        }
+    }
+    {
+        FrameProfiler::Scope pass(&m_profiler, FrameProfiler::Stage::Reflection);
+        m_reflection->setEnabled(m_reflectionMode != ReflectionMode::Off);
+        m_reflection->resize(m_width, m_height, m_antialiasingMode);
+        m_reflection->render(*m_scene, camera, m_environment.get(), m_shadingMode, m_frustumCulling,
+                             m_portalCulling);
+    }
     const auto draw = [&]{
         m_renderer->render(
             *m_scene->getRoot(), camera, frozen, &m_portalResult,
@@ -551,15 +618,33 @@ FrameProfiler::Counters Application::performanceCounters() const{
     };
     const auto& scene = m_renderer->getStats();
     const auto& shadows = m_shadowRenderer->getStats();
-    set(Counter::ColorDraws, scene.draws);
-    set(Counter::ColorTriangles, static_cast<double>(scene.triangles));
-    set(Counter::TransparentDraws, scene.transparentDraws);
+    const auto& reflected = m_reflection->getStats();
+    const RenderStats probes = m_reflectionProbes ? m_reflectionProbes->getStats() : RenderStats{};
+    const unsigned filterDraws = m_reflectionProbes ? m_reflectionProbes->getFilterDraws() : 0;
+    const unsigned mirrorDraws = m_reflection->getRendered() ? reflected.draws : 0;
+    const auto mirrorTriangles = m_reflection->getRendered() ? reflected.triangles : 0;
+    set(Counter::MirrorDraws, mirrorDraws);
+    set(Counter::ProbeDraws, probes.draws);
+    set(Counter::ProbeFaces, m_reflectionProbes ? m_reflectionProbes->getFaces() : 0);
+    set(Counter::ReadyProbes, m_reflectionProbes ? m_reflectionProbes->getReadyCount() : 0);
+    set(Counter::ScreenCopies, scene.screenCopies +
+                                   (m_reflection->getRendered() ? reflected.screenCopies : 0) +
+                                   probes.screenCopies);
+    set(Counter::ColorDraws, scene.draws + mirrorDraws + probes.draws);
+    set(Counter::ColorTriangles,
+        static_cast<double>(scene.triangles + mirrorTriangles + probes.triangles));
+    set(Counter::TransparentDraws,
+        scene.transparentDraws + (m_reflection->getRendered() ? reflected.transparentDraws : 0) +
+            probes.transparentDraws);
     set(Counter::ShadowDraws, shadows.draws);
     set(Counter::ShadowTriangles, static_cast<double>(shadows.triangles));
     set(Counter::ShadowPasses, shadows.passes);
-    set(Counter::TotalDraws, scene.draws + shadows.draws);
-    set(Counter::TotalTriangles, static_cast<double>(scene.triangles + shadows.triangles));
-    set(Counter::ScreenDraws, m_deferred->getScreenDraws());
+    set(Counter::TotalDraws, scene.draws + mirrorDraws + shadows.draws + probes.draws);
+    set(Counter::TotalTriangles, static_cast<double>(scene.triangles + mirrorTriangles +
+                                                     shadows.triangles + probes.triangles));
+    set(Counter::ScreenDraws, m_deferred->getScreenDraws() + scene.screenDraws +
+                                  (m_reflection->getRendered() ? reflected.screenDraws : 0) +
+                                  probes.screenDraws + filterDraws);
     set(Counter::Lights, scene.lights);
     set(Counter::VisitedNodes, scene.visitedNodes);
     set(Counter::CameraBounds, scene.boundsTested);
@@ -577,12 +662,14 @@ FrameProfiler::Counters Application::performanceCounters() const{
     set(Counter::GBufferMiB,
         static_cast<double>(m_width) * m_height * 64 * surfaceCopies / (1024 * 1024));
     set(Counter::LodFadeDraws,
-        std::count_if(m_renderer->getRenderList().begin(), m_renderer->getRenderList().end(),
-                      [](const auto& item){
-                          const auto range = item.state.getUniforms().find("uLodRange");
-                          return range != item.state.getUniforms().end() &&
-                                 std::get<glm::vec2>(range->second) != glm::vec2(0, 1);
-                      }));
+        static_cast<double>(std::count_if(m_renderer->getRenderList().begin(),
+                                          m_renderer->getRenderList().end(), [](const auto& item){
+                                              const auto range =
+                                                  item.state.getUniforms().find("uLodRange");
+                                              return range != item.state.getUniforms().end() &&
+                                                     std::get<glm::vec2>(range->second) !=
+                                                         glm::vec2(0, 1);
+                                          })));
     return counters;
 }
 
@@ -596,12 +683,14 @@ void Application::registerGeometry(Reader& reader){
     reader.registerNode("ground", GeometryFactory::createGround());
     reader.registerNode("box", GeometryFactory::createBox());
     reader.registerNode("sphere-low", GeometryFactory::createSphere(8, 6));
+    reader.registerNode("material-sphere", GeometryFactory::createSphere(64, 48));
     reader.registerNode("torus", GeometryFactory::createTorus(64, 24));
     reader.registerNode("alphatest-panel", GeometryFactory::createAlphaTestPanel());
 }
 
 // Restores the user's rendering toggles on a loaded scene.
 void Application::applyRenderSettings(Scene& scene) const{
+    applyCarHeadlights(scene);
     applyWallAppearance(scene);
     if (!scene.getRoot()->getState()){
         scene.getRoot()->setState(std::make_shared<State>());
@@ -619,6 +708,29 @@ void Application::applyRenderSettings(Scene& scene) const{
         if (toon->getState()){
             toon->getState()->setUniform("uToon", m_toonEnabled);
         }
+    }
+}
+
+// Reports whether the selected instance belongs to the car exhibit.
+bool Application::carTargeted() const{
+    const auto car = m_scene->findTransform("carExhibit");
+    return car && m_target &&
+           std::any_of(car->getChildren().begin(), car->getChildren().end(),
+                       [&](const auto& child){ return child.get() == m_target->instance; });
+}
+
+// Keeps the car's beams and emissive headlamp surfaces on the same switch.
+void Application::applyCarHeadlights(Scene& scene) const{
+    for (const auto name :{"carHeadlightLeft", "carHeadlightRight"}){
+        if (const auto light = scene.findLight(name)){
+            light->setEnabled(m_carHeadlightsEnabled);
+        }
+    }
+    if (const auto car = scene.findTransform("carExhibit")){
+        if (!car->getState()){
+            car->setState(std::make_shared<State>());
+        }
+        car->getState()->setUniform("uEmissionEnabled", m_carHeadlightsEnabled);
     }
 }
 

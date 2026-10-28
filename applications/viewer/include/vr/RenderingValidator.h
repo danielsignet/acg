@@ -15,6 +15,10 @@ public:
     void run();
 
 private:
+    // Checks material-gallery controls, reflected geometry and persistent BRDF selection.
+    void validateMaterialGallery();
+    // Checks reflection-source controls, local captures, disabled passes and persistence.
+    void validateReflections();
     // Checks the shared AA button, average reset and persistence across renderer and scene changes.
     void validateAntialiasing();
     // Checks normal-map comparison, shared menu controls and reload persistence.
@@ -28,6 +32,8 @@ private:
 
     // Captures scene pixels while excluding HUD status bands.
     FramebufferImage captureScene() const;
+    // Clicks a target action using the same crosshair-relative bounds as the overlay.
+    void clickTargetAction(unsigned row);
 
     // Checks AO, its diagnostic view and the independent forward/deferred switch.
     void validateAmbientOcclusion();

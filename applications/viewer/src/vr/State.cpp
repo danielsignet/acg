@@ -19,6 +19,8 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uFog", true);
     s.setUniform("uTint", glm::vec3(1));
     s.setUniform("uEmissive", glm::vec3(0));
+    s.setUniform("uEmissionSwitchable", false);
+    s.setUniform("uEmissionEnabled", true);
     s.setUniform("uToon", false);
     s.setUniform("uProcedural", 0);
     s.setUniform("uLinearOutput", false);
@@ -28,6 +30,11 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uNormalMapping", true);
     s.setUniform("uNormalScale", 1.0f);
     s.setUniform("uNormalY", 1.0f);
+    s.setUniform("uEnvironmentMaterial", false);
+    s.setUniform("uReflectionProbe", 0);
+    s.setUniform("uMirror", false);
+    s.setUniform("uGlass", false);
+    s.setUniform("uIor", 1.5f);
     return s;
 }
 

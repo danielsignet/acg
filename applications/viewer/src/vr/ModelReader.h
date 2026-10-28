@@ -10,7 +10,8 @@ public:
     }
 
     // Preserves hierarchy unless static mesh merging is explicitly requested.
-    std::shared_ptr<Node> read(const std::filesystem::path& path, bool flatten);
+    std::shared_ptr<Node> read(const std::filesystem::path& path, bool flatten,
+                               const MaterialOverrides& materials ={});
 
 private:
     // Reads material colors, shininess and optional diffuse and tangent-space normal images.

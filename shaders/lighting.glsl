@@ -1,7 +1,5 @@
-struct Material{
-    vec3 ambient, diffuse, specular;
-    float shininess;
-};
+#include "brdf.glsl"
+uniform bool uEnvironmentEnabled;
 
 struct Light{
     vec4 position;
@@ -154,11 +152,14 @@ float pointVisibility(vec3 position, vec3 normal, vec3 lightPosition, int slot){
 
 // Evaluates the same world-space lighting for forward and deferred surfaces.
 vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Material material,
-                  vec3 emissive, bool lighting, bool toon, bool receiveShadows, int lightMask, float ambientVisibility){
+                  vec3 emissive, bool lighting, bool toon, bool receiveShadows, int lightMask,
+                  float ambientVisibility, bool environmentMaterial){
     vec3 viewDirection = normalize(uEye - position);
     vec3 result = surface.rgb;
+    float ambientScale = uEnvironmentEnabled && environmentMaterial ? 0.0 : 1.0;
+    float diffuseScale = environmentMaterial ? 1.0 - material.metallic : 1.0;
     if (lighting){
-        result = material.ambient * surface.rgb * 0.6 * ambientVisibility;
+        result = material.ambient * surface.rgb * 0.6 * ambientVisibility * ambientScale;
         for (int i = 0; i < uLightCount; ++i){
             if (!uLights[i].enabled || (lightMask & (1 << i)) == 0){
                 continue;
@@ -186,8 +187,10 @@ vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Materia
             float diffuse = max(dot(n, lightDirection), 0.0);
             float specular = 0.0;
             if (diffuse > 0.0){
-                specular = pow(max(dot(viewDirection, reflect(-lightDirection, n)), 0.0),
-                               material.shininess);
+                float alignment = uBrdfMode == 1
+                    ? max(dot(n, normalize(viewDirection + lightDirection)), 0.0)
+                    : max(dot(viewDirection, reflect(-lightDirection, n)), 0.0);
+                specular = pow(alignment, material.shininess);
             }
             if (toon){
                 diffuse = floor(diffuse * 4.0) / 4.0;
@@ -202,11 +205,19 @@ vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Materia
                                                  uPointShadowSlot[i]);
                 }
             }
+            vec3 direct = surface.rgb * uLights[i].diffuse * diffuse * diffuseScale +
+                          material.specular * uLights[i].specular * specular;
+            if (uBrdfMode == 2 && !toon && diffuse > 0.0){
+                vec3 diffuseBrdf, specularBrdf;
+                cookTorrance(material, surface.rgb, n, viewDirection, lightDirection,
+                              diffuseBrdf, specularBrdf);
+                direct = (diffuseBrdf * uLights[i].diffuse +
+                          specularBrdf * uLights[i].specular) * diffuse;
+            }
             result +=
                 attenuation *
-                (surface.rgb * uLights[i].ambient * ambientVisibility +
-                 visibility * (surface.rgb * uLights[i].diffuse * diffuse +
-                               material.specular * uLights[i].specular * specular));
+                (surface.rgb * uLights[i].ambient * ambientVisibility * ambientScale +
+                 visibility * direct);
         }
         if (toon){
             result *= smoothstep(0.05, 0.3, abs(dot(n, viewDirection)));
@@ -217,10 +228,11 @@ vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Materia
     return result;
 }
 
+#include "display.glsl"
+
 // Maps linear lighting to the display while retaining the existing distance fog.
 vec3 displaySurface(vec3 radiance, vec3 position, bool fogEnabled){
-    vec3 mapped =
-        pow(max(radiance, vec3(0)) / (max(radiance, vec3(0)) + vec3(0.65)), vec3(1.0 / 2.2));
+    vec3 mapped = displayColor(radiance);
     float fog = fogEnabled ? 1.0 - exp(-0.00055 * dot(uEye - position, uEye - position)) : 0.0;
     return mix(mapped, vec3(0.035, 0.052, 0.078), clamp(fog, 0.0, 0.82));
 }

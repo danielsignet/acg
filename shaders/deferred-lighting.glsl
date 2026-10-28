@@ -15,20 +15,23 @@ vec4 readSurface(sampler2D source, vec2 uv){ return texture(source, uv); }
 void main(){
     vec4 position = readSurface(uGPosition, texCoord);
     if (position.w == 0.0){
-        vec3 background = pow(vec3(0.035, 0.052, 0.078), vec3(2.2));
-        fragmentColor = vec4(0.65 * background / (1.0 - background), 1.0);
+        // Inverse filmic values preserve the forward renderer's display-space clear color.
+        vec3 background = vec3(0.00245153, 0.00502452, 0.00977764);
+        fragmentColor = vec4(uEnvironmentEnabled ? vec3(0) : background, 1.0);
         return;
     }
     vec4 specular = readSurface(uGSpecular, texCoord);
     vec4 emissive = readSurface(uGEmissive, texCoord);
     vec4 plane = readSurface(uGPlane, texCoord);
+    vec4 albedo = readSurface(uGAlbedo, texCoord);
     int flags = int(round(emissive.a));
-    Material material = Material(readSurface(uGAmbient, texCoord).rgb, readSurface(uGAlbedo, texCoord).rgb,
-                                 specular.rgb, specular.a);
+    Material material = Material(readSurface(uGAmbient, texCoord).rgb, albedo.rgb,
+                                 specular.rgb, specular.a,
+                                 readSurface(uGNormal, texCoord).a, albedo.a);
     vec3 radiance =
         shadeSurface(position.xyz, normalize(readSurface(uGNormal, texCoord).xyz), normalize(plane.xyz),
                      vec4(material.diffuse, 1.0), material, emissive.rgb, (flags & 1) != 0,
                      (flags & 8) != 0, (flags & 4) != 0, int(round(plane.a)),
-                     readSurface(uGAmbient, texCoord).a);
+                     readSurface(uGAmbient, texCoord).a, (flags & 16) != 0);
     fragmentColor = vec4(radiance, 1.0);
 }

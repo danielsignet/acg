@@ -34,6 +34,9 @@ public:
         Subdivision,
         GBufferResolve,
         Antialiasing,
+        Environment,
+        Reflection,
+        Cubemaps,
         Count
     };
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);
@@ -60,6 +63,11 @@ public:
         PortalsTested,
         GBufferMiB,
         LodFadeDraws,
+        MirrorDraws,
+        ScreenCopies,
+        ProbeDraws,
+        ProbeFaces,
+        ReadyProbes,
         Count
     };
     static constexpr std::size_t CounterCount = static_cast<std::size_t>(Counter::Count);
@@ -95,7 +103,7 @@ public:
         double cpuPercent = 0, gpuPercent = 0;
     };
 
-    static constexpr std::size_t SliceCount = 12;
+    static constexpr std::size_t SliceCount = 14;
 
     class Scope final{
     public:

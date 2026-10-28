@@ -1,17 +1,21 @@
 #pragma once
 #include "FrameProfiler.h"
+#include "ColorTarget.h"
 #include "CullVisitor.h"
 #include "LightCollector.h"
 #include "PathVisitor.h"
 #include "RenderMode.h"
 #include <functional>
 #include <map>
+#include <set>
 
 namespace vr{
 class DeferredRenderer;
+class EnvironmentMap;
+class PlanarReflection;
 
 struct RenderStats{
-    unsigned draws = 0, lights = 0, visitedNodes = 0;
+    unsigned draws = 0, lights = 0, visitedNodes = 0, screenDraws = 0, screenCopies = 0;
     std::size_t triangles = 0;
     std::map<std::string, std::size_t> lodLevels;
     std::map<std::string, unsigned> roomDraws;
@@ -57,6 +61,28 @@ public:
         return m_shadingMode;
     }
 
+    // Shares precomputed environment lighting with forward surfaces and the background.
+    void setEnvironment(EnvironmentMap* environment){
+        m_environment = environment;
+    }
+
+    // Publishes the current planar reflection only to surfaces explicitly marked as mirrors.
+    void setReflection(const PlanarReflection* reflection){
+        m_reflection = reflection;
+    }
+
+    // Configures an auxiliary HDR pass with a world-space mirror clipping plane.
+    void setReflectionPass(const glm::vec4& plane){
+        m_clipPlane = plane;
+        m_linearOutput = true;
+    }
+
+    // Captures linear scene radiance with static IBL and without recursive mirror images.
+    void setEnvironmentCapture(){
+        m_environmentCapture = true;
+        m_linearOutput = true;
+    }
+
     // Returns visible instances from the latest culling traversal.
     const std::vector<RenderNode>& getRenderList() const{
         return m_culler.getRenderList();
@@ -87,7 +113,18 @@ private:
     void drawGeometry(const RenderNode& item, const std::shared_ptr<Program>& program,
                       bool linearOutput);
 
+    // Copies the current color before refractive glass samples the background.
+    void captureTransmission();
+
     DeferredRenderer* m_deferred = nullptr;
+    EnvironmentMap* m_environment = nullptr;
+    const PlanarReflection* m_reflection = nullptr;
+    std::set<GLuint> m_environmentPrograms;
+    std::unique_ptr<ColorTarget> m_transmission;
+    glm::vec4 m_viewport{0};
+    std::optional<glm::vec4> m_clipPlane;
+    bool m_linearOutput = false;
+    bool m_environmentCapture = false;
     State m_globalState;
     std::vector<PositionedLight> m_lights;
     const Camera* m_camera = nullptr;

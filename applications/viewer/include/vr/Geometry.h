@@ -9,6 +9,8 @@
 
 namespace vr{
 struct SkinningPose;
+class GpuSkinning;
+struct GpuSkinData;
 
 struct SkinWeights{
     static constexpr unsigned Count = 12;
@@ -59,7 +61,14 @@ public:
     // Retains the undeformed control mesh and attaches its evaluated palette.
     void setSkin(std::shared_ptr<SkinningPose> skin);
     // Updates positions and tangent frames once per evaluated skeleton pose.
-    std::size_t updateSkin();
+    std::size_t updateSkin() const;
+    void prepareDeformation(const std::shared_ptr<GpuSkinning>& skinning);
+
+    bool hasGpuSkinning() const{
+        return bool(m_gpuSkinning);
+    }
+
+    std::vector<GpuVertex> readGpuVertices() const;
 
     std::size_t getSkinInfluenceCount() const{
         return m_skinInfluences;
@@ -84,6 +93,7 @@ public:
 
     // Returns the mesh vertices in their local coordinate system.
     const std::vector<Vertex>& getVertices() const{
+        updateSkin();
         return m_vertices;
     }
 
@@ -95,6 +105,10 @@ public:
     // Returns the number of triangles represented by the index buffer.
     std::size_t getTriangleCount() const{
         return m_indices.size() / 3;
+    }
+
+    std::uint64_t getDataRevision() const{
+        return m_dataRevision;
     }
 
     // Uploads changed mesh data and draws its indexed triangles.
@@ -113,6 +127,8 @@ public:
     BoundingBox computeBound() const override;
 
 private:
+    friend class GpuSkinning;
+    void ensureSkinPositions() const;
     // Generates UV tangents, splitting shared vertices where mirrored charts meet.
     static void buildTangents(std::vector<Vertex>& vertices, std::vector<unsigned>& indices);
 
@@ -130,8 +146,9 @@ private:
         unsigned first = 0, count = 0, left = 0, right = 0;
     };
 
-    std::vector<Vertex> m_vertices;
+    mutable std::vector<Vertex> m_vertices;
     std::vector<unsigned> m_indices;
+    std::uint64_t m_dataRevision = nextRevision();
     mutable GLuint m_vao = 0, m_vbo = 0, m_ebo = 0;
     mutable StreamBuffer m_vertexStream, m_instanceStream, m_normalStream;
     mutable std::vector<GpuVertex> m_uploadVertices;
@@ -140,7 +157,10 @@ private:
     mutable bool m_vertexDirty = false, m_rayDirty = false;
     std::shared_ptr<SkinningPose> m_skin;
     std::shared_ptr<const std::vector<Vertex>> m_restVertices;
-    std::uint64_t m_skinRevision = 0;
+    mutable std::uint64_t m_skinRevision = 0, m_positionRevision = 0;
+    std::shared_ptr<GpuSkinning> m_gpuSkinning;
+    std::shared_ptr<GpuSkinData> m_gpuData;
+    mutable GLuint m_boundVertexBuffer = 0;
     std::size_t m_skinInfluences = 0;
     mutable std::vector<RayNode> m_rayNodes;
     mutable std::vector<unsigned> m_rayTriangles;

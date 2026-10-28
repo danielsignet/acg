@@ -10,6 +10,7 @@
 #include <vr/Application.h>
 #include <vr/DotVisitor.h>
 #include <vr/GLState.h>
+#include <vr/GpuSkinning.h>
 #include <vr/OpenGL.h>
 #include <vr/RenderingValidator.h>
 #include <vr/ResourceLocator.h>
@@ -63,9 +64,12 @@ void Application::reload(){
     deferred->setBloom(m_bloomEnabled);
     deferred->setAmbientOcclusion(m_ambientOcclusionEnabled);
     deferred->setDepthOfField(m_depthOfFieldEnabled);
+    auto gpuSkinning =
+        m_gpuSkinningEnabled ? std::make_shared<GpuSkinning>(m_root, &m_profiler) : nullptr;
     auto shadows = std::make_unique<ShadowRenderer>(m_root);
     shadows->attach(*scene);
     auto debugLines = std::make_unique<DebugLines>(m_root);
+    m_gpuSkinning = std::move(gpuSkinning);
     m_shadowRenderer = std::move(shadows);
     m_flashlight = std::move(flashlight);
     m_target.reset();
@@ -461,9 +465,12 @@ void Application::update(double time, double delta){
         FrameProfiler::Scope inputScope(&m_profiler, FrameProfiler::Stage::Input);
         input(static_cast<float>(delta));
     }
-    m_updater.update(
-        *m_scene->getRoot(),
-        {time, delta, m_animationEnabled && !m_frozenFrustum.has_value(), &m_profiler});
+    if (m_gpuSkinning){
+        m_gpuSkinning->beginFrame();
+    }
+    m_updater.update(*m_scene->getRoot(),
+                     {time, delta, m_animationEnabled && !m_frozenFrustum.has_value(), &m_profiler,
+                      m_gpuSkinning});
     ++m_frameCount;
     m_frameTimeSeconds += m_lastFrameTime > 0 ? time - m_lastFrameTime : 0;
     m_lastFrameTime = time;
@@ -491,6 +498,9 @@ void Application::render(){
     GLState::disable(GL_MULTISAMPLE);
     GLState::disable(GL_SAMPLE_SHADING);
     glCullFace(GL_BACK);
+    if (m_gpuSkinning){
+        m_gpuSkinning->prepare();
+    }
     const auto& camera = *m_scene->getCamera();
     const auto vp = camera.getProjection() * camera.getView();
     const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
@@ -562,6 +572,9 @@ void Application::render(){
             m_profiler.recordCounters(performanceCounters());
         }
         overlay();
+    }
+    if (m_gpuSkinning){
+        m_gpuSkinning->endFrame();
     }
     OpenGL::check("Frame");
 }
@@ -671,6 +684,12 @@ FrameProfiler::Counters Application::performanceCounters() const{
     set(Counter::Lights, scene.lights);
     set(Counter::SkinnedVertices, static_cast<double>(m_updater.getSkinnedVertices()));
     set(Counter::SkinInfluences, static_cast<double>(m_updater.getSkinInfluences()));
+    if (m_gpuSkinning){
+        const auto& skin = m_gpuSkinning->getStats();
+        set(Counter::GpuSkinnedVertices, static_cast<double>(skin.vertices));
+        set(Counter::GpuSkinningDraws, static_cast<double>(skin.draws));
+        set(Counter::CpuSkinPositions, static_cast<double>(skin.cpuPositions));
+    }
     set(Counter::VisitedNodes, scene.visitedNodes);
     set(Counter::CameraBounds, scene.boundsTested);
     set(Counter::FrustumRejected, scene.subtreesRejected);

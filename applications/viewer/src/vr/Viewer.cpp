@@ -59,6 +59,8 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_noAO = true;
         } else if (option == "--no-bump"){
             m_noBump = true;
+        } else if (option == "--cpu-skinning"){
+            m_cpuSkinning = true;
         } else if (option == "--performance"){
             m_performance = true;
         } else if (option == "--benchmark"){
@@ -122,7 +124,8 @@ bool Viewer::parseOptions(int argc, char** argv){
                          "[--buffer lit|positions|normals|albedo|specular|depth|"
                          "ambient|emissive|plane|ao] [--bloom] [--dof] "
                          "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
-                         "[--no-menus] [--no-bump] [--no-vsync] [--benchmark output.csv] "
+                         "[--no-menus] [--no-bump] [--no-vsync] [--cpu-skinning] [--benchmark "
+                         "output.csv] "
                          "[--aa off|fxaa|msaa] "
                          "[--reflections off|environment|cubemaps] "
                          "[--shading phong|blinn|cook] "
@@ -200,6 +203,10 @@ int Viewer::run(int argc, char** argv){
         return 0;
     }
     initialize();
+    if (m_cpuSkinning){
+        m_application->m_gpuSkinningEnabled = false;
+        m_application->m_gpuSkinning.reset();
+    }
     int width;
     int height;
     glfwGetFramebufferSize(m_window, &width, &height);

@@ -42,6 +42,8 @@ template <class T> bool tracked(GLenum name){
         case GL_DRAW_FRAMEBUFFER_BINDING:
         case GL_READ_FRAMEBUFFER_BINDING:
         case GL_VERTEX_ARRAY_BINDING:
+        case GL_CURRENT_PROGRAM:
+        case GL_TRANSFORM_FEEDBACK_BINDING:
         case GL_VIEWPORT:
         case GL_DEPTH_FUNC:
         case GL_POLYGON_MODE:
@@ -146,6 +148,16 @@ void GLState::deleteFramebuffers(GLsizei count, const GLuint* framebuffers){
 void GLState::bindVertexArray(GLuint array){
     glBindVertexArray(array);
     remember(GL_VERTEX_ARRAY_BINDING,{GLdouble(array)});
+}
+
+void GLState::useProgram(GLuint program){
+    glUseProgram(program);
+    remember(GL_CURRENT_PROGRAM,{GLdouble(program)});
+}
+
+void GLState::bindTransformFeedback(GLuint feedback){
+    glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback);
+    remember(GL_TRANSFORM_FEEDBACK_BINDING,{GLdouble(feedback)});
 }
 
 void GLState::deleteVertexArrays(GLsizei count, const GLuint* arrays){

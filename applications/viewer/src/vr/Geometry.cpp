@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <vr/GLState.h>
 #include <vr/Geometry.h>
+#include <vr/GpuSkinning.h>
+#include <vr/SkeletalAnimation.h>
 
 namespace vr{
 // Releases the OpenGL buffers owned by this mesh.
@@ -64,9 +66,13 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
         buildTangents(data, indices);
     }
     m_vertices = std::move(data);
+    m_dataRevision = nextRevision();
     m_indices = std::move(indices);
     m_dirty = true;
     m_skin.reset();
+    m_gpuSkinning.reset();
+    m_gpuData.reset();
+    m_skinRevision = m_positionRevision = 0;
     m_skinInfluences = 0;
     m_restVertices.reset();
     m_vertexDirty = m_rayDirty = false;
@@ -77,6 +83,7 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
 
 // Computes the local bound from the stored vertex positions.
 BoundingBox Geometry::computeBound() const{
+    ensureSkinPositions();
     BoundingBox bound;
     for (const auto& vertex : m_vertices){
         bound.expandBy(vertex.position);
@@ -102,12 +109,32 @@ void Geometry::bindAttributes(GLuint buffer) const{
 }
 
 void Geometry::bind() const{
+    const bool gpu =
+        m_gpuData && m_skin && m_gpuSkinning && m_gpuData->revision == m_skin->revision;
+    if (!gpu){
+        updateSkin();
+    }
     if (!m_vao){
         glGenVertexArrays(1, &m_vao);
         glGenBuffers(1, &m_vbo);
         glGenBuffers(1, &m_ebo);
     }
     GLState::bindVertexArray(m_vao);
+    if (gpu){
+        const auto buffer = m_gpuData->output.getBuffer();
+        if (m_boundVertexBuffer != buffer){
+            bindAttributes(buffer);
+            m_boundVertexBuffer = buffer;
+        }
+        if (m_dirty){
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         static_cast<GLsizeiptr>(m_indices.size() * sizeof(unsigned)),
+                         m_indices.data(), GL_STATIC_DRAW);
+            m_dirty = false;
+        }
+        return;
+    }
     if (m_dirty || m_vertexDirty){
         m_uploadVertices.clear();
         m_uploadVertices.reserve(m_vertices.size());
@@ -116,14 +143,16 @@ void Geometry::bind() const{
                 {vertex.position, vertex.normal, vertex.texCoord, vertex.tangent});
         }
         if (m_skin){
-            bindAttributes(m_vertexStream.acquire(m_uploadVertices.size() * sizeof(GpuVertex),
-                                                  m_uploadVertices.data()));
+            m_boundVertexBuffer = m_vertexStream.acquire(
+                m_uploadVertices.size() * sizeof(GpuVertex), m_uploadVertices.data());
+            bindAttributes(m_boundVertexBuffer);
         } else{
             glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
             glBufferData(GL_ARRAY_BUFFER,
                          static_cast<GLsizeiptr>(m_uploadVertices.size() * sizeof(GpuVertex)),
                          m_uploadVertices.data(), GL_STATIC_DRAW);
             bindAttributes(m_vbo);
+            m_boundVertexBuffer = m_vbo;
         }
         if (m_dirty){
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_ebo);
@@ -142,7 +171,7 @@ void Geometry::draw() const{
     }
     bind();
     glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
-    if (m_skin){
+    if (m_skin && !m_gpuSkinning){
         m_vertexStream.seal();
     }
     GLState::bindVertexArray(0);
@@ -191,7 +220,7 @@ void Geometry::drawInstanced(const std::vector<glm::mat4>& models, bool surface)
     if (surface){
         m_normalStream.seal();
     }
-    if (m_skin){
+    if (m_skin && !m_gpuSkinning){
         m_vertexStream.seal();
     }
     GLState::bindVertexArray(0);
@@ -218,3 +247,15 @@ Geometry::SurfaceTransform Geometry::getSurfaceTransform(const glm::mat4& model)
     return basis;
 }
 } // namespace vr
+
+std::vector<vr::GpuVertex> vr::Geometry::readGpuVertices() const{
+    if (!m_gpuData || !m_gpuData->output.getBuffer()){
+        throw std::logic_error("GPU deformation has not been prepared");
+    }
+    std::vector<GpuVertex> vertices(m_vertices.size());
+    glBindBuffer(GL_ARRAY_BUFFER, m_gpuData->output.getBuffer());
+    glGetBufferSubData(GL_ARRAY_BUFFER, 0,
+                       static_cast<GLsizeiptr>(vertices.size() * sizeof(GpuVertex)),
+                       vertices.data());
+    return vertices;
+}

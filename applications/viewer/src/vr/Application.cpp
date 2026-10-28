@@ -1,4 +1,3 @@
-#include <vr/ResourceLocator.h>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -9,11 +8,13 @@
 #include <sstream>
 #include <stdexcept>
 #include <vr/Application.h>
-#include <vr/SkeletalAnimation.h>
 #include <vr/DotVisitor.h>
+#include <vr/GLState.h>
 #include <vr/OpenGL.h>
 #include <vr/RenderingValidator.h>
+#include <vr/ResourceLocator.h>
 #include <vr/SceneOverlay.h>
+#include <vr/SkeletalAnimation.h>
 
 namespace vr{
 
@@ -157,7 +158,7 @@ void Application::resize(int width, int height){
     m_height = height;
     if (width > 0 && height > 0){
         m_deferred->resize(width, height);
-        glViewport(0, 0, width, height);
+        GLState::viewport(0, 0, width, height);
         m_scene->getCamera()->setPerspective(48, static_cast<float>(width) / height, 0.1f, 150);
     }
 }
@@ -483,15 +484,13 @@ void Application::render(){
         return;
     }
     FrameProfiler::Scope render(&m_profiler, FrameProfiler::Stage::Render);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
-    glDisable(GL_BLEND);
-    glFrontFace(GL_CCW);
-    glDisable(GL_MULTISAMPLE);
-    glDisable(GL_SAMPLE_SHADING);
+    GLState::enable(GL_DEPTH_TEST);
+    GLState::depthMask(GL_TRUE);
+    GLState::disable(GL_BLEND);
+    GLState::frontFace(GL_CCW);
+    GLState::disable(GL_MULTISAMPLE);
+    GLState::disable(GL_SAMPLE_SHADING);
     glCullFace(GL_BACK);
-    glClearColor(0.035f, 0.052f, 0.078f, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     const auto& camera = *m_scene->getCamera();
     const auto vp = camera.getProjection() * camera.getView();
     const auto* frozen = m_frozenFrustum ? &*m_frozenFrustum : nullptr;
@@ -541,6 +540,12 @@ void Application::render(){
     if (m_deferredEnabled){
         draw();
     } else{
+        // Deferred and AA passes overwrite the final color and depth. Touching the window
+        // buffer before offscreen work can serialize submission with the previous swap.
+        if (m_antialiasingMode == AntialiasingMode::Off){
+            glClearColor(0.035f, 0.052f, 0.078f, 1);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        }
         m_deferred->renderForward(draw);
     }
     {

@@ -1,3 +1,4 @@
+#include <vr/GLState.h>
 #include <vr/ScreenQuad.h>
 
 namespace vr{
@@ -8,15 +9,15 @@ ScreenQuad::ScreenQuad(){
 
 // Releases the owned vertex array.
 ScreenQuad::~ScreenQuad(){
-    glDeleteVertexArrays(1, &m_vertexArray);
+    GLState::deleteVertexArrays(1, &m_vertexArray);
 }
 
 // Draws one screen-aligned quad and restores the caller's vertex array.
 void ScreenQuad::draw() const{
     GLint previous = 0;
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &previous);
-    glBindVertexArray(m_vertexArray);
+    GLState::getIntegerv(GL_VERTEX_ARRAY_BINDING, &previous);
+    GLState::bindVertexArray(m_vertexArray);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glBindVertexArray(static_cast<GLuint>(previous));
+    GLState::bindVertexArray(static_cast<GLuint>(previous));
 }
 } // namespace vr

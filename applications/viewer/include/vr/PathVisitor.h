@@ -43,6 +43,10 @@ public:
     }
 
 protected:
+    virtual State mergeState(const State& parent, const State& local) const{
+        return parent.merged(local);
+    }
+
     // Handles a geometry instance with its resolved transform and rendering state.
     virtual void geometry(Geometry&, const glm::mat4&, const State&){
     }

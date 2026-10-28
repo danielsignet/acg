@@ -1,12 +1,14 @@
-#include <vr/ShadowRenderer.h>
-#include <vr/ShadowCollector.h>
-#include <vr/ShadowCameras.h>
-#include <vr/LightCollector.h>
-#include <vr/Light.h>
-#include <vr/Geometry.h>
 #include <algorithm>
 #include <chrono>
 #include <glm/gtc/matrix_transform.hpp>
+#include <vr/FramebufferState.h>
+#include <vr/GLState.h>
+#include <vr/Geometry.h>
+#include <vr/Light.h>
+#include <vr/LightCollector.h>
+#include <vr/ShadowCameras.h>
+#include <vr/ShadowCollector.h>
+#include <vr/ShadowRenderer.h>
 
 namespace vr{
 // Creates directional and point-light shadow resources.
@@ -69,6 +71,8 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
         return;
     }
     prepareCasters();
+    // Preserve caller state once, rather than querying/restoring it for all 25 light views.
+    FramebufferState saved;
     bool sunRendered = false;
     unsigned slot = 0;
     for (unsigned i = 0; i < lights.size(); ++i){
@@ -138,8 +142,8 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
     m_depthProgram->set("uShadowFarPlane", farPlane);
     m_depthProgram->set("uAlbedo", 0);
     if (!radial){
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(1.1f, 2);
+        GLState::enable(GL_POLYGON_OFFSET_FILL);
+        GLState::polygonOffset(1.1f, 2);
     }
     for (const auto& batch : m_batches){
         m_visibleModels.clear();
@@ -195,7 +199,7 @@ void ShadowRenderer::renderSun(State& state, const BoundingBox& bounds, const gl
     state.setUniform("uSunShadowIndex", index);
     state.setUniform("uSunVP", vp);
     state.setUniform("uSunPlane", glm::transpose(glm::inverse(glm::mat3(vp))));
-    m_sun->render(0, [&](const Camera& camera){ drawDepthPass(camera, false, point, 1); });
+    m_sun->renderFace(0, [&](const Camera& camera){ drawDepthPass(camera, false, point, 1); });
 }
 
 // Renders all six radial depth faces and publishes their shared far distance.
@@ -227,7 +231,7 @@ void ShadowRenderer::renderPoint(State& state, const BoundingBox& bounds,
     state.setUniform("uPointShadowSlot[" + std::to_string(index) + "]", static_cast<int>(slot));
     state.setUniform("uPointShadowFar[" + std::to_string(slot) + "]", farPlane);
     for (unsigned face = 0; face < 6; ++face){
-        target->render(face, [&](const Camera& camera){
+        target->renderFace(face, [&](const Camera& camera){
             drawDepthPass(camera, true, point, farPlane, cone ? &*cone : nullptr);
         });
     }

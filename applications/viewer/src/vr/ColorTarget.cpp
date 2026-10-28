@@ -1,6 +1,7 @@
+#include <stdexcept>
 #include <vr/ColorTarget.h>
 #include <vr/FramebufferState.h>
-#include <stdexcept>
+#include <vr/GLState.h>
 
 namespace vr{
 // Creates a floating-point color target with optional shared opaque depth.
@@ -30,20 +31,20 @@ ColorTarget::ColorTarget(int width, int height, std::shared_ptr<Texture> depth)
             throw std::runtime_error("Incomplete color framebuffer");
         }
     } catch (...){
-        glDeleteFramebuffers(1, &m_framebuffer);
+        GLState::deleteFramebuffers(1, &m_framebuffer);
         throw;
     }
 }
 
 // Releases the owned framebuffer before its textures.
 ColorTarget::~ColorTarget(){
-    glDeleteFramebuffers(1, &m_framebuffer);
+    GLState::deleteFramebuffers(1, &m_framebuffer);
 }
 
 // Binds the color target and sets its pixel viewport.
 void ColorTarget::bind() const{
-    glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-    glViewport(0, 0, m_color->getWidth(), m_color->getHeight());
+    GLState::bindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
+    GLState::viewport(0, 0, m_color->getWidth(), m_color->getHeight());
 }
 
 // Resolves same-sized multisample color, optionally including depth for forward overlays.
@@ -55,9 +56,9 @@ void ColorTarget::resolveTo(const ColorTarget& destination, bool depth) const{
         throw std::invalid_argument("Incompatible multisample resolve targets");
     }
     FramebufferState saved;
-    glDisable(GL_SCISSOR_TEST);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, m_framebuffer);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, destination.m_framebuffer);
+    GLState::disable(GL_SCISSOR_TEST);
+    GLState::bindFramebuffer(GL_READ_FRAMEBUFFER, m_framebuffer);
+    GLState::bindFramebuffer(GL_DRAW_FRAMEBUFFER, destination.m_framebuffer);
     glBlitFramebuffer(0, 0, m_color->getWidth(), m_color->getHeight(), 0, 0, m_color->getWidth(),
                       m_color->getHeight(), GL_COLOR_BUFFER_BIT | (depth ? GL_DEPTH_BUFFER_BIT : 0),
                       GL_NEAREST);

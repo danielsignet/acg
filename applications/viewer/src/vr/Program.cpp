@@ -123,6 +123,14 @@ void Program::set(const std::string& name, const Uniform& value) const{
     if (location < 0){
         return; // A linked program may optimise unused uniforms away.
     }
+    const auto slot = static_cast<std::size_t>(location);
+    if (m_values.size() <= slot){
+        m_values.resize(slot + 1);
+    }
+    auto& previous = m_values[slot];
+    if (previous && *previous == value){
+        return;
+    }
     std::visit(
         [location](const auto& v){
             using T = std::decay_t<decltype(v)>;
@@ -143,5 +151,6 @@ void Program::set(const std::string& name, const Uniform& value) const{
             }
         },
         value);
+    previous = value;
 }
 } // namespace vr

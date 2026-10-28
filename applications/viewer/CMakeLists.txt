@@ -27,6 +27,7 @@ add_library(vrlib STATIC
     src/vr/Camera.cpp
     src/vr/DotVisitor.cpp
     src/vr/FramebufferState.cpp
+    src/vr/GLState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
     src/vr/GeometrySkin.cpp

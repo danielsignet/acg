@@ -1,11 +1,12 @@
-#include <vr/EnvironmentMap.h>
-#include <vr/Antialiasing.h>
-#include <vr/FramebufferState.h>
-#include <stb_image.h>
-#include <glm/gtc/constants.hpp>
 #include <algorithm>
 #include <cmath>
+#include <glm/gtc/constants.hpp>
+#include <stb_image.h>
 #include <stdexcept>
+#include <vr/Antialiasing.h>
+#include <vr/EnvironmentMap.h>
+#include <vr/FramebufferState.h>
+#include <vr/GLState.h>
 
 namespace vr{
 // Projects diffuse lighting and normalizes exposure before the temporary HDR upload.
@@ -87,7 +88,7 @@ EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
     projectLighting(pixels.get(), width, height);
     FramebufferState saved;
     Antialiasing::screenPass();
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    GLState::enable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     GLuint source = 0, framebuffer = 0;
     glGenTextures(1, &source);
     glGenFramebuffers(1, &framebuffer);
@@ -110,10 +111,10 @@ EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
         bake.set("uEquirectangular", 0);
         bake.set("uSourceCube", 1);
         bake.set("uSampleCount", 256);
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        GLState::bindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         const auto faces = [&](const std::shared_ptr<Texture>& target, unsigned level, int size){
-            glViewport(0, 0, size, size);
+            GLState::viewport(0, 0, size, size);
             for (unsigned face = 0; face < 6; ++face){
                 if (target->getTarget() == GL_TEXTURE_CUBE_MAP_ARRAY){
                     glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target->getId(),
@@ -143,11 +144,11 @@ EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
         bake.set("uPass", 2);
         m_quad.draw();
     } catch (...){
-        glDeleteFramebuffers(1, &framebuffer);
+        GLState::deleteFramebuffers(1, &framebuffer);
         glDeleteTextures(1, &source);
         throw;
     }
-    glDeleteFramebuffers(1, &framebuffer);
+    GLState::deleteFramebuffers(1, &framebuffer);
     glDeleteTextures(1, &source);
 }
 
@@ -176,7 +177,7 @@ void EnvironmentMap::initializeLocalReflections(const std::shared_ptr<Texture>& 
     maps->apply(0);
     GLuint framebuffer = 0;
     glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+    GLState::bindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     for (unsigned level = 0; level < 9; ++level){
         const int size = std::max(1, 256 >> level);
@@ -186,7 +187,7 @@ void EnvironmentMap::initializeLocalReflections(const std::shared_ptr<Texture>& 
             glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, level, 0, 0, face, 0, 0, size, size);
         }
     }
-    glDeleteFramebuffers(1, &framebuffer);
+    GLState::deleteFramebuffers(1, &framebuffer);
 }
 
 // Prefilters a complete scene capture into one local reflection layer.
@@ -204,11 +205,11 @@ void EnvironmentMap::prefilterLocal(const std::shared_ptr<Texture>& source,
     bake.set("uSampleCount", 32);
     GLuint framebuffer = 0;
     glGenFramebuffers(1, &framebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    GLState::bindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     for (unsigned level = 0; level < 9; ++level){
         const int size = std::max(1, 256 >> level);
-        glViewport(0, 0, size, size);
+        GLState::viewport(0, 0, size, size);
         bake.set("uRoughness", static_cast<float>(level) / 8);
         for (unsigned face = 0; face < 6; ++face){
             glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, maps->getId(), level,
@@ -217,7 +218,7 @@ void EnvironmentMap::prefilterLocal(const std::shared_ptr<Texture>& source,
             m_quad.draw();
         }
     }
-    glDeleteFramebuffers(1, &framebuffer);
+    GLState::deleteFramebuffers(1, &framebuffer);
 }
 
 // Draws an HDR or display-encoded sky before forward scene geometry.
@@ -259,10 +260,10 @@ void EnvironmentMap::drawDeferred(const Camera& camera, const GBuffer& buffer,
     program->set("uEye", camera.getPosition());
     program->set("uInverseProjection", glm::inverse(camera.getProjection()));
     program->set("uInverseView", glm::inverse(camera.getView()));
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ONE);
-    glBlendEquation(GL_FUNC_ADD);
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+    GLState::enable(GL_BLEND);
+    GLState::blendFunc(GL_ONE, GL_ONE);
+    GLState::blendEquation(GL_FUNC_ADD);
+    GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
     m_quad.draw();
 }
 } // namespace vr

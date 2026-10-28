@@ -5,6 +5,9 @@
 #include <iostream>
 #include <stdexcept>
 #include <vr/DeferredRenderer.h>
+#include <vr/FramebufferState.h>
+#include <vr/GLState.h>
+#include <vr/LightCollector.h>
 #include <vr/ModelInstance.h>
 #include <vr/SceneGraph.h>
 
@@ -15,6 +18,102 @@ void check(bool condition, const char* message){
     if (!condition){
         throw std::runtime_error(message);
     }
+}
+
+void trackedState(){
+    vr::FramebufferState restore;
+    const auto verify = []{
+        for (const auto name :
+             {GL_DRAW_FRAMEBUFFER_BINDING, GL_READ_FRAMEBUFFER_BINDING, GL_VERTEX_ARRAY_BINDING,
+              GL_VIEWPORT, GL_DEPTH_FUNC, GL_POLYGON_MODE, GL_FRONT_FACE, GL_BLEND_SRC_RGB,
+              GL_BLEND_DST_RGB, GL_BLEND_SRC_ALPHA, GL_BLEND_DST_ALPHA, GL_BLEND_EQUATION_RGB,
+              GL_BLEND_EQUATION_ALPHA}){
+            GLint actual[4]{}, cached[4]{};
+            glGetIntegerv(name, actual);
+            vr::GLState::getIntegerv(name, cached);
+            check(std::equal(actual, actual + 4, cached),
+                  "Tracked integer GL state matches the driver");
+        }
+        for (const auto name :{GL_COLOR_WRITEMASK, GL_DEPTH_WRITEMASK}){
+            GLboolean actual[4]{}, cached[4]{};
+            glGetBooleanv(name, actual);
+            vr::GLState::getBooleanv(name, cached);
+            check(std::equal(actual, actual + 4, cached), "Tracked GL masks match the driver");
+        }
+        for (const auto name :
+             {GL_MIN_SAMPLE_SHADING_VALUE, GL_POLYGON_OFFSET_FACTOR, GL_POLYGON_OFFSET_UNITS}){
+            GLfloat actual = 0, cached = 0;
+            glGetFloatv(name, &actual);
+            vr::GLState::getFloatv(name, &cached);
+            check(actual == cached, "Tracked floating point GL state matches the driver");
+        }
+        GLdouble actual = 0, cached = 0;
+        glGetDoublev(GL_DEPTH_CLEAR_VALUE, &actual);
+        vr::GLState::getDoublev(GL_DEPTH_CLEAR_VALUE, &cached);
+        check(actual == cached, "Tracked clear depth matches the driver");
+        for (const auto flag :{GL_DEPTH_TEST, GL_BLEND, GL_CULL_FACE, GL_SCISSOR_TEST,
+                                GL_POLYGON_OFFSET_FILL, GL_MULTISAMPLE, GL_SAMPLE_SHADING}){
+            check(glIsEnabled(flag) == vr::GLState::isEnabled(flag),
+                  "Tracked GL enables match the driver");
+        }
+    };
+    verify(); // Lazily captures pre-existing caller state.
+    {
+        vr::FramebufferState saved;
+        vr::GLState::viewport(3, 5, 177, 123);
+        vr::GLState::depthFunc(GL_GREATER);
+        vr::GLState::depthMask(GL_FALSE);
+        vr::GLState::colorMask(GL_TRUE, GL_FALSE, GL_TRUE, GL_FALSE);
+        vr::GLState::clearDepth(0.25);
+        vr::GLState::frontFace(GL_CW);
+        vr::GLState::blendFunc(GL_ONE, GL_ZERO);
+        vr::GLState::blendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
+        vr::GLState::blendEquation(GL_FUNC_ADD);
+        vr::GLState::blendEquationSeparate(GL_FUNC_SUBTRACT, GL_FUNC_ADD);
+        vr::GLState::minSampleShading(0.5f);
+        vr::GLState::polygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        vr::GLState::polygonOffset(1.5f, 3);
+        vr::GLState::enable(GL_BLEND);
+        vr::GLState::disable(GL_CULL_FACE);
+        GLuint targets[2]{}, array = 0;
+        glGenFramebuffers(2, targets);
+        glGenVertexArrays(1, &array);
+        vr::GLState::bindFramebuffer(GL_DRAW_FRAMEBUFFER, targets[0]);
+        vr::GLState::bindFramebuffer(GL_READ_FRAMEBUFFER, targets[1]);
+        vr::GLState::bindVertexArray(array);
+        verify();
+        vr::GLState::deleteFramebuffers(2, targets);
+        vr::GLState::deleteVertexArrays(1, &array);
+        verify(); // Deleting a bound object implicitly binds zero.
+    }
+    verify(); // Guards restore both the driver and its tracked values.
+    glViewport(9, 11, 200, 150);
+    vr::GLState::invalidate();
+    verify(); // External raw GL calls can explicitly invalidate the owned context cache.
+    check(glGetError() == GL_NO_ERROR, "GL state tracking and restoration remain valid");
+}
+
+void lights(){
+    vr::Group root;
+    auto light = std::make_shared<vr::Light>();
+    for (float x :{-3.0f, 4.0f}){
+        auto transform = std::make_shared<vr::Transform>();
+        transform->setMatrix(glm::translate(glm::mat4(1),{x, 0, 0}));
+        transform->addChild(light);
+        root.addChild(transform);
+    }
+    auto lod = std::make_shared<vr::LOD>();
+    auto nearLight = std::make_shared<vr::Light>();
+    auto farLight = std::make_shared<vr::Light>();
+    lod->addLevel(5, nearLight);
+    lod->addLevel(100, farLight);
+    root.addChild(lod);
+    const auto near = vr::collectLights(root,{0, 0, 0});
+    const auto far = vr::collectLights(root,{0, 0, 20});
+    check(near.size() == 3 && near[0].node == light.get() && near[1].node == light.get() &&
+              near[0].model[3].x == -3 && near[1].model[3].x == 4 &&
+              near[2].node == nearLight.get() && far[2].node == farLight.get(),
+          "Light-only traversal preserves shared DAG placements and camera-selected LOD");
 }
 
 void caches(){
@@ -71,6 +170,16 @@ void rendering(const std::filesystem::path& path){
                                                  path / "shaders/phong-shading.fs");
     check(program->supportsInstancing(),
           "The shared forward/G-buffer vertex shader supports instancing");
+    program->use();
+    const auto sampler = glGetUniformLocation(program->getId(), "uTextures[0]");
+    check(sampler >= 0, "Uniform-cache regression uses a live sampler array");
+    for (int value :{1, 1, 2, 0}){
+        program->set("uTextures", value);
+        GLint actual = -1;
+        glGetUniformiv(program->getId(), sampler, &actual);
+        check(actual == value, "Uniform cache respects repeated values and array aliases");
+        program->set("uTextures[0]", 3);
+    }
     vr::RenderVisitor renderer(program);
     renderer.setCulling(false);
     vr::DeferredRenderer deferred(path);
@@ -134,6 +243,7 @@ void rendering(const std::filesystem::path& path){
         glDepthMask(GL_TRUE);
         glClearColor(0.03f, 0.04f, 0.05f, 1);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        vr::GLState::invalidate(); // This test's caller intentionally uses raw GL setup.
         renderer.setInstancing(batching);
         renderer.render(*root, *camera, nullptr, nullptr, useDeferred ? &deferred : nullptr);
         std::vector<unsigned char> result(width * height * 3);
@@ -191,7 +301,13 @@ int main(int argc, char** argv){
     } else{
         try{
             caches();
+            lights();
             rendering(argv[1]);
+            {
+                vr::GLState::Scope trackedContext;
+                trackedState();
+                rendering(argv[1]);
+            }
             std::cout << "Scene graph performance regressions passed\n";
         } catch (const std::exception& error){
             std::cerr << error.what() << '\n';

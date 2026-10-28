@@ -80,6 +80,9 @@ public:
         GpuSkinnedVertices,
         GpuSkinningDraws,
         CpuSkinPositions,
+        ShadowCacheHits,
+        ShadowReusedFaces,
+        ShadowCacheRebuilds,
         Count
     };
     static constexpr std::size_t CounterCount = static_cast<std::size_t>(Counter::Count);

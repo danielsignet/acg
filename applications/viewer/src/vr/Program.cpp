@@ -115,6 +115,11 @@ Program::Program(const std::filesystem::path& vertex, const std::filesystem::pat
 // Releases the linked OpenGL shader program.
 Program::~Program(){
     if (m_id){
+        GLint current = 0;
+        GLState::getIntegerv(GL_CURRENT_PROGRAM, &current);
+        if (static_cast<GLuint>(current) == m_id){
+            GLState::useProgram(0);
+        }
         glDeleteProgram(m_id);
     }
 }

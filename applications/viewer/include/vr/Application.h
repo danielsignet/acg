@@ -131,6 +131,7 @@ private:
     std::shared_ptr<Program> m_program;
     std::shared_ptr<GpuSkinning> m_gpuSkinning;
     bool m_gpuSkinningEnabled = true;
+    bool m_shadowCaching = true, m_sceneCaching = true;
     std::unique_ptr<RenderVisitor> m_renderer;
     std::unique_ptr<DeferredRenderer> m_deferred;
     std::unique_ptr<EnvironmentMap> m_environment;

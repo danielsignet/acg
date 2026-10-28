@@ -44,6 +44,7 @@ void Application::reload(){
     auto lodDemo = createLodDemo(*scene);
     auto renderer = std::make_unique<RenderVisitor>(program);
     renderer->setProfiler(&m_profiler);
+    renderer->setStateCaching(m_sceneCaching);
     renderer->setCulling(m_frustumCulling);
     renderer->setShadingMode(m_shadingMode);
     auto deferred = std::make_unique<DeferredRenderer>(m_root);
@@ -56,6 +57,7 @@ void Application::reload(){
         daylight->setPosition(glm::vec4(environment->getSunDirection(), 0));
     }
     auto reflection = std::make_unique<PlanarReflection>(program);
+    reflection->setStateCaching(m_sceneCaching);
     renderer->setReflection(reflection.get());
     deferred->setProfiler(&m_profiler);
     deferred->resize(m_width, m_height);
@@ -67,6 +69,8 @@ void Application::reload(){
     auto gpuSkinning =
         m_gpuSkinningEnabled ? std::make_shared<GpuSkinning>(m_root, &m_profiler) : nullptr;
     auto shadows = std::make_unique<ShadowRenderer>(m_root);
+    shadows->setCaching(m_shadowCaching);
+    shadows->setStateCaching(m_sceneCaching);
     shadows->attach(*scene);
     auto debugLines = std::make_unique<DebugLines>(m_root);
     m_gpuSkinning = std::move(gpuSkinning);
@@ -521,6 +525,7 @@ void Application::render(){
             if (!m_reflectionProbes){
                 m_reflectionProbes =
                     std::make_unique<ReflectionProbes>(*m_scene, *m_environment, m_program);
+                m_reflectionProbes->setStateCaching(m_sceneCaching);
             }
             m_reflectionProbes->update(*m_scene, camera, *m_environment, m_shadingMode,
                                        m_portalResult, !m_frozenEye.has_value());
@@ -675,6 +680,9 @@ FrameProfiler::Counters Application::performanceCounters() const{
     set(Counter::ShadowDraws, shadows.draws);
     set(Counter::ShadowTriangles, static_cast<double>(shadows.triangles));
     set(Counter::ShadowPasses, shadows.passes);
+    set(Counter::ShadowCacheHits, shadows.cacheHits);
+    set(Counter::ShadowReusedFaces, shadows.reusedFaces);
+    set(Counter::ShadowCacheRebuilds, shadows.staticRebuilds);
     set(Counter::TotalDraws, scene.draws + mirrorDraws + shadows.draws + probes.draws);
     set(Counter::TotalTriangles, static_cast<double>(scene.triangles + mirrorTriangles +
                                                      shadows.triangles + probes.triangles));

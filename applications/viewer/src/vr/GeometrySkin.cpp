@@ -1,14 +1,24 @@
+#include <stdexcept>
 #include <vr/Geometry.h>
 #include <vr/SkeletalAnimation.h>
-#include <stdexcept>
 
 namespace vr{
 // Retains the undeformed control mesh and attaches its evaluated palette.
 void Geometry::setSkin(std::shared_ptr<SkinningPose> skin){
     m_skin = std::move(skin);
-    m_restVertices = m_skin ? m_vertices : std::vector<Vertex>{};
+    m_restVertices = m_skin ? std::make_shared<const std::vector<Vertex>>(m_vertices) : nullptr;
     m_skinRevision = 0;
     updateSkin();
+}
+
+std::shared_ptr<Geometry> Geometry::instantiateSkin(std::shared_ptr<SkinningPose> pose) const{
+    auto result = std::make_shared<Geometry>(getName());
+    result->m_restVertices = m_restVertices;
+    result->m_vertices = getRestVertices();
+    result->m_indices = m_indices;
+    result->m_skin = std::move(pose);
+    result->updateSkin();
+    return result;
 }
 
 // Updates positions and tangent frames once per evaluated skeleton pose.
@@ -16,8 +26,8 @@ void Geometry::updateSkin(){
     if (!m_skin || m_skinRevision == m_skin->revision){
         return;
     }
-    for (std::size_t i = 0; i < m_restVertices.size(); ++i){
-        const auto& rest = m_restVertices[i];
+    for (std::size_t i = 0; i < m_restVertices->size(); ++i){
+        const auto& rest = (*m_restVertices)[i];
         auto& vertex = m_vertices[i];
         glm::vec3 position(0), normal(0), tangent(0);
         float total = 0;

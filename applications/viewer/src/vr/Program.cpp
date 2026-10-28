@@ -1,12 +1,20 @@
 #include <fstream>
-#include <sstream>
 #include <glm/gtc/type_ptr.hpp>
+#include <sstream>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
 #include <vr/Program.h>
 
 namespace vr{
+bool Program::supportsInstancing() const{
+    if (m_instancing < 0){
+        m_instancing = glGetAttribLocation(m_id, "instanceModel") == 3 &&
+                       glGetUniformLocation(m_id, "uInstanced") >= 0;
+    }
+    return m_instancing != 0;
+}
+
 // Reads shader source and expands relative includes with bounded nesting.
 std::string Program::readSource(const std::filesystem::path& path, unsigned depth){
     if (depth > 16){

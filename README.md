@@ -29,6 +29,12 @@ cmake --build build/linux --parallel 4
 
 WSL requires a graphical session such as WSLg.
 
+The scene graph now keeps independent animation playback per model instance, updates only
+the active original/subdivision mesh variant, and batches compatible opaque instances in
+forward and deferred color passes. Transform, normal-matrix and inherited-material caches
+reuse unchanged data across passes. See [performance verification](docs/scenegraph-performance.md)
+for the measurements, regression coverage and benchmark command.
+
 ## Controls
 
 | Input | Action |

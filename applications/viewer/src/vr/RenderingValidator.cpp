@@ -204,8 +204,17 @@ void RenderingValidator::validateMaterialGallery(){
                     "The car button enables visible beams and shadows in both renderers");
             clickTargetAction(1);
             app.render();
+            const auto restoredCar = captureScene();
+            if (restoredCar.hash() != unlitCar.hash()){
+                std::cout << "Headlight restore (deferred=" << deferred
+                          << "): " << restoredCar.countChangedPixels(unlitCar, 0)
+                          << " changed pixels, " << restoredCar.countChangedPixels(unlitCar, 2)
+                          << " above tolerance 2, passes "
+                          << app.m_shadowRenderer->getStats().passes << '/' << headlightPasses
+                          << '\n';
+            }
             require(!left->getEnabled() && !right->getEnabled() &&
-                        captureScene().hash() == unlitCar.hash() &&
+                        restoredCar.hash() == unlitCar.hash() &&
                         app.m_shadowRenderer->getStats().passes == headlightPasses,
                     "Switching headlights off restores illumination and skips their shadows");
         }

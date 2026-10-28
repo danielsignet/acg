@@ -1,13 +1,13 @@
-#include <vr/SkeletalAnimation.h>
-#include <vr/Geometry.h>
-#include <vr/ModelInstance.h>
-#include <vr/Reader.h>
-#include <vr/UpdateVisitor.h>
-#include <vr/CullVisitor.h>
 #include <cmath>
 #include <iostream>
 #include <set>
 #include <stdexcept>
+#include <vr/CullVisitor.h>
+#include <vr/Geometry.h>
+#include <vr/ModelInstance.h>
+#include <vr/Reader.h>
+#include <vr/SkeletalAnimation.h>
+#include <vr/UpdateVisitor.h>
 
 namespace{
 // Reports an animation or picking regression to CTest.
@@ -180,6 +180,63 @@ void dragon(const std::filesystem::path& root){
     check(motion > 0.01f, "The subdivided variant follows the same skeleton");
     flight(*instance, *animation, updater);
 }
+
+// Independent playback shares source data, and inactive variants perform no skinning.
+void instances(const std::filesystem::path& path){
+    vr::Reader reader(path);
+    const auto asset = reader.readModel("models/dragon/Dragon.fbx");
+    auto a = vr::ModelInstance::create("a", asset), b = vr::ModelInstance::create("b", asset);
+    const auto first = a->getAnimation(), second = b->getAnimation();
+    check(first != second && &first->getClips() == &second->getClips(),
+          "Instances have independent playback with shared immutable clips");
+    auto root = std::make_shared<vr::Group>();
+    root->addChild(a);
+    root->addChild(b);
+    vr::CullVisitor collector;
+    collector.collect(*a, glm::mat4(1),{0, 0, 10}, false);
+    const auto original = collector.getRenderList().front().geometry;
+    collector.collect(*b, glm::mat4(1),{0, 0, 10}, false);
+    const auto other = collector.getRenderList().front().geometry;
+    check(original != other && original->getSkin() != other->getSkin() &&
+              &original->getRestVertices() == &other->getRestVertices(),
+          "Mutable output and palettes are independent while rest geometry is shared");
+    std::size_t walk = 0;
+    while (first->getClips().at(walk).name != "Walk"){
+        ++walk;
+    }
+    first->setClip(walk);
+    check(first->getClip() != second->getClip(),
+          "Changing one clip does not select another instance's clip");
+    vr::UpdateVisitor updater;
+    updater.update(*root,{0.1, 0.1, true});
+    const auto otherPalette = other->getSkin()->revision;
+    a->setSubdivided(true);
+    collector.collect(*a, glm::mat4(1),{0, 0, 10}, false);
+    const auto refined = collector.getRenderList().front().geometry;
+    const auto originalRevision = original->getAppliedSkinRevision();
+    updater.update(*a,{0.3, 0.2, true});
+    check(original->getAppliedSkinRevision() == originalRevision &&
+              refined->getAppliedSkinRevision() == refined->getSkin()->revision &&
+              other->getSkin()->revision == otherPalette,
+          "Only the selected instance and active mesh variant are deformed");
+    const auto refinedRevision = refined->getAppliedSkinRevision();
+    a->setSubdivided(false);
+    check(original->getAppliedSkinRevision() == original->getSkin()->revision,
+          "Switching variants synchronizes the current pose before rendering, even while paused");
+    updater.update(*a,{0.5, 0.2, true});
+    check(refined->getAppliedSkinRevision() == refinedRevision,
+          "Returning to the original stops skinning the cached subdivision");
+    a->setVisible(false);
+    const auto applied = original->getAppliedSkinRevision();
+    const auto palette = original->getSkin()->revision;
+    updater.update(*a,{0.7, 0.2, true});
+    check(original->getAppliedSkinRevision() == applied && original->getSkin()->revision > palette,
+          "Hidden instances advance their clock and pose without deforming meshes");
+    a->setVisible(true);
+    updater.update(*a,{0.7, 0, false});
+    check(original->getAppliedSkinRevision() == original->getSkin()->revision,
+          "A visible paused instance catches its surface up to the current pose");
+}
 } // namespace
 
 // Runs deterministic skinning and original-animation integration checks without OpenGL.
@@ -187,6 +244,7 @@ int main(int argc, char** argv){
     try{
         skinning();
         dragon(argc > 1 ? argv[1] : ".");
+        instances(argc > 1 ? argv[1] : ".");
         std::cout << "Skeletal animation, pause, picking and subdivision passed\n";
         return 0;
     } catch (const std::exception& error){

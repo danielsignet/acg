@@ -1,14 +1,14 @@
 #include "ModelReader.h"
 #include <algorithm>
-#include <cctype>
-#include <assimp/Importer.hpp>
 #include <assimp/GltfMaterial.h>
+#include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
-#include <iostream>
-#include <stdexcept>
-#include <set>
-#include <numeric>
+#include <cctype>
 #include <cmath>
+#include <iostream>
+#include <numeric>
+#include <set>
+#include <stdexcept>
 
 namespace vr{
 // Preserves imported transforms, or merges an explicitly selected static variant.
@@ -262,16 +262,7 @@ std::shared_ptr<Node> ModelReader::readNode(const aiNode& imported) const{
     if (m_animation){
         const auto index = m_jointIndices.at(&imported);
         node->setMatrix(m_animation->getLocal(index));
-        const std::weak_ptr<SkeletalAnimation> animation = m_animation;
-        node->setUpdateCallback(std::make_shared<FunctionCallback>(
-            [animation, index](Node& target, const UpdateContext&){
-                if (const auto pose = animation.lock()){
-                    auto& transform = static_cast<Transform&>(target);
-                    if (transform.getMatrix() != pose->getLocal(index)){
-                        transform.setMatrix(pose->getLocal(index));
-                    }
-                }
-            }));
+        node->setUpdateCallback(std::make_shared<JointAnimationCallback>(m_animation, index));
     }
     for (unsigned index = 0; index < imported.mNumMeshes; ++index){
         if (const auto& mesh = m_meshes.at(imported.mMeshes[index])){

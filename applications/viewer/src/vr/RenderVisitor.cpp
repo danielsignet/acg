@@ -1,16 +1,18 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <stdexcept>
+#include <tuple>
 #include <vr/Camera.h>
+#include <vr/DeferredRenderer.h>
+#include <vr/EnvironmentMap.h>
+#include <vr/FramebufferState.h>
 #include <vr/Geometry.h>
 #include <vr/LOD.h>
 #include <vr/Light.h>
-#include <vr/RenderVisitor.h>
-#include <vr/DeferredRenderer.h>
-#include <vr/EnvironmentMap.h>
 #include <vr/PlanarReflection.h>
-#include <vr/FramebufferState.h>
+#include <vr/RenderVisitor.h>
 
 namespace vr{
 // Collects lights and geometry, invokes the optional preparation hook, then draws the scene.
@@ -84,11 +86,7 @@ void RenderVisitor::drawRenderList(const Camera& camera){
     if (m_deferred){
         m_deferred->render(
             camera, m_globalState, m_lights,
-            [&](const auto& program){
-                for (const auto* item : opaque){
-                    drawInstance(*item, program);
-                }
-            },
+            [&](const auto& program){ drawOpaque(opaque, program, false); },
             [&]{
                 for (const auto* item : transparent){
                     drawInstance(*item,{}, true);
@@ -102,9 +100,7 @@ void RenderVisitor::drawRenderList(const Camera& camera){
         }
         {
             FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Forward);
-            for (const auto* item : opaque){
-                drawInstance(*item,{}, m_linearOutput);
-            }
+            drawOpaque(opaque,{}, m_linearOutput);
         }
         {
             FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Transparency);
@@ -118,6 +114,65 @@ void RenderVisitor::drawRenderList(const Camera& camera){
     m_stats.submitCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - submit)
             .count();
+}
+
+void RenderVisitor::drawOpaque(const std::vector<const RenderNode*>& items,
+                               const std::shared_ptr<Program>& program, bool linearOutput){
+    if (!m_instancing){
+        for (const auto* item : items){
+            drawInstance(*item, program, linearOutput);
+        }
+        return;
+    }
+
+    struct Candidate{
+        const RenderNode* item;
+        std::size_t state;
+    };
+
+    std::vector<Candidate> sorted;
+    sorted.reserve(items.size());
+    for (const auto* item : items){
+        sorted.push_back({item, item->state.renderKey()});
+    }
+    const auto key = [](const Candidate& entry){
+        return std::tuple<std::uintptr_t, std::uintptr_t, std::size_t, const std::string&>{
+            reinterpret_cast<std::uintptr_t>(entry.item->state.getProgram().get()),
+            reinterpret_cast<std::uintptr_t>(entry.item->geometry), entry.state, entry.item->room};
+    };
+    std::stable_sort(sorted.begin(), sorted.end(),
+                     [&](const auto& a, const auto& b){ return key(a) < key(b); });
+    std::vector<glm::mat4> models;
+    for (std::size_t first = 0; first < sorted.size();){
+        const auto& item = *sorted[first].item;
+        std::size_t end = first + 1;
+        const auto glass = item.state.getUniforms().find("uGlass");
+        const bool refractive =
+            glass != item.state.getUniforms().end() && std::get<bool>(glass->second);
+        const auto effectiveProgram = program ? program : item.state.getProgram();
+        if (!refractive && effectiveProgram && effectiveProgram->supportsInstancing()){
+            while (end < sorted.size() && key(sorted[end]) == key(sorted[first]) &&
+                   item.state.sameRenderState(sorted[end].item->state)){
+                ++end;
+            }
+        }
+        if (end - first == 1){
+            drawInstance(item, program, linearOutput);
+        } else{
+            models.clear();
+            models.reserve(end - first);
+            for (auto i = first; i < end; ++i){
+                const auto& model = sorted[i].item->model;
+                item.geometry->getSurfaceTransform(model);
+                models.push_back(model);
+            }
+            drawGeometry(item, program, linearOutput, &models);
+            if (!item.room.empty()){
+                ++m_stats.roomDraws[item.room];
+            }
+        }
+        first = end;
+    }
 }
 
 // Submits one resolved instance and updates room and transparency counts.
@@ -154,8 +209,8 @@ void RenderVisitor::captureTransmission(){
 
 // Submits a mesh with its resolved transform and rendering state.
 void RenderVisitor::drawGeometry(const RenderNode& item,
-                                 const std::shared_ptr<Program>& overrideProgram,
-                                 bool linearOutput){
+                                 const std::shared_ptr<Program>& overrideProgram, bool linearOutput,
+                                 const std::vector<glm::mat4>* models){
     auto& node = *item.geometry;
     const auto& model = item.model;
     auto state = item.state;
@@ -170,6 +225,7 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     }
     state.apply();
     const auto& program = *state.getProgram();
+    program.set("uInstanced", models != nullptr);
     if (m_environmentPrograms.insert(program.getId()).second){
         if (m_environment){
             m_environment->apply(program);
@@ -223,22 +279,24 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     program.set("uModel", model);
     program.set("uView", m_camera->getView());
     program.set("uProjection", m_camera->getProjection());
-    const glm::mat3 linear(model);
-    const float orientation = glm::determinant(
-        glm::mat3(glm::normalize(linear[0]), glm::normalize(linear[1]), glm::normalize(linear[2])));
-    if (!std::isfinite(orientation) || std::abs(orientation) < 1e-8f){
-        throw std::runtime_error("Singular model transform");
-    }
-    program.set("uNormal", glm::transpose(glm::inverse(linear)));
-    program.set("uTangentSign", orientation < 0 ? -1.0f : 1.0f);
+    const auto basis = node.getSurfaceTransform(model);
+    program.set("uNormal", basis.normal);
+    program.set("uTangentSign", basis.tangentSign);
     program.set("uEye", m_camera->getPosition());
     program.set("uLightCount", static_cast<int>(m_lights.size()));
     for (unsigned i = 0; i < m_lights.size(); ++i){
         m_lights[i].node->apply(program, i, m_lights[i].model, state.getLightEnabled(i));
     }
-    node.draw();
+    if (models){
+        node.drawInstanced(*models, true);
+        ++m_stats.instancedDraws;
+    } else{
+        node.draw();
+    }
     ++m_stats.draws;
-    m_stats.triangles += node.getTriangleCount();
+    const auto count = models ? models->size() : 1;
+    m_stats.instances += static_cast<unsigned>(count);
+    m_stats.triangles += node.getTriangleCount() * count;
 }
 
 } // namespace vr

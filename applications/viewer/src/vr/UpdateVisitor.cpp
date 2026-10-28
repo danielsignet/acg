@@ -3,6 +3,7 @@
 #include <vr/Group.h>
 #include <vr/LOD.h>
 #include <vr/Light.h>
+#include <vr/ModelInstance.h>
 #include <vr/Transform.h>
 #include <vr/UpdateVisitor.h>
 
@@ -30,7 +31,18 @@ bool UpdateVisitor::enter(Node& node){
 // Executes this group's callback once, then visits its children.
 void UpdateVisitor::apply(Group& node){
     if (enter(node)){
-        traverse(node);
+        if (auto instance = dynamic_cast<ModelInstance*>(&node)){
+            if (instance->getVisible()){
+                const auto children = instance->getChildren();
+                for (const auto& child : children){
+                    if (child != instance->getInactiveVariant()){
+                        child->accept(*this);
+                    }
+                }
+            }
+        } else{
+            traverse(node);
+        }
     }
 }
 

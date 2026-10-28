@@ -17,6 +17,17 @@ public:
     // Returns this asset's source-animation controller when one was imported.
     std::shared_ptr<SkeletalAnimation> getAnimation() const;
 
+    const std::shared_ptr<Group>& getActiveVariant() const{
+        return m_enabled ? m_refined : m_original;
+    }
+
+    const std::shared_ptr<Group>& getInactiveVariant() const{
+        return m_enabled ? m_original : m_refined;
+    }
+
+    BoundingBox computeBound() const override;
+    bool computeCullingExemption() const override;
+
     // Reports which cached variant is active for picking and the toolbar.
     bool getSubdivided() const{
         return m_enabled;
@@ -29,6 +40,7 @@ public:
 
 private:
     std::shared_ptr<Group> m_original, m_refined;
+    std::shared_ptr<SkeletalAnimation> m_animation;
     bool m_enabled = false;
     bool m_selectable = true;
 };

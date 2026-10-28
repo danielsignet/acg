@@ -1,13 +1,13 @@
-#include <vr/Subdivision.h>
-#include <vr/Group.h>
-#include <vr/Transform.h>
-#include <vr/SkeletalAnimation.h>
 #include <algorithm>
 #include <functional>
 #include <map>
 #include <set>
 #include <stdexcept>
 #include <tuple>
+#include <vr/Group.h>
+#include <vr/SkeletalAnimation.h>
+#include <vr/Subdivision.h>
+#include <vr/Transform.h>
 
 namespace vr{
 namespace{
@@ -86,6 +86,7 @@ std::shared_ptr<Node> Subdivision::create(const std::shared_ptr<Node>& asset){
     auto anchored = std::make_shared<Transform>("subdivision support");
     glm::mat4 placement(1);
     if (!std::dynamic_pointer_cast<SkeletalAnimation>(asset->getUpdateCallback()) &&
+        !std::dynamic_pointer_cast<JointAnimationCallback>(asset->getUpdateCallback()) &&
         asset->getBound().valid() && refined->getBound().valid()){
         placement[3].y = asset->getBound().getMinimum().y - refined->getBound().getMinimum().y;
     }

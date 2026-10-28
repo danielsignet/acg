@@ -1,0 +1,7 @@
+phase,all_vertices,visible_vertices,callbacks,update_mean_ms,update_median_ms,update_p95_ms,bounds_mean_ms,cull_without_rejection_mean_ms
+original_animated,23008,23008,168,3.136022,3.109900,3.368500,0.206136,0.042642
+original_paused,23008,23008,168,0.023962,0.022900,0.032800,0.000015,0.032410
+original_hidden_animated,23008,0,168,3.210107,3.132000,3.730600,0.222705,0.001459
+subdivided_animated,105186,82178,335,15.007627,14.968600,15.309000,1.212086,0.058830
+original_after_subdivision_animated,105186,23008,335,15.019903,14.961500,15.403600,1.139574,0.058695
+original_after_subdivision_paused,105186,23008,335,0.053204,0.051800,0.059300,0.000019,0.032539

@@ -26,7 +26,7 @@ void GLState::invalidate(){
 
 namespace{
 unsigned components(GLenum name){
-    return name == GL_VIEWPORT || name == GL_COLOR_WRITEMASK ? 4 : name == GL_POLYGON_MODE ? 2 : 1;
+    return name == GL_VIEWPORT || name == GL_COLOR_WRITEMASK ? 4 : 1;
 }
 
 template <class T> bool tracked(GLenum name){
@@ -224,7 +224,7 @@ void GLState::polygonOffset(GLfloat factor, GLfloat units){
 void GLState::polygonMode(GLenum face, GLenum mode){
     glPolygonMode(face, mode);
     if (face == GL_FRONT_AND_BACK){
-        remember(GL_POLYGON_MODE,{GLdouble(mode), GLdouble(mode)});
+        remember(GL_POLYGON_MODE,{GLdouble(mode)});
     }
 }
 } // namespace vr

@@ -110,6 +110,38 @@ void flight(vr::ModelInstance& instance, vr::SkeletalAnimation& animation,
     check(instance.getBound().getMinimum() == frozen, "Flight honors scene-animation pause");
 }
 
+// The source gait combines 26-frame front-leg and 39-frame rear-leg cycles.
+void walking(vr::ModelInstance& instance, vr::SkeletalAnimation& animation,
+             vr::UpdateVisitor& updater){
+    std::size_t clip = 0;
+    while (clip < animation.getClips().size() && animation.getClips()[clip].name != "Walk"){
+        ++clip;
+    }
+    check(clip < animation.getClips().size(), "The source includes a walking clip");
+    const double duration = animation.getClips()[clip].duration;
+    check(std::abs(duration - 78.0 / 24) < 0.001,
+          "Walk includes the complete common cycle of the front and rear legs");
+    animation.setClip(clip);
+    updater.update(instance,{0, duration - 0.000001, true});
+    vr::CullVisitor collector;
+    collector.collect(instance, glm::mat4(1),{0, 0, 10}, false);
+    std::vector<glm::vec3> before;
+    for (const auto& item : collector.getRenderList()){
+        for (const auto& vertex : item.geometry->getVertices()){
+            before.push_back(vertex.position);
+        }
+    }
+    updater.update(instance,{0, 0.000002, true});
+    float jump = 0;
+    std::size_t index = 0;
+    for (const auto& item : collector.getRenderList()){
+        for (const auto& vertex : item.geometry->getVertices()){
+            jump = std::max(jump, glm::distance(vertex.position, before[index++]));
+        }
+    }
+    check(jump < 0.02f, "Walking remains continuous when all leg cycles wrap together");
+}
+
 // Checks every bundled clip, animated subdivision and topology preservation.
 void dragon(const std::filesystem::path& root){
     vr::Reader reader(root);
@@ -155,6 +187,7 @@ void dragon(const std::filesystem::path& root){
     }
     check(names == std::set<std::string>{"Idle", "Walk", "Run", "Fly"},
           "Only the intended original motion clips are exposed");
+    walking(*instance, *animation, updater);
     flight(*instance, *animation, updater);
     animation->setClip(1);
     updater.update(*instance,{0, 0, false});
@@ -178,6 +211,7 @@ void dragon(const std::filesystem::path& root){
         }
     }
     check(motion > 0.01f, "The subdivided variant follows the same skeleton");
+    walking(*instance, *animation, updater);
     flight(*instance, *animation, updater);
 }
 

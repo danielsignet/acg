@@ -37,5 +37,6 @@ private:
 
     std::vector<RenderNode> m_renderList;
     std::string m_roomId;
+    bool m_dynamic = false;
 };
 } // namespace vr

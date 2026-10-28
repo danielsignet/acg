@@ -56,6 +56,10 @@ public:
         return static_cast<unsigned>(m_probes.size());
     }
 
+    void setStateCaching(bool enabled){
+        m_renderer.setStateCaching(enabled);
+    }
+
 private:
     struct Probe{
         ModelInstance* instance;

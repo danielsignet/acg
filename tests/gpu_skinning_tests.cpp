@@ -1,5 +1,6 @@
 #include <GLFW/glfw3.h>
 #include <algorithm>
+#include <array>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <stdexcept>
@@ -11,6 +12,7 @@
 #include <vr/ModelInstance.h>
 #include <vr/Reader.h>
 #include <vr/SkeletalAnimation.h>
+#include <vr/StreamBuffer.h>
 #include <vr/UpdateVisitor.h>
 
 namespace{
@@ -19,6 +21,34 @@ constexpr int width = 400, height = 300;
 void check(bool condition, const char* message){
     if (!condition){
         throw std::runtime_error(message);
+    }
+}
+
+// Queue GPU reads through repeated ring wraps before reading the captured results.
+void streaming(){
+    constexpr unsigned rounds = 32, words = 128;
+    GLuint captured = 0;
+    glGenBuffers(1, &captured);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, captured);
+    glBufferData(GL_COPY_WRITE_BUFFER, rounds * words * sizeof(unsigned), nullptr, GL_STREAM_READ);
+    vr::StreamBuffer stream;
+    std::array<unsigned, words> input{};
+    for (unsigned round = 0; round < rounds; ++round){
+        for (unsigned i = 0; i < words; ++i){
+            input[i] = round * words + i;
+        }
+        const auto source = stream.acquire(sizeof(input), input.data());
+        glBindBuffer(GL_COPY_READ_BUFFER, source);
+        glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, round * sizeof(input),
+                            sizeof(input));
+        stream.seal();
+    }
+    std::array<unsigned, rounds * words> output{};
+    glGetBufferSubData(GL_COPY_WRITE_BUFFER, 0, sizeof(output), output.data());
+    glDeleteBuffers(1, &captured);
+    for (unsigned i = 0; i < output.size(); ++i){
+        check(output[i] == i,
+              "Ring wrap preserves every pending GPU read without overwriting in-flight data");
     }
 }
 
@@ -91,6 +121,19 @@ void influences(const std::filesystem::path& root){
     check(skinning->getStats().draws == 1 && skinning->getStats().vertices == 3,
           "All twelve bone influences are evaluated in one GPU deformation pass");
     skinning->endFrame();
+    // Reload can release the current material shader before the next deformation pass.
+    auto transient = std::make_shared<vr::Program>(root / "shaders/phong-shading.vs",
+                                                   root / "shaders/phong-shading.fs");
+    transient->use();
+    transient.reset();
+    ++pose->revision;
+    skinning->beginFrame();
+    updater.update(*gpu,{0, 0, false, nullptr, skinning});
+    skinning->prepare();
+    compare(*cpu, *gpu);
+    skinning->endFrame();
+    check(glGetError() == GL_NO_ERROR,
+          "Deformation after shader replacement never restores a deleted program");
 }
 
 void dragon(const std::filesystem::path& root){
@@ -198,6 +241,7 @@ int main(int argc, char** argv){
             throw std::runtime_error("OpenGL initialization failed");
         }
         vr::GLState::Scope tracked;
+        streaming();
         influences(argv[1]);
         dragon(argv[1]);
         std::cout << "GPU/CPU deformation, twelve influences, picking, all clips, subdivision and "

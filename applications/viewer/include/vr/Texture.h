@@ -1,4 +1,5 @@
 #pragma once
+#include "Revision.h"
 #include <filesystem>
 #include <glad/glad.h>
 #include <glm/vec2.hpp>
@@ -61,6 +62,14 @@ public:
         return m_depth;
     }
 
+    bool isRenderTarget() const{
+        return m_depth || m_renderFormat != 0;
+    }
+
+    std::uint64_t getRevision() const{
+        return m_revision;
+    }
+
     // Uploads pixels on first use and binds the requested texture layer.
     void apply(unsigned layer) const;
 
@@ -98,5 +107,6 @@ private:
     unsigned m_cubeLayers = 0;
     std::vector<unsigned char> m_rgba;
     mutable GLuint m_id = 0;
+    std::uint64_t m_revision = nextRevision();
 };
 } // namespace vr

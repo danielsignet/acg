@@ -21,6 +21,7 @@ ShadowRenderer::ShadowRenderer(const std::filesystem::path& root, int sunResolut
     m_sunCamera = std::make_shared<Camera>("sun-shadow");
     m_sun->setCamera(0, m_sunCamera);
     m_points.push_back(createPointTarget(0));
+    m_pointCaches.emplace_back();
 }
 
 // Creates a cubemap with six independent cameras for one positional light.
@@ -63,8 +64,7 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
     if (!enabled){
         return;
     }
-    ShadowCollector collector(m_depthProgram);
-    m_casters = collector.collect(*root, lodEye);
+    m_casters = m_collector.collect(*root, lodEye);
     const auto lights = collectLights(*root, lodEye);
     const auto bounds = root->getBound();
     if (!bounds.valid()){
@@ -88,6 +88,7 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
                 auto target = createPointTarget(slot);
                 scene.attachRenderTarget(target);
                 m_points.push_back(std::move(target));
+                m_pointCaches.emplace_back();
             }
             renderPoint(state, bounds, lights[i], i, slot++);
         }
@@ -102,6 +103,7 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
 
 // Resolves depth-only batch state and world bounds once for this frame's casters.
 void ShadowRenderer::prepareCasters(){
+    std::vector<StaticCaster> staticCasters;
     m_worldBounds.reserve(m_casters.size());
     for (std::size_t index = 0; index < m_casters.size(); ++index){
         const auto& node = m_casters[index];
@@ -117,22 +119,115 @@ void ShadowRenderer::prepareCasters(){
         const auto range = coverage == node.state.getUniforms().end()
                                ? glm::vec2(0, 1)
                                : std::get<glm::vec2>(coverage->second);
+        const bool dynamic = node.dynamic || (albedo && albedo->isRenderTarget());
+        if (!dynamic){
+            staticCasters.push_back({node.geometry, node.geometry->getDataRevision(),
+                                     albedo ? albedo->getRevision() : 0, node.model, cutoff, range,
+                                     node.cullingEnabled});
+        }
         const auto found =
             std::find_if(m_batches.begin(), m_batches.end(), [&](const Batch& batch){
                 return batch.geometry == node.geometry && batch.albedo == albedo &&
-                       batch.alphaCutoff == cutoff && batch.lodRange == range;
+                       batch.alphaCutoff == cutoff && batch.lodRange == range &&
+                       batch.dynamic == dynamic;
             });
         if (found == m_batches.end()){
-            m_batches.push_back({node.geometry, std::move(albedo), cutoff, range,{index}});
+            m_batches.push_back(
+                {node.geometry, std::move(albedo), cutoff, range,{index}, dynamic});
         } else{
             found->casters.push_back(index);
         }
     }
+    m_hasStatic = !staticCasters.empty();
+    if (staticCasters != m_staticCasters){
+        m_staticCasters = std::move(staticCasters);
+        ++m_staticRevision;
+    }
+}
+
+void ShadowRenderer::invalidate(){
+    m_sunCache ={};
+    for (auto& target : m_pointCaches){
+        for (auto& face : target){
+            face ={};
+        }
+    }
+}
+
+bool ShadowRenderer::hasDynamicCasters(const Frustum& frustum, const Frustum* cone) const{
+    for (const auto& batch : m_batches){
+        if (!batch.dynamic){
+            continue;
+        }
+        for (const auto index : batch.casters){
+            if (!m_casters[index].cullingEnabled ||
+                (frustum.classify(m_worldBounds[index]) != Visibility::Outside &&
+                 (!cone || cone->classify(m_worldBounds[index]) != Visibility::Outside))){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Moving light views use the normal single pass. Stable views cache static depth,
+// copy it before dynamic draws, and can reuse the complete face when no dynamic caster remains.
+void ShadowRenderer::renderFace(RenderToTexture& target, unsigned layer, FaceCache& cache,
+                                bool radial, const glm::vec3& point, float farPlane,
+                                const Frustum* cone){
+    ++m_stats.passes;
+    const auto& camera = *target.getCameras().at(layer);
+    const auto projection = camera.getProjection() * camera.getView();
+    const bool sameCone = cone ? cache.cone && *cache.cone == cone->getPlanes() : !cache.cone;
+    const bool stable = cache.observed && cache.projection == projection && sameCone &&
+                        cache.staticRevision == m_staticRevision && cache.point == point &&
+                        cache.farPlane == farPlane && cache.radial == radial;
+    if (!m_caching || !m_hasStatic || !stable){
+        cache.ready = false;
+        cache.observed = true;
+        cache.projection = projection;
+        cache.point = point;
+        cache.farPlane = farPlane;
+        cache.radial = radial;
+        cache.cone =
+            cone ? std::optional<std::array<glm::vec4, 6>>(cone->getPlanes()) : std::nullopt;
+        cache.staticRevision = m_staticRevision;
+        cache.hadDynamic = true;
+        target.renderFace(
+            layer, [&](const Camera& view){ drawDepthPass(view, radial, point, farPlane, cone); });
+        cache.activeRevision = target.getContentRevision(layer);
+        return;
+    }
+    if (!cache.ready){
+        if (!cache.depth){
+            cache.depth = std::make_unique<RenderToTexture>(target.getTexture()->getWidth(), false);
+        }
+        cache.depth->setCamera(0, target.getCameras().at(layer));
+        cache.depth->renderFace(0, [&](const Camera& view){
+            drawDepthPass(view, radial, point, farPlane, cone, Casters::Static);
+        });
+        cache.ready = true;
+        ++m_stats.staticRebuilds;
+    }
+    ++m_stats.cacheHits;
+    const bool dynamic = hasDynamicCasters(Frustum(projection), cone);
+    if (!dynamic && !cache.hadDynamic && cache.activeRevision == target.getContentRevision(layer)){
+        ++m_stats.reusedFaces;
+        return;
+    }
+    target.renderFace(layer, [&](const Camera& view){
+        target.copyDepthFrom(*cache.depth, layer);
+        if (dynamic){
+            drawDepthPass(view, radial, point, farPlane, cone, Casters::Dynamic);
+        }
+    });
+    cache.hadDynamic = dynamic;
+    cache.activeRevision = target.getContentRevision(layer);
 }
 
 // Renders only depth and alpha cutouts from one light camera.
 void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm::vec3& point,
-                                   float farPlane, const Frustum* cone){
+                                   float farPlane, const Frustum* cone, Casters selection){
     const auto vp = camera.getProjection() * camera.getView();
     const Frustum frustum(vp);
     m_depthProgram->use();
@@ -146,6 +241,10 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
         GLState::polygonOffset(1.1f, 2);
     }
     for (const auto& batch : m_batches){
+        if ((selection == Casters::Static && batch.dynamic) ||
+            (selection == Casters::Dynamic && !batch.dynamic)){
+            continue;
+        }
         m_visibleModels.clear();
         for (const auto index : batch.casters){
             if (m_casters[index].cullingEnabled){
@@ -188,7 +287,6 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
         m_stats.instances += static_cast<unsigned>(m_visibleModels.size());
         m_stats.triangles += batch.geometry->getTriangleCount() * m_visibleModels.size();
     }
-    ++m_stats.passes;
 }
 
 // Fits and renders the directional camera, then publishes its projection to State.
@@ -199,7 +297,7 @@ void ShadowRenderer::renderSun(State& state, const BoundingBox& bounds, const gl
     state.setPassUniform("uSunShadowIndex", index);
     state.setPassUniform("uSunVP", vp);
     state.setPassUniform("uSunPlane", glm::transpose(glm::inverse(glm::mat3(vp))));
-    m_sun->renderFace(0, [&](const Camera& camera){ drawDepthPass(camera, false, point, 1); });
+    renderFace(*m_sun, 0, m_sunCache, false, point, 1);
 }
 
 // Renders all six radial depth faces and publishes their shared far distance.
@@ -231,9 +329,8 @@ void ShadowRenderer::renderPoint(State& state, const BoundingBox& bounds,
     state.setPassUniform("uPointShadowSlot[" + std::to_string(index) + "]", static_cast<int>(slot));
     state.setPassUniform("uPointShadowFar[" + std::to_string(slot) + "]", farPlane);
     for (unsigned face = 0; face < 6; ++face){
-        target->renderFace(face, [&](const Camera& camera){
-            drawDepthPass(camera, true, point, farPlane, cone ? &*cone : nullptr);
-        });
+        renderFace(*target, face, m_pointCaches.at(slot).at(face), true, point, farPlane,
+                   cone ? &*cone : nullptr);
     }
 }
 } // namespace vr

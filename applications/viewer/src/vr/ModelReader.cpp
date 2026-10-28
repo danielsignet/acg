@@ -7,6 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <set>
+#include <numeric>
 
 namespace vr{
 // Preserves imported transforms, or merges an explicitly selected static variant.
@@ -16,15 +17,21 @@ std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path, bool 
     unsigned flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals |
                      aiProcess_JoinIdenticalVertices | aiProcess_SortByPType |
                      aiProcess_ValidateDataStructure;
-    if (flatten){
-        flags |= aiProcess_PreTransformVertices | aiProcess_OptimizeMeshes;
-        if (materials.empty()){
-            flags |= aiProcess_RemoveRedundantMaterials;
-        }
-    }
     const auto* scene = importer.ReadFile(path.string(), flags);
     if (!scene || !scene->mRootNode){
         throw std::runtime_error("Assimp: " + path.string() + ": " + importer.GetErrorString());
+    }
+    if (flatten && scene->mNumAnimations){
+        throw std::runtime_error("Animated models require flatten=\"false\"");
+    }
+    if (flatten){
+        scene = importer.ApplyPostProcessing(
+            aiProcess_PreTransformVertices | aiProcess_OptimizeMeshes |
+            (materials.empty() ? aiProcess_RemoveRedundantMaterials : 0));
+        if (!scene){
+            throw std::runtime_error(std::string("Assimp static import: ") +
+                                     importer.GetErrorString());
+        }
     }
     m_modelDirectory = path.parent_path();
     auto extension = path.extension().string();
@@ -56,7 +63,11 @@ std::shared_ptr<Node> ModelReader::read(const std::filesystem::path& path, bool 
     for (unsigned index = 0; index < scene->mNumMeshes; ++index){
         m_meshes.push_back(readMesh(*scene->mMeshes[index]));
     }
+    m_animation = scene->mNumAnimations ? readAnimation(*scene) : nullptr;
     auto root = readNode(*scene->mRootNode);
+    if (m_animation){
+        root->setUpdateCallback(m_animation);
+    }
     std::cout << "Loaded " << path.filename().generic_string() << ": " << m_meshes.size()
               << (flatten ? " meshes, static import\n" : " meshes, hierarchy retained\n");
     return root;
@@ -157,6 +168,33 @@ std::shared_ptr<Geometry> ModelReader::readMesh(const aiMesh& mesh) const{
     std::vector<glm::vec2> textureCoordinates;
     std::vector<glm::vec4> tangents;
     std::vector<unsigned> indices;
+    std::vector<SkinWeights> skin(mesh.mNumVertices);
+    for (unsigned joint = 0; joint < mesh.mNumBones; ++joint){
+        const auto& bone = *mesh.mBones[joint];
+        for (unsigned i = 0; i < bone.mNumWeights; ++i){
+            const auto influence = bone.mWeights[i];
+            auto& weights = skin.at(influence.mVertexId);
+            for (unsigned slot = 0; slot < SkinWeights::Count; ++slot){
+                if (influence.mWeight > weights.weights[slot]){
+                    for (unsigned j = SkinWeights::Count - 1; j > slot; --j){
+                        weights.weights[j] = weights.weights[j - 1];
+                        weights.joints[j] = weights.joints[j - 1];
+                    }
+                    weights.joints[slot] = joint;
+                    weights.weights[slot] = influence.mWeight;
+                    break;
+                }
+            }
+        }
+    }
+    for (auto& weights : skin){
+        const float total = std::accumulate(weights.weights.begin(), weights.weights.end(), 0.0f);
+        if (total > 0){
+            for (auto& weight : weights.weights){
+                weight /= total;
+            }
+        }
+    }
     for (unsigned index = 0; index < mesh.mNumVertices; ++index){
         const auto position = mesh.mVertices[index];
         positions.push_back({position.x, position.y, position.z});
@@ -185,7 +223,7 @@ std::shared_ptr<Geometry> ModelReader::readMesh(const aiMesh& mesh) const{
     }
     auto geometry = std::make_shared<Geometry>(mesh.mName.C_Str());
     geometry->setData(std::move(positions), std::move(indices), std::move(normals),
-                      std::move(textureCoordinates), std::move(tangents));
+                      std::move(textureCoordinates), std::move(tangents), std::move(skin));
     if (mesh.mMaterialIndex < m_materials.size()){
         geometry->setState(m_materials[mesh.mMaterialIndex]);
     }
@@ -207,6 +245,20 @@ glm::mat4 ModelReader::convertMatrix(const aiMatrix4x4& matrix){
 std::shared_ptr<Node> ModelReader::readNode(const aiNode& imported) const{
     auto node = std::make_shared<Transform>(imported.mName.C_Str());
     node->setMatrix(convertMatrix(imported.mTransformation));
+    if (m_animation){
+        const auto index = m_jointIndices.at(&imported);
+        node->setMatrix(m_animation->getLocal(index));
+        const std::weak_ptr<SkeletalAnimation> animation = m_animation;
+        node->setUpdateCallback(std::make_shared<FunctionCallback>(
+            [animation, index](Node& target, const UpdateContext&){
+                if (const auto pose = animation.lock()){
+                    auto& transform = static_cast<Transform&>(target);
+                    if (transform.getMatrix() != pose->getLocal(index)){
+                        transform.setMatrix(pose->getLocal(index));
+                    }
+                }
+            }));
+    }
     for (unsigned index = 0; index < imported.mNumMeshes; ++index){
         if (const auto& mesh = m_meshes.at(imported.mMeshes[index])){
             node->addChild(mesh);

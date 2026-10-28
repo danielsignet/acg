@@ -71,6 +71,26 @@ void Geometry::buildRayTree() const{
         return index;
     };
     build(0, count);
+    m_rayDirty = false;
+}
+
+// Refits picking bounds after deformation while retaining the tree topology.
+void Geometry::refitRayTree() const{
+    for (auto item = m_rayNodes.rbegin(); item != m_rayNodes.rend(); ++item){
+        item->bounds ={};
+        if (item->count){
+            for (unsigned i = item->first; i < item->first + item->count; ++i){
+                const auto first = m_rayTriangles[i] * 3;
+                for (unsigned corner = 0; corner < 3; ++corner){
+                    item->bounds.expandBy(m_vertices[m_indices[first + corner]].position);
+                }
+            }
+        } else{
+            item->bounds.expandBy(m_rayNodes[item->left].bounds);
+            item->bounds.expandBy(m_rayNodes[item->right].bounds);
+        }
+    }
+    m_rayDirty = false;
 }
 
 // Preserves world-space distance by not renormalizing the transformed ray direction.
@@ -82,6 +102,8 @@ Geometry::intersectRay(const glm::vec3& origin, const glm::vec3& direction, floa
     }
     if (m_rayNodes.empty()){
         buildRayTree();
+    } else if (m_rayDirty){
+        refitRayTree();
     }
     std::optional<float> closest;
     std::vector<unsigned> stack{0};

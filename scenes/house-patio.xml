@@ -30,6 +30,9 @@
       <material name="Stomach_1" diffuse="0.12 0.09 0.035" roughness="0.4" />
     </model>
     <model id="altair" file="models/Altair Model/altair.obj" flatten="true" />
+    <model id="dragon" file="models/dragon/Dragon.fbx">
+      <material name="*" environment="true" roughness="0.65" specular="0.04 0.04 0.04" cull="false" />
+    </model>
   </assets>
   <visibility exterior="patio">
     <cell id="A" min="-21 0 -30" max="-7 5 -16" />
@@ -677,6 +680,16 @@
       <instance ref="porsche" />
       <light name="carHeadlightLeft" enabled="false" position="-0.67 0.724 2.18 1" direction="0 -0.08 1" inner="8" outer="16" range="30" diffuse="18 18.5 20" specular="2 2 2.2" ambient="0 0 0" attenuation="1 0.05 0.02" />
       <light name="carHeadlightRight" enabled="false" position="0.67 0.724 2.18 1" direction="0 -0.08 1" inner="8" outer="16" range="30" diffuse="18 18.5 20" specular="2 2 2.2" ambient="0 0 0" attenuation="1 0.05 0.02" />
+    </transform>
+  </group>
+  <group name="dragonDisplay" room="patio">
+    <state><uniform name="uFog" type="bool" value="false" /></state>
+    <transform name="dragonPlinth" translate="-20 0.18 11.87" scale="13 0.36 12">
+      <state diffuse="0.14 0.2 0.24" ambient="0.22 0.24 0.26" specular="0.25 0.3 0.35" roughness="0.6" />
+      <instance ref="box" selectable="false" />
+    </transform>
+    <transform name="dragonExhibit" translate="-20 0.02363 14" scale="0.0065 0.0065 0.0065">
+      <instance ref="dragon" name="Dragon" />
     </transform>
   </group>
 </scene>

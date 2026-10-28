@@ -8,6 +8,7 @@
 #include <vr/RenderingValidator.h>
 #include <vr/SceneOverlay.h>
 #include <vr/LightCollector.h>
+#include <vr/SkeletalAnimation.h>
 
 namespace vr{
 // Reports an unmet rendering-validation requirement.
@@ -37,6 +38,7 @@ void RenderingValidator::run(){
     m_application.m_bufferPreviews = false;
     validateNormalMapping();
     validateMaterialGallery();
+    validateDragon();
     validateReflections();
     validateAmbientOcclusion();
     validateDeferred();
@@ -199,6 +201,110 @@ void RenderingValidator::validateMaterialGallery(){
     require(!app.m_reflection->getRendered(),
             "Looking away from the gallery mirror skips its reflection pass");
     app.execute(Controls::Action::PhongShader);
+    app.m_scene->getCamera()->setView(view);
+}
+
+// Checks the repaired dragon's textures, targeting, placement and cached subdivision.
+void RenderingValidator::validateDragon(){
+    auto& app = m_application;
+    if (!app.m_scene->findTransform("dragonExhibit")){
+        return;
+    }
+    const auto view = app.m_scene->getCamera()->getView();
+    const auto shading = app.m_shadingMode;
+    app.m_scene->getCamera()->setLookAt({-10, 5, 26},{-20, 2.5f, 12});
+    app.execute(Controls::Action::PhongShader);
+    app.render();
+    require(app.m_target && app.m_target->instance->getName() == "Dragon",
+            "The repaired FBX dragon is selectable through the ordinary camera ray");
+    auto* instance = app.m_target->instance;
+    require(std::abs(instance->getBound().transformed(app.m_target->model).getMinimum().y - 0.36f) <
+                0.001f,
+            "The dragon's feet rest on the pedestal without intersecting its surface");
+    const auto triangles = [&]{
+        std::size_t count = 0;
+        for (const auto& item : app.m_renderer->getRenderList()){
+            if (item.instance == instance){
+                require(item.state.getTexture(0) && item.state.getNormalMap() &&
+                            item.state.getCastShadows() && item.state.getReceiveShadows() &&
+                            !item.state.getCullFace(),
+                        "Dragon submeshes retain textures, two-sided wings and solid shadows");
+                count += item.geometry->getTriangleCount();
+            }
+        }
+        return count;
+    };
+    const auto original = captureScene();
+    require(triangles() == 37986, "The displayed dragon retains every original triangle");
+    app.execute(Controls::Action::UnmappedPhongShader);
+    app.render();
+    require(captureScene().countChangedPixels(original) > 100,
+            "The dragon's imported normal map visibly changes its surface lighting");
+    app.execute(Controls::Action::PhongShader);
+    app.render();
+    clickTargetAction(0);
+    app.render();
+    require(instance->getSubdivided() && triangles() == 37986 * 4,
+            "The existing context action subdivides the dragon entirely in memory");
+    app.handleKey(GLFW_KEY_F4);
+    app.render();
+    require(!instance->getSubdivided() && captureScene().hash() == original.hash(),
+            "Disabling subdivision restores the original dragon pixels");
+    const auto animation = instance->getAnimation();
+    require(animation && animation->getClips().size() == 4 &&
+                animation->getClips()[animation->getClip()].name == "Idle",
+            "The dragon starts in its original idle clip");
+    const auto originalClip = animation->getClip();
+    clickTargetAction(1);
+    require(animation->getClip() != originalClip,
+            "The contextual animation button selects the next original clip");
+    const auto& clips = animation->getClips();
+    const auto fly = std::find_if(clips.begin(), clips.end(),
+                                  [](const auto& clip){ return clip.name == "Fly"; });
+    require(fly != clips.end(), "The dragon includes the original wing-controller animation");
+    animation->setClip(static_cast<std::size_t>(fly - clips.begin()));
+    app.m_updater.update(*instance,{0, fly->duration * 0.125, true});
+    app.render();
+    const auto flyFirst = captureScene();
+    const auto flyShadow = app.m_shadowRenderer->getSunTarget()->readDepth(0);
+    app.m_updater.update(*instance,{0, fly->duration * 0.375, true});
+    app.render();
+    require(captureScene().countChangedPixels(flyFirst) > 100,
+            "Two interior Fly poses show sustained visible wing motion");
+    require(flyShadow != app.m_shadowRenderer->getSunTarget()->readDepth(0),
+            "The moving wings update the actual shadow depth image");
+    const auto animationEnabled = app.m_animationEnabled;
+    app.m_animationEnabled = true;
+    app.update(1, 1);
+    app.render();
+    require(captureScene().countChangedPixels(original) > 100,
+            "Skeletal playback visibly changes the lit dragon");
+    std::vector<glm::vec3> moving;
+    for (const auto& item : app.m_renderer->getRenderList()){
+        if (item.instance == instance){
+            for (const auto& vertex : item.geometry->getVertices()){
+                moving.push_back(vertex.position);
+            }
+        }
+    }
+    app.handleKey(GLFW_KEY_F);
+    app.update(101, 100);
+    std::vector<glm::vec3> frozen;
+    for (const auto& item : app.m_renderer->getRenderList()){
+        if (item.instance == instance){
+            for (const auto& vertex : item.geometry->getVertices()){
+                frozen.push_back(vertex.position);
+            }
+        }
+    }
+    require(moving == frozen, "F preserves every animated dragon vertex exactly");
+    app.handleKey(GLFW_KEY_F);
+    app.update(101.1, 0.1);
+    animation->setClip(originalClip);
+    app.m_updater.update(*instance,{0, 0, false});
+    app.m_animationEnabled = animationEnabled;
+    app.m_shadingMode = shading;
+    app.m_renderer->setShadingMode(shading);
     app.m_scene->getCamera()->setView(view);
 }
 

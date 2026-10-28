@@ -24,7 +24,7 @@ Geometry::~Geometry(){
 // Validates and stores local vertex attributes and triangle indices.
 void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> indices,
                        std::vector<glm::vec3> normals, std::vector<glm::vec2> uv,
-                       std::vector<glm::vec4> tangents){
+                       std::vector<glm::vec4> tangents, std::vector<SkinWeights> skin){
     if (vertices.empty() || indices.empty() || indices.size() % 3 ||
         normals.size() != vertices.size()){
         throw std::invalid_argument(
@@ -35,6 +35,9 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
     }
     if (!tangents.empty() && tangents.size() != vertices.size()){
         throw std::invalid_argument("Tangent array size");
+    }
+    if (!skin.empty() && skin.size() != vertices.size()){
+        throw std::invalid_argument("Skin array size");
     }
     for (auto index : indices){
         if (index >= vertices.size()){
@@ -56,7 +59,8 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
                 throw std::invalid_argument("Non-finite texture basis");
             }
         }
-        data.push_back({vertices[i], normals[i], coordinates, tangent});
+        data.push_back({vertices[i], normals[i], coordinates, tangent,
+                        skin.empty() ? SkinWeights{} : skin[i]});
     }
     if (tangents.empty() && !uv.empty()){
         buildTangents(data, indices);
@@ -64,6 +68,9 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
     m_vertices = std::move(data);
     m_indices = std::move(indices);
     m_dirty = true;
+    m_skin.reset();
+    m_restVertices.clear();
+    m_vertexDirty = m_rayDirty = false;
     m_rayNodes.clear();
     m_rayTriangles.clear();
     dirtyBound();
@@ -107,6 +114,13 @@ void Geometry::bind() const{
         glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                               reinterpret_cast<void*>(offsetof(Vertex, tangent)));
         m_dirty = false;
+        m_vertexDirty = false;
+    }
+    if (m_vertexDirty){
+        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
+        glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(m_vertices.size() * sizeof(Vertex)),
+                     m_vertices.data(), GL_STREAM_DRAW);
+        m_vertexDirty = false;
     }
 }
 

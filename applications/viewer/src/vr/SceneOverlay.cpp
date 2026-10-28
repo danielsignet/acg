@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vr/Application.h>
 #include <vr/SceneOverlay.h>
+#include <vr/SkeletalAnimation.h>
 
 namespace vr{
 namespace{
@@ -108,6 +109,10 @@ void SceneOverlay::click(Application& app, float x, float y){
         }
         if (app.carTargeted() && inside(targetActionRectangle(app, 1))){
             app.execute(Action::CarHeadlights);
+            return;
+        }
+        if (app.m_target->instance->getAnimation() && inside(targetActionRectangle(app, 1))){
+            app.execute(Action::ModelAnimation);
             return;
         }
     }
@@ -294,6 +299,13 @@ void SceneOverlay::drawFocus(const Application& app){
                              {0.04f, 0.09f, 0.13f, 0.9f});
             m_text.draw(std::string("Headlights: ") + (app.m_carHeadlightsEnabled ? "ON" : "OFF"),
                         headlights.x + 10, headlights.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+        }
+        if (const auto animation = app.m_target->instance->getAnimation()){
+            const auto rectangle = targetActionRectangle(app, 1);
+            m_text.rectangle(rectangle.x, rectangle.y, rectangle.z, rectangle.w,
+                             {0.04f, 0.09f, 0.13f, 0.9f});
+            m_text.draw("Animation: " + animation->getClips()[animation->getClip()].name + " >",
+                        rectangle.x + 10, rectangle.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});
         }
     }
 }

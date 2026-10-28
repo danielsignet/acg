@@ -1,6 +1,7 @@
 #include <vr/Subdivision.h>
 #include <vr/Group.h>
 #include <vr/Transform.h>
+#include <vr/SkeletalAnimation.h>
 #include <algorithm>
 #include <functional>
 #include <map>
@@ -9,6 +10,36 @@
 #include <tuple>
 
 namespace vr{
+namespace{
+// Blends joint influences with the same Loop weights as positions.
+SkinWeights blendSkin(const std::vector<std::pair<SkinWeights, float>>& sources){
+    std::map<unsigned, float> weights;
+    for (const auto& [skin, factor] : sources){
+        for (unsigned slot = 0; slot < SkinWeights::Count; ++slot){
+            if (skin.weights[slot] > 0){
+                weights[skin.joints[slot]] += skin.weights[slot] * factor;
+            }
+        }
+    }
+    std::vector<std::pair<unsigned, float>> ordered(weights.begin(), weights.end());
+    std::sort(ordered.begin(), ordered.end(),
+              [](const auto& a, const auto& b){ return a.second > b.second; });
+    SkinWeights result;
+    float total = 0;
+    for (unsigned i = 0; i < std::min<std::size_t>(SkinWeights::Count, ordered.size()); ++i){
+        result.joints[i] = ordered[i].first;
+        result.weights[i] = ordered[i].second;
+        total += ordered[i].second;
+    }
+    if (total > 0){
+        for (auto& weight : result.weights){
+            weight /= total;
+        }
+    }
+    return result;
+}
+} // namespace
+
 // Builds a separate model hierarchy with one Loop subdivision level per shared mesh.
 std::shared_ptr<Node> Subdivision::create(const std::shared_ptr<Node>& asset){
     std::map<const Node*, std::shared_ptr<Node>> copies;
@@ -20,7 +51,8 @@ std::shared_ptr<Node> Subdivision::create(const std::shared_ptr<Node>& asset){
             std::shared_ptr<Node> copy;
             if (auto geometry = std::dynamic_pointer_cast<Geometry>(node)){
                 auto mesh = std::make_shared<Geometry>(node->getName());
-                apply(*mesh, refine({geometry->getVertices(), geometry->getIndices()}));
+                apply(*mesh, refine({geometry->getRestVertices(), geometry->getIndices()}));
+                mesh->setSkin(geometry->getSkin());
                 copy = mesh;
             } else if (auto group = std::dynamic_pointer_cast<Group>(node)){
                 std::shared_ptr<Group> branch;
@@ -44,13 +76,17 @@ std::shared_ptr<Node> Subdivision::create(const std::shared_ptr<Node>& asset){
             copy->setVisible(node->getVisible());
             copy->setRoomId(node->getRoomId());
             copy->setCullingEnabled(node->getCullingEnabled());
+            if (!std::dynamic_pointer_cast<SkeletalAnimation>(node->getUpdateCallback())){
+                copy->setUpdateCallback(node->getUpdateCallback());
+            }
             copies[node.get()] = copy;
             return copy;
         };
     auto refined = clone(asset);
     auto anchored = std::make_shared<Transform>("subdivision support");
     glm::mat4 placement(1);
-    if (asset->getBound().valid() && refined->getBound().valid()){
+    if (!std::dynamic_pointer_cast<SkeletalAnimation>(asset->getUpdateCallback()) &&
+        asset->getBound().valid() && refined->getBound().valid()){
         placement[3].y = asset->getBound().getMinimum().y - refined->getBound().getMinimum().y;
     }
     anchored->setMatrix(placement);
@@ -68,7 +104,7 @@ Subdivision::Mesh Subdivision::refine(const Mesh& mesh){
         const auto [found, inserted] = positions.emplace(
             std::make_tuple(p.x, p.y, p.z), static_cast<unsigned>(control.vertices.size()));
         if (inserted){
-            control.vertices.push_back({p,{},{}});
+            control.vertices.push_back({p,{},{},{}, vertex.skin});
         }
         welded.push_back(found->second);
     }
@@ -163,22 +199,29 @@ Subdivision::Mesh Subdivision::refineControl(const Mesh& mesh){
         auto& vertex = result.vertices[i];
         vertex.position *= 1 - ring.size() * weight;
         vertex.texCoord *= 1 - ring.size() * weight;
+        std::vector<std::pair<SkinWeights, float>> skin{
+            {mesh.vertices[i].skin, 1 - ring.size() * weight}};
         for (const auto adjacent : ring){
             vertex.position += mesh.vertices[adjacent].position * weight;
             vertex.texCoord += mesh.vertices[adjacent].texCoord * weight;
+            skin.push_back({mesh.vertices[adjacent].skin, weight});
         }
+        vertex.skin = blendSkin(skin);
     }
     for (auto& [edge, data] : edges){
         const auto& a = mesh.vertices[edge.first];
         const auto& b = mesh.vertices[edge.second];
         const float weight = data.opposite.size() == 2 ? 0.375f : 0.5f;
         Vertex vertex{(a.position + b.position) * weight,{}, (a.texCoord + b.texCoord) * weight};
+        std::vector<std::pair<SkinWeights, float>> skin{{a.skin, weight},{b.skin, weight}};
         if (data.opposite.size() == 2){
             for (const auto opposite : data.opposite){
                 vertex.position += mesh.vertices[opposite].position * 0.125f;
                 vertex.texCoord += mesh.vertices[opposite].texCoord * 0.125f;
+                skin.push_back({mesh.vertices[opposite].skin, 0.125f});
             }
         }
+        vertex.skin = blendSkin(skin);
         data.midpoint = static_cast<unsigned>(result.vertices.size());
         result.vertices.push_back(vertex);
     }
@@ -212,12 +255,14 @@ Subdivision::Mesh Subdivision::refineControl(const Mesh& mesh){
 void Subdivision::apply(Geometry& geometry, const Mesh& mesh){
     std::vector<glm::vec3> positions, normals;
     std::vector<glm::vec2> coordinates;
+    std::vector<SkinWeights> skin;
     for (const auto& vertex : mesh.vertices){
         positions.push_back(vertex.position);
         normals.push_back(vertex.normal);
         coordinates.push_back(vertex.texCoord);
+        skin.push_back(vertex.skin);
     }
-    geometry.setData(std::move(positions), mesh.indices, std::move(normals),
-                     std::move(coordinates));
+    geometry.setData(std::move(positions), mesh.indices, std::move(normals), std::move(coordinates),
+                     {}, std::move(skin));
 }
 } // namespace vr

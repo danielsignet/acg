@@ -3,10 +3,13 @@
 #include <utility>
 
 namespace vr{
+class FrameProfiler;
+
 struct UpdateContext{
     double time;
     double delta;
     bool animate = true;
+    FrameProfiler* profiler = nullptr;
 };
 
 class Node;

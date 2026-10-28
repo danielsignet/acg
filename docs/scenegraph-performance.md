@@ -59,7 +59,9 @@ and traversal remain single-threaded.
 ## Measurements
 
 Measured on 28 October 2026, Intel Core i5-10600K, Windows x64, MSVC 19.38,
-RelWithDebInfo. The baseline is commit `e4d4f4f`; the after measurements use this feature's code.
+RelWithDebInfo. The baseline is commit `e4d4f4f`; the after measurements use commit `e430a48`.
+Subsequent detailed profiling and the skinning compiler optimization are documented in
+[animation profiling](animation-profiling.md).
 The benchmark loads the unchanged `Dragon.fbx` and runs 40 warm-up steps followed by 300
 samples per phase at a fixed 1/60-second animation delta. Source animation starts in Idle.
 Loading, subdivision construction, rendering and GPU transfers are outside the timings.

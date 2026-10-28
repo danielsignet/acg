@@ -34,6 +34,8 @@ the active original/subdivision mesh variant, and batches compatible opaque inst
 forward and deferred color passes. Transform, normal-matrix and inherited-material caches
 reuse unchanged data across passes. See [performance verification](docs/scenegraph-performance.md)
 for the measurements, regression coverage and benchmark command.
+The performance view separates input, animation sampling, skeleton transforms, skin palettes,
+CPU vertex skinning and remaining scene work; see [animation profiling](docs/animation-profiling.md).
 
 ## Controls
 

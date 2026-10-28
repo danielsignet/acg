@@ -456,9 +456,13 @@ void Application::input(float delta){
 
 // Processes input, callbacks and frame-rate statistics.
 void Application::update(double time, double delta){
-    input(static_cast<float>(delta));
-    m_updater.update(*m_scene->getRoot(),
-                     {time, delta, m_animationEnabled && !m_frozenFrustum.has_value()});
+    {
+        FrameProfiler::Scope inputScope(&m_profiler, FrameProfiler::Stage::Input);
+        input(static_cast<float>(delta));
+    }
+    m_updater.update(
+        *m_scene->getRoot(),
+        {time, delta, m_animationEnabled && !m_frozenFrustum.has_value(), &m_profiler});
     ++m_frameCount;
     m_frameTimeSeconds += m_lastFrameTime > 0 ? time - m_lastFrameTime : 0;
     m_lastFrameTime = time;
@@ -660,6 +664,8 @@ FrameProfiler::Counters Application::performanceCounters() const{
                                   (m_reflection->getRendered() ? reflected.screenDraws : 0) +
                                   probes.screenDraws + filterDraws);
     set(Counter::Lights, scene.lights);
+    set(Counter::SkinnedVertices, static_cast<double>(m_updater.getSkinnedVertices()));
+    set(Counter::SkinInfluences, static_cast<double>(m_updater.getSkinInfluences()));
     set(Counter::VisitedNodes, scene.visitedNodes);
     set(Counter::CameraBounds, scene.boundsTested);
     set(Counter::FrustumRejected, scene.subtreesRejected);

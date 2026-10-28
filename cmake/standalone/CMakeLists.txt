@@ -36,6 +36,16 @@ endif()
 if(BUILD_TESTING)
   add_executable(scenegraph_cpu_benchmark EXCLUDE_FROM_ALL "${VRLIB_SOURCE_DIR}/benchmarks/scenegraph_cpu.cpp")
   target_link_libraries(scenegraph_cpu_benchmark PRIVATE vrlib)
+  add_executable(animation_profile EXCLUDE_FROM_ALL "${VRLIB_SOURCE_DIR}/benchmarks/animation_profile.cpp")
+  target_link_libraries(animation_profile PRIVATE vrlib)
+  if(MSVC)
+    # Link a separately compiled pre-optimization kernel for reproducible A/B measurements.
+    add_executable(animation_profile_reference EXCLUDE_FROM_ALL
+      "${VRLIB_SOURCE_DIR}/benchmarks/animation_profile.cpp"
+      "${VRLIB_SOURCE_DIR}/applications/viewer/src/vr/GeometrySkin.cpp")
+    target_compile_options(animation_profile_reference PRIVATE /Ob1)
+    target_link_libraries(animation_profile_reference PRIVATE vrlib)
+  endif()
   add_executable(scenegraph_performance_tests "${VRLIB_SOURCE_DIR}/tests/scenegraph_performance_tests.cpp")
   target_link_libraries(scenegraph_performance_tests PRIVATE vrlib)
   add_test(NAME scenegraph_performance COMMAND scenegraph_performance_tests "${VRLIB_SOURCE_DIR}")

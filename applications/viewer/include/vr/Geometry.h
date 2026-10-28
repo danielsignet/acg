@@ -48,7 +48,11 @@ public:
     // Retains the undeformed control mesh and attaches its evaluated palette.
     void setSkin(std::shared_ptr<SkinningPose> skin);
     // Updates positions and tangent frames once per evaluated skeleton pose.
-    void updateSkin();
+    std::size_t updateSkin();
+
+    std::size_t getSkinInfluenceCount() const{
+        return m_skinInfluences;
+    }
 
     std::uint64_t getAppliedSkinRevision() const{
         return m_skinRevision;
@@ -124,6 +128,7 @@ private:
     std::shared_ptr<SkinningPose> m_skin;
     std::shared_ptr<const std::vector<Vertex>> m_restVertices;
     std::uint64_t m_skinRevision = 0;
+    std::size_t m_skinInfluences = 0;
     mutable std::vector<RayNode> m_rayNodes;
     mutable std::vector<unsigned> m_rayTriangles;
 };

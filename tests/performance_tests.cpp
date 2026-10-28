@@ -26,6 +26,11 @@ void breakdownTests(){
     time(Stage::Frame, 120);
     time(Stage::Render, 75, 40);
     time(Stage::Update, 5);
+    time(Stage::Input, 2);
+    time(Stage::AnimationTracks, 0.5);
+    time(Stage::AnimationHierarchy, 0.75);
+    time(Stage::AnimationPalettes, 0.75);
+    time(Stage::Skinning, 2);
     time(Stage::Shadows, 40, 20);
     time(Stage::Portals, 1);
     time(Stage::Lights, 2);
@@ -57,15 +62,22 @@ void breakdownTests(){
     check(slices[1].cpuMs == 10 && slices[1].gpuMs == 0 && slices[3].cpuMs == 5 &&
               slices[4].gpuMs == 5,
           "Related disjoint stages form useful pipeline groups");
-    check(slices[6].cpuMs == 20 && slices[6].gpuPercent == 0 && slices.back().cpuMs == 9 &&
+    check(slices[6].cpuMs == 20 && slices[6].gpuPercent == 0 && slices.back().cpuMs == 7 &&
               slices.back().gpuMs == 4,
           "Swap remains CPU-only and unmeasured work stays in Other / gaps");
-    check(slices[8].cpuMs == 2 && slices[9].cpuMs == 10 && slices[10].cpuMs == 6 &&
-              !slices[8].gpu && !slices[9].gpu && !slices[10].gpu,
+    check(slices[8].cpuMs == 2 && slices[9].cpuMs == 5 && slices[10].cpuMs == 6 && !slices[8].gpu &&
+              !slices[9].gpu && !slices[10].gpu,
           "Raycasting is separate and event commands do not count subdivision twice");
+    check(slices[13].cpuMs == 2 && slices[14].cpuMs == 0.5 && slices[15].cpuMs == 0.75 &&
+              slices[16].cpuMs == 0.75 && slices[17].cpuMs == 2 && slices[18].cpuMs == 1,
+          "Input, track sampling, skeleton matrices, palettes and deformation are disjoint from "
+          "scene traversal");
+    for (std::size_t i = 13; i <= 18; ++i){
+        check(!slices[i].gpu && slices[i].gpuMs == 0, "CPU update stages never claim GPU work");
+    }
     time(Stage::Occlusion, 2, 1);
     const auto withAO = Profiler::breakdown(summary);
-    check(withAO[7].cpuMs == 2 && withAO[7].gpuMs == 1 && withAO.back().cpuMs == 7 &&
+    check(withAO[7].cpuMs == 2 && withAO[7].gpuMs == 1 && withAO.back().cpuMs == 5 &&
               withAO.back().gpuMs == 3,
           "Ambient occlusion has its own share without being counted again in post-processing");
     time(Stage::Forward, 3, 2);

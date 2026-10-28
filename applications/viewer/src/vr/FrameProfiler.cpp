@@ -10,7 +10,7 @@ const std::array<FrameProfiler::Description, FrameProfiler::StageCount>&
 FrameProfiler::descriptions(){
     static const std::array<Description, StageCount> stages{
         {{"Frame incl. swap", false},
-         {"Input / animation", false},
+         {"Scene update total", false},
          {"Render total", true},
          {"Shadow maps", true},
          {"Portal traversal", false},
@@ -35,7 +35,12 @@ FrameProfiler::descriptions(){
          {"AA filter / color resolve", true},
          {"Sky / environment lighting", true},
          {"Planar mirror capture", true},
-         {"Local cubemap capture / filter", true}}};
+         {"Local cubemap capture / filter", true},
+         {"Input / camera", false},
+         {"Animation track sampling", false},
+         {"Skeleton world transforms", false},
+         {"Skin palette matrices", false},
+         {"CPU vertex skinning", false}}};
     return stages;
 }
 
@@ -53,7 +58,7 @@ void FrameProfiler::setEnabled(bool enabled){
     if (m_enabled == enabled){
         return;
     }
-    if (enabled && !m_allocated){
+    if (enabled && m_gpuQueries && !m_allocated){
         GLint bits = 0;
         glGetQueryiv(GL_TIMESTAMP, GL_QUERY_COUNTER_BITS, &bits);
         m_gpuSupported = bits > 0;
@@ -90,10 +95,16 @@ FrameProfiler::breakdown(const Summary& summary){
                                           {"Swap / VSync wait", false},
                                           {"Ambient occlusion"},
                                           {"Model raycast / BVH", false},
-                                          {"Input / animation", false},
+                                          {"Window events / commands", false},
                                           {"Subdivision", false},
                                           {"Planar mirror"},
                                           {"Local cubemaps"},
+                                          {"Input / camera", false},
+                                          {"Animation tracks", false},
+                                          {"Skeleton transforms", false},
+                                          {"Skin palettes", false},
+                                          {"CPU vertex skinning", false},
+                                          {"Scene graph / callbacks", false},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
@@ -112,10 +123,21 @@ FrameProfiler::breakdown(const Summary& summary){
     add(6,{Stage::Swap});
     add(7,{Stage::Occlusion});
     add(8,{Stage::Picking});
-    add(9,{Stage::Events, Stage::Update});
+    add(9,{Stage::Events});
     add(10,{Stage::Subdivision});
     add(11,{Stage::Reflection});
     add(12,{Stage::Cubemaps});
+    add(13,{Stage::Input});
+    add(14,{Stage::AnimationTracks});
+    add(15,{Stage::AnimationHierarchy});
+    add(16,{Stage::AnimationPalettes});
+    add(17,{Stage::Skinning});
+    add(18,{Stage::Update});
+    // Animation stages are nested in Update; show only its remaining traversal/callback work.
+    for (std::size_t i = 14; i <= 17; ++i){
+        slices[18].cpuMs -= slices[i].cpuMs;
+    }
+    slices[18].cpuMs = std::max(0.0, slices[18].cpuMs);
     // Commands run inside event polling; attribute their work exactly once.
     slices[9].cpuMs = std::max(0.0, slices[9].cpuMs - slices[10].cpuMs);
     const double cpu = summary.cpu[static_cast<std::size_t>(Stage::Frame)];

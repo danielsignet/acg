@@ -232,10 +232,18 @@ void instances(const std::filesystem::path& path){
     updater.update(*a,{0.7, 0.2, true});
     check(original->getAppliedSkinRevision() == applied && original->getSkin()->revision > palette,
           "Hidden instances advance their clock and pose without deforming meshes");
+    check(updater.getSkinnedVertices() == 0 && updater.getSkinInfluences() == 0,
+          "Hidden animation records no vertex deformation work");
     a->setVisible(true);
     updater.update(*a,{0.7, 0, false});
     check(original->getAppliedSkinRevision() == original->getSkin()->revision,
           "A visible paused instance catches its surface up to the current pose");
+    check(updater.getSkinnedVertices() > 0 &&
+              updater.getSkinInfluences() > updater.getSkinnedVertices(),
+          "Skinning counters include actual processed vertices and joint influences");
+    updater.update(*a,{0.7, 0, false});
+    check(updater.getSkinnedVertices() == 0 && updater.getSkinInfluences() == 0,
+          "A fully synchronized paused pose records no repeated deformation work");
 }
 } // namespace
 

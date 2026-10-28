@@ -1,15 +1,18 @@
 #pragma once
 #include <functional>
+#include <memory>
 #include <utility>
 
 namespace vr{
 class FrameProfiler;
+class GpuSkinning;
 
 struct UpdateContext{
     double time;
     double delta;
     bool animate = true;
     FrameProfiler* profiler = nullptr;
+    std::shared_ptr<GpuSkinning> gpuSkinning;
 };
 
 class Node;

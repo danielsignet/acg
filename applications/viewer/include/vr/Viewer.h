@@ -42,6 +42,7 @@ private:
     bool m_forward = false, m_noAO = false;
     bool m_noBump = false;
     bool m_noVsync = false;
+    bool m_cpuSkinning = false;
     bool m_lodDemoCallback = false;
     bool m_inside = false;
     bool m_noCulling = false;

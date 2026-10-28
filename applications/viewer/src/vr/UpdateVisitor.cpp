@@ -1,11 +1,11 @@
 #include <vr/Camera.h>
-#include <vr/Geometry.h>
 #include <vr/FrameProfiler.h>
-#include <vr/SkeletalAnimation.h>
+#include <vr/Geometry.h>
 #include <vr/Group.h>
 #include <vr/LOD.h>
 #include <vr/Light.h>
 #include <vr/ModelInstance.h>
+#include <vr/SkeletalAnimation.h>
 #include <vr/Transform.h>
 #include <vr/UpdateVisitor.h>
 
@@ -63,7 +63,9 @@ void UpdateVisitor::apply(LOD& node){
 // Executes this mesh's callback once even when the mesh is shared.
 void UpdateVisitor::apply(Geometry& node){
     if (enter(node)){
-        if (node.getSkin() && node.getAppliedSkinRevision() != node.getSkin()->revision){
+        node.prepareDeformation(m_context.gpuSkinning);
+        if (!node.hasGpuSkinning() && node.getSkin() &&
+            node.getAppliedSkinRevision() != node.getSkin()->revision){
             FrameProfiler::Scope skinning(m_context.profiler, FrameProfiler::Stage::Skinning);
             m_skinnedVertices += node.updateSkin();
             m_skinInfluences += node.getSkinInfluenceCount();

@@ -72,6 +72,7 @@ void Geometry::setData(std::vector<glm::vec3> vertices, std::vector<unsigned> in
     m_indices = std::move(indices);
     m_dirty = true;
     m_skin.reset();
+    m_skinInfluences = 0;
     m_restVertices.reset();
     m_vertexDirty = m_rayDirty = false;
     m_rayNodes.clear();

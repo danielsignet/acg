@@ -8,6 +8,17 @@ void Geometry::setSkin(std::shared_ptr<SkinningPose> skin){
     m_skin = std::move(skin);
     m_restVertices = m_skin ? std::make_shared<const std::vector<Vertex>>(m_vertices) : nullptr;
     m_skinRevision = 0;
+    m_skinInfluences = 0;
+    if (m_restVertices){
+        for (const auto& vertex : *m_restVertices){
+            for (float weight : vertex.skin.weights){
+                if (weight <= 0){
+                    break;
+                }
+                ++m_skinInfluences;
+            }
+        }
+    }
     updateSkin();
 }
 
@@ -17,14 +28,15 @@ std::shared_ptr<Geometry> Geometry::instantiateSkin(std::shared_ptr<SkinningPose
     result->m_vertices = getRestVertices();
     result->m_indices = m_indices;
     result->m_skin = std::move(pose);
+    result->m_skinInfluences = m_skinInfluences;
     result->updateSkin();
     return result;
 }
 
 // Updates positions and tangent frames once per evaluated skeleton pose.
-void Geometry::updateSkin(){
+std::size_t Geometry::updateSkin(){
     if (!m_skin || m_skinRevision == m_skin->revision){
-        return;
+        return 0;
     }
     for (std::size_t i = 0; i < m_restVertices->size(); ++i){
         const auto& rest = (*m_restVertices)[i];
@@ -57,5 +69,6 @@ void Geometry::updateSkin(){
     m_skinRevision = m_skin->revision;
     m_vertexDirty = m_rayDirty = true;
     dirtyBound();
+    return m_vertices.size();
 }
 } // namespace vr

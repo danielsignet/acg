@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdexcept>
 #include <vr/SkeletalAnimation.h>
+#include <vr/FrameProfiler.h>
 #include <vr/Transform.h>
 
 namespace vr{
@@ -79,7 +80,7 @@ void SkeletalAnimation::update(Node& node, const UpdateContext& context){
     if (context.animate && context.delta > 0){
         const auto duration = m_source->clips[m_clip].duration;
         m_time = duration > 0 ? std::fmod(m_time + context.delta, duration) : 0;
-        evaluate();
+        evaluate(context.profiler);
     }
     if (auto transform = dynamic_cast<Transform*>(&node); transform && !m_local.empty()){
         transform->setMatrix(m_local[0]);
@@ -97,25 +98,31 @@ void SkeletalAnimation::setClip(std::size_t index){
 }
 
 // Samples TRS tracks and updates each mesh-local skin palette.
-void SkeletalAnimation::evaluate(){
-    m_sampled = m_source->joints;
-    auto& pose = m_sampled;
-    const auto linear = [](const auto& a, const auto& b, float t){ return glm::mix(a, b, t); };
-    const auto spherical = [](const glm::quat& a, const glm::quat& b, float t){
-        return glm::normalize(glm::slerp(a, b, t));
-    };
-    for (const auto& track : m_source->clips[m_clip].tracks){
-        auto& joint = pose.at(track.joint);
-        joint.position = sample(track.positions, m_time, joint.position, linear);
-        joint.rotation = sample(track.rotations, m_time, joint.rotation, spherical);
-        joint.scale = sample(track.scales, m_time, joint.scale, linear);
+void SkeletalAnimation::evaluate(FrameProfiler* profiler){
+    {
+        FrameProfiler::Scope tracks(profiler, FrameProfiler::Stage::AnimationTracks);
+        m_sampled = m_source->joints;
+        const auto linear = [](const auto& a, const auto& b, float t){ return glm::mix(a, b, t); };
+        const auto spherical = [](const glm::quat& a, const glm::quat& b, float t){
+            return glm::normalize(glm::slerp(a, b, t));
+        };
+        for (const auto& track : m_source->clips[m_clip].tracks){
+            auto& joint = m_sampled.at(track.joint);
+            joint.position = sample(track.positions, m_time, joint.position, linear);
+            joint.rotation = sample(track.rotations, m_time, joint.rotation, spherical);
+            joint.scale = sample(track.scales, m_time, joint.scale, linear);
+        }
     }
-    for (std::size_t i = 0; i < pose.size(); ++i){
-        const auto& joint = pose[i];
-        m_local[i] = glm::translate(glm::mat4(1), joint.position) * glm::mat4_cast(joint.rotation) *
-                     glm::scale(glm::mat4(1), joint.scale);
-        m_global[i] = joint.parent < 0 ? m_local[i] : m_global[joint.parent] * m_local[i];
+    {
+        FrameProfiler::Scope hierarchy(profiler, FrameProfiler::Stage::AnimationHierarchy);
+        for (std::size_t i = 0; i < m_sampled.size(); ++i){
+            const auto& joint = m_sampled[i];
+            m_local[i] = glm::translate(glm::mat4(1), joint.position) *
+                         glm::mat4_cast(joint.rotation) * glm::scale(glm::mat4(1), joint.scale);
+            m_global[i] = joint.parent < 0 ? m_local[i] : m_global[joint.parent] * m_local[i];
+        }
     }
+    FrameProfiler::Scope palettes(profiler, FrameProfiler::Stage::AnimationPalettes);
     for (const auto& binding : m_bindings){
         auto& skin = *binding.pose;
         const auto inverseMesh = glm::inverse(m_global.at(binding.mesh));

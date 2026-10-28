@@ -283,10 +283,7 @@ int Viewer::run(int argc, char** argv){
         }
         {
             FrameProfiler::Scope frame(&profiler, FrameProfiler::Stage::Frame);
-            {
-                FrameProfiler::Scope update(&profiler, FrameProfiler::Stage::Update);
-                m_application->update(now, delta);
-            }
+            m_application->update(now, delta);
             m_application->render();
             ++frames;
             if (m_application->consumeScreenshotRequest()){

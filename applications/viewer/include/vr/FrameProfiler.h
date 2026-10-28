@@ -37,6 +37,11 @@ public:
         Environment,
         Reflection,
         Cubemaps,
+        Input,
+        AnimationTracks,
+        AnimationHierarchy,
+        AnimationPalettes,
+        Skinning,
         Count
     };
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);
@@ -68,6 +73,8 @@ public:
         ProbeDraws,
         ProbeFaces,
         ReadyProbes,
+        SkinnedVertices,
+        SkinInfluences,
         Count
     };
     static constexpr std::size_t CounterCount = static_cast<std::size_t>(Counter::Count);
@@ -103,7 +110,7 @@ public:
         double cpuPercent = 0, gpuPercent = 0;
     };
 
-    static constexpr std::size_t SliceCount = 14;
+    static constexpr std::size_t SliceCount = 20;
 
     class Scope final{
     public:
@@ -122,7 +129,9 @@ public:
     };
 
     // Defers allocating queries until profiling is first enabled.
-    FrameProfiler() = default;
+    explicit FrameProfiler(bool gpuQueries = true) : m_gpuQueries(gpuQueries){
+    }
+
     // Releases query objects while the owning context is still current.
     ~FrameProfiler();
     FrameProfiler(const FrameProfiler&) = delete;
@@ -184,5 +193,6 @@ private:
     Sample m_current;
     std::uint64_t m_sequence = 0, m_skipped = 0;
     bool m_enabled = false, m_active = false, m_allocated = false, m_gpuSupported = false;
+    bool m_gpuQueries;
 };
 } // namespace vr

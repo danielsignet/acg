@@ -33,11 +33,20 @@ public:
         return m_callbackCount;
     }
 
+    std::size_t getSkinnedVertices() const{
+        return m_skinnedVertices;
+    }
+
+    std::size_t getSkinInfluences() const{
+        return m_skinInfluences;
+    }
+
 private:
     // Records a first visit before processing this node.
     bool enter(Node& node);
     UpdateContext m_context{0, 0};
     std::set<const Node*> m_visited;
     std::size_t m_callbackCount = 0;
+    std::size_t m_skinnedVertices = 0, m_skinInfluences = 0;
 };
 } // namespace vr

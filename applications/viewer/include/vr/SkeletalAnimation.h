@@ -57,6 +57,10 @@ public:
         return m_bindings;
     }
 
+    std::size_t getJointCount() const{
+        return m_source->joints.size();
+    }
+
     // Advances clip time only while scene animation is enabled.
     void update(Node& node, const UpdateContext& context) override;
     // Selects a looping source clip and evaluates its first pose immediately.
@@ -85,7 +89,7 @@ private:
 
     SkeletalAnimation(std::shared_ptr<const Source> source, std::vector<Binding> bindings);
     // Samples TRS tracks and updates each mesh-local skin palette.
-    void evaluate();
+    void evaluate(FrameProfiler* profiler = nullptr);
     std::shared_ptr<const Source> m_source;
     std::vector<Joint> m_sampled;
     std::vector<Binding> m_bindings;

@@ -79,6 +79,10 @@ if(MSVC)
 endif()
 if(MSVC)
   target_compile_options(vrlib PRIVATE /W4 /utf-8 /permissive-)
+  # RelWithDebInfo defaults to /Ob1. The measured per-vertex GLM kernel benefits
+  # from the same automatic inlining as Release, while retaining debug symbols.
+  set_property(SOURCE src/vr/GeometrySkin.cpp APPEND PROPERTY COMPILE_OPTIONS
+    "$<$<CONFIG:RelWithDebInfo>:/Ob2>")
 else()
   target_compile_options(vrlib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>)
 endif()

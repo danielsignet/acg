@@ -1,0 +1,162 @@
+{
+  "001": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings001.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      1838.31,
+      1105.0
+    ],
+    "triangles": 2468,
+    "sha256": "ad5ba23046f8844be2dbc6904f6d50b8aeab5a3116a912f2053b63209bce6dd9",
+    "window_triangles": 252
+  },
+  "002": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings002.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      2198.31,
+      1105.0
+    ],
+    "triangles": 3196,
+    "sha256": "42373f15bcc65dfdc9eb34bf6e998f6f253540248414123116a9b29be1945380",
+    "window_triangles": 336
+  },
+  "003": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings003.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      2918.31,
+      1105.0
+    ],
+    "triangles": 4652,
+    "sha256": "3dcb7ed129cd59097b133f5cc721c58928f5d79b124021af888763be6a8476e6",
+    "window_triangles": 504
+  },
+  "004": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings004.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      3638.31,
+      1105.0
+    ],
+    "triangles": 6108,
+    "sha256": "d0a8878cb634fd82d0965f623d1cbcaf8c4400cb6c6d859f64087e5ad8b3f0b2",
+    "window_triangles": 672
+  },
+  "005": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings005.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      3998.31,
+      1105.0
+    ],
+    "triangles": 6836,
+    "sha256": "603f433c86a6d90d2f1a011d9b85f7b2eb730a60a1a9489df303e59f99df0335",
+    "window_triangles": 756
+  },
+  "006": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings006.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      4718.31,
+      1105.0
+    ],
+    "triangles": 8292,
+    "sha256": "555e6ee67121b8b36f9d868dbbd2e241e0f747db02b9799a33621669f9b029fc",
+    "window_triangles": 924
+  },
+  "007": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings007.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      6878.32,
+      1105.0
+    ],
+    "triangles": 12660,
+    "sha256": "7b93663a27c9f8deee697e0bcadd9ef11d49789c0310a09a49f77ff8d8debeba",
+    "window_triangles": 1428
+  },
+  "008": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings008.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      7238.32,
+      1105.0
+    ],
+    "triangles": 13388,
+    "sha256": "c6d9be472fc20f805a2e5237b47986c802c106d6c25b82dce429ab27e7f621e2",
+    "window_triangles": 1512
+  },
+  "009": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings009.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      8678.32,
+      1105.0
+    ],
+    "triangles": 16300,
+    "sha256": "4763d90a662e0345846d59a4a021c7906603b02f5e88b4c96afd4d5973290abc",
+    "window_triangles": 1848
+  },
+  "010": {
+    "file": "models/ResidentialBuildings/ResidentialBuildings010.fbx",
+    "min": [
+      -711.003,
+      -0.473743,
+      -1204.66
+    ],
+    "max": [
+      548.479,
+      10478.3,
+      1105.0
+    ],
+    "triangles": 19940,
+    "sha256": "f5706bea3b5c56235a56ae7cb6baf712d89f92874677df29703861d74b4d819f",
+    "window_triangles": 2268
+  }
+}

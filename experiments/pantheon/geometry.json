@@ -1,0 +1,254 @@
+{
+  "interior_diameter_m": 43.3,
+  "virtual_sphere_height_m": 43.3,
+  "oculus_diameter_m": 8.92,
+  "portal_plane_m": 20.912294139158327,
+  "passage_half_width_m": 5.603432326469574,
+  "rooms": {
+    "lapis": {
+      "width": 48,
+      "depth": 48,
+      "height": 26,
+      "center_depth": 58,
+      "kind": "materials / original cloudy sky"
+    },
+    "aes": {
+      "width": 64,
+      "depth": 78,
+      "height": 106,
+      "center_depth": 73,
+      "kind": "four-tower city courtyard"
+    },
+    "silva": {
+      "width": 42,
+      "depth": 44,
+      "height": 14,
+      "center_depth": 56,
+      "kind": "legacy object gallery / three rotation demonstrations"
+    },
+    "astra": {
+      "width": 48,
+      "depth": 48,
+      "height": 30,
+      "center_depth": 58,
+      "kind": "dragon planetarium / star sky"
+    }
+  },
+  "authored_instances": 937,
+  "lod_nodes": 161,
+  "mesh_resources": {
+    "door-bay": {
+      "vertices_before_import": 336,
+      "triangles": 168
+    },
+    "arch-trim": {
+      "vertices_before_import": 176,
+      "triangles": 88
+    },
+    "column": {
+      "vertices_before_import": 1504,
+      "triangles": 736
+    },
+    "column-low": {
+      "vertices_before_import": 564,
+      "triangles": 276
+    },
+    "wall-sector": {
+      "vertices_before_import": 96,
+      "triangles": 48
+    },
+    "room-shell": {
+      "vertices_before_import": 96,
+      "triangles": 48
+    },
+    "room-floor": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "cornice": {
+      "vertices_before_import": 480,
+      "triangles": 240
+    },
+    "door-cornice": {
+      "vertices_before_import": 60,
+      "triangles": 30
+    },
+    "revetment": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "attic-stone-panel": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "attic-pilaster": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "inlaid-floor": {
+      "vertices_before_import": 4374,
+      "triangles": 2180
+    },
+    "sign": {
+      "vertices_before_import": 4,
+      "triangles": 2
+    },
+    "room-sign": {
+      "vertices_before_import": 4,
+      "triangles": 2
+    },
+    "coffer-0": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-0-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-1": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-1-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-2": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-2-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-3": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-3-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-4": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-4-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "curtain-short": {
+      "vertices_before_import": 312,
+      "triangles": 156
+    },
+    "curtain-long": {
+      "vertices_before_import": 504,
+      "triangles": 252
+    },
+    "polished-plinth": {
+      "vertices_before_import": 216,
+      "triangles": 108
+    },
+    "floor-inlay": {
+      "vertices_before_import": 512,
+      "triangles": 256
+    },
+    "gallery-floor": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "city-floor": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "gallery-mirror": {
+      "vertices_before_import": 8,
+      "triangles": 4
+    },
+    "material-wall": {
+      "vertices_before_import": 448,
+      "triangles": 224
+    },
+    "material-floor": {
+      "vertices_before_import": 384,
+      "triangles": 128
+    },
+    "planetarium-floor": {
+      "vertices_before_import": 1280,
+      "triangles": 512
+    },
+    "room-portal-lapis": {
+      "vertices_before_import": 4,
+      "triangles": 2
+    },
+    "lapis-passage-shell": {
+      "vertices_before_import": 44,
+      "triangles": 22
+    },
+    "lapis-passage-floor": {
+      "vertices_before_import": 80,
+      "triangles": 40
+    },
+    "room-portal-aes": {
+      "vertices_before_import": 4,
+      "triangles": 2
+    },
+    "aes-passage-shell": {
+      "vertices_before_import": 44,
+      "triangles": 22
+    },
+    "aes-passage-floor": {
+      "vertices_before_import": 48,
+      "triangles": 24
+    },
+    "room-portal-silva": {
+      "vertices_before_import": 4,
+      "triangles": 2
+    },
+    "silva-passage-shell": {
+      "vertices_before_import": 32,
+      "triangles": 16
+    },
+    "silva-passage-floor": {
+      "vertices_before_import": 48,
+      "triangles": 24
+    },
+    "room-portal-astra": {
+      "vertices_before_import": 4,
+      "triangles": 2
+    },
+    "astra-passage-shell": {
+      "vertices_before_import": 44,
+      "triangles": 22
+    },
+    "astra-passage-floor": {
+      "vertices_before_import": 80,
+      "triangles": 40
+    },
+    "gyro-yoke": {
+      "vertices_before_import": 7648,
+      "triangles": 3680
+    },
+    "gyro-heading": {
+      "vertices_before_import": 5248,
+      "triangles": 2560
+    },
+    "gyro-pitch": {
+      "vertices_before_import": 5248,
+      "triangles": 2560
+    },
+    "gyro-roll": {
+      "vertices_before_import": 5120,
+      "triangles": 2560
+    },
+    "gyro-rotor": {
+      "vertices_before_import": 4216,
+      "triangles": 2040
+    },
+    "gyro-shaft-collars": {
+      "vertices_before_import": 1152,
+      "triangles": 512
+    }
+  },
+  "unique_mesh_triangles": 20240
+}

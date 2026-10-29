@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-29",
+  "books_and_shelves": "removed",
+  "rig_count": 3,
+  "rig_hierarchies": "three nested bearing transforms each",
+  "mesh_checks": {
+    "gyro-heading.obj": {
+      "triangles": 2560,
+      "open_or_nonmanifold_edges": 0
+    },
+    "gyro-pitch.obj": {
+      "triangles": 2560,
+      "open_or_nonmanifold_edges": 0
+    },
+    "gyro-roll.obj": {
+      "triangles": 2560,
+      "open_or_nonmanifold_edges": 0
+    },
+    "gyro-rotor.obj": {
+      "triangles": 2040,
+      "open_or_nonmanifold_edges": 0
+    },
+    "gyro-shaft-collars.obj": {
+      "triangles": 512,
+      "open_or_nonmanifold_edges": 0
+    },
+    "gyro-yoke.obj": {
+      "triangles": 3680,
+      "open_or_nonmanifold_edges": 0
+    }
+  },
+  "rotation_checks": "Euler control determinant: -6.12323e-17; quaternion control determinant: 1\nPassed 32123 gyroscope checks",
+  "physical_note": "Unit-quaternion SLERP drives orientation. Euler factorization is only display-joint inverse kinematics; mechanical gimbals can still align.",
+  "live_pose_culling_checks": [
+    {
+      "view": "all",
+      "pose_time": 7,
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "all",
+      "pose_time": 7,
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "euler-lock",
+      "pose_time": 7,
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "euler-lock",
+      "pose_time": 7,
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "quat-before",
+      "pose_time": 1.98,
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "quat-before",
+      "pose_time": 1.98,
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "quat-pole",
+      "pose_time": 2,
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "quat-pole",
+      "pose_time": 2,
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "quat-after",
+      "pose_time": 2.02,
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "quat-after",
+      "pose_time": 2.02,
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "axis-turn",
+      "pose_time": 13,
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    },
+    {
+      "view": "axis-turn",
+      "pose_time": 13,
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0
+    }
+  ]
+}

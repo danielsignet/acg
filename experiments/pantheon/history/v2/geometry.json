@@ -1,0 +1,182 @@
+{
+  "interior_diameter_m": 43.3,
+  "virtual_sphere_height_m": 43.3,
+  "oculus_diameter_m": 8.92,
+  "portal_plane_m": 20.912294139158327,
+  "passage_half_width_m": 5.603432326469574,
+  "rooms": {
+    "lapis": {
+      "width": 48,
+      "depth": 48,
+      "height": 26,
+      "center_depth": 58,
+      "kind": "materials / original cloudy sky"
+    },
+    "aes": {
+      "width": 64,
+      "depth": 78,
+      "height": 106,
+      "center_depth": 73,
+      "kind": "four-tower city courtyard"
+    },
+    "silva": {
+      "width": 42,
+      "depth": 44,
+      "height": 14,
+      "center_depth": 56,
+      "kind": "legacy object gallery / archive"
+    },
+    "astra": {
+      "width": 48,
+      "depth": 48,
+      "height": 30,
+      "center_depth": 58,
+      "kind": "dragon planetarium / star sky"
+    }
+  },
+  "authored_instances": 1084,
+  "lod_nodes": 161,
+  "mesh_resources": {
+    "door-bay": {
+      "vertices_before_import": 336,
+      "triangles": 168
+    },
+    "arch-trim": {
+      "vertices_before_import": 176,
+      "triangles": 88
+    },
+    "column": {
+      "vertices_before_import": 1504,
+      "triangles": 736
+    },
+    "column-low": {
+      "vertices_before_import": 564,
+      "triangles": 276
+    },
+    "wall-sector": {
+      "vertices_before_import": 96,
+      "triangles": 48
+    },
+    "room-shell": {
+      "vertices_before_import": 96,
+      "triangles": 48
+    },
+    "room-floor": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "cornice": {
+      "vertices_before_import": 480,
+      "triangles": 240
+    },
+    "revetment": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "inlaid-floor": {
+      "vertices_before_import": 4374,
+      "triangles": 2184
+    },
+    "sign": {
+      "vertices_before_import": 4,
+      "triangles": 2
+    },
+    "orbit": {
+      "vertices_before_import": 2048,
+      "triangles": 1024
+    },
+    "coffer-0": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-0-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-1": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-1-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-2": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-2-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-3": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-3-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "coffer-4": {
+      "vertices_before_import": 196,
+      "triangles": 98
+    },
+    "coffer-4-low": {
+      "vertices_before_import": 36,
+      "triangles": 18
+    },
+    "curtain-short": {
+      "vertices_before_import": 312,
+      "triangles": 156
+    },
+    "curtain-long": {
+      "vertices_before_import": 504,
+      "triangles": 252
+    },
+    "polished-plinth": {
+      "vertices_before_import": 216,
+      "triangles": 108
+    },
+    "floor-inlay": {
+      "vertices_before_import": 512,
+      "triangles": 256
+    },
+    "gallery-floor": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "city-floor": {
+      "vertices_before_import": 24,
+      "triangles": 12
+    },
+    "cloud-ceiling": {
+      "vertices_before_import": 3008,
+      "triangles": 1472
+    },
+    "star-ceiling": {
+      "vertices_before_import": 3008,
+      "triangles": 1472
+    },
+    "gallery-mirror": {
+      "vertices_before_import": 8,
+      "triangles": 4
+    },
+    "material-wall": {
+      "vertices_before_import": 448,
+      "triangles": 224
+    },
+    "planetarium-wall": {
+      "vertices_before_import": 448,
+      "triangles": 224
+    },
+    "material-floor": {
+      "vertices_before_import": 384,
+      "triangles": 128
+    },
+    "planetarium-floor": {
+      "vertices_before_import": 384,
+      "triangles": 128
+    }
+  },
+  "unique_mesh_triangles": 9866
+}

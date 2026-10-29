@@ -25,31 +25,46 @@ void check(bool condition, const char* message){
 }
 
 // Queue GPU reads through repeated ring wraps before reading the captured results.
-void streaming(){
+void streaming(vr::StreamBuffer::Policy policy){
     constexpr unsigned rounds = 32, words = 128;
     GLuint captured = 0;
     glGenBuffers(1, &captured);
     glBindBuffer(GL_COPY_WRITE_BUFFER, captured);
     glBufferData(GL_COPY_WRITE_BUFFER, rounds * words * sizeof(unsigned), nullptr, GL_STREAM_READ);
-    vr::StreamBuffer stream;
+    vr::StreamBuffer stream(policy), gpuOutput(policy);
     std::array<unsigned, words> input{};
+    std::size_t uploaded = 0;
     for (unsigned round = 0; round < rounds; ++round){
         for (unsigned i = 0; i < words; ++i){
             input[i] = round * words + i;
         }
-        const auto source = stream.acquire(sizeof(input), input.data());
+        const unsigned usedWords = round % 2 ? words / 4 : words;
+        const auto bytes = usedWords * sizeof(unsigned);
+        uploaded += bytes;
+        const auto source = stream.acquire(bytes, input.data());
+        const auto target = gpuOutput.acquire(bytes);
         glBindBuffer(GL_COPY_READ_BUFFER, source);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, target);
+        glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, bytes);
+        glBindBuffer(GL_COPY_READ_BUFFER, target);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, captured);
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, round * sizeof(input),
-                            sizeof(input));
+                            bytes);
         stream.seal();
+        gpuOutput.seal();
     }
     std::array<unsigned, rounds * words> output{};
     glGetBufferSubData(GL_COPY_WRITE_BUFFER, 0, sizeof(output), output.data());
     glDeleteBuffers(1, &captured);
-    for (unsigned i = 0; i < output.size(); ++i){
-        check(output[i] == i,
-              "Ring wrap preserves every pending GPU read without overwriting in-flight data");
+    for (unsigned round = 0; round < rounds; ++round){
+        const unsigned usedWords = round % 2 ? words / 4 : words;
+        for (unsigned i = 0; i < usedWords; ++i){
+            check(output[round * words + i] == round * words + i,
+                  "Pending GPU uploads, writes and reads survive ring wraps and size changes");
+        }
     }
+    check(stream.getUploadedBytes() == uploaded && gpuOutput.getUploadedBytes() == 0,
+          "Upload accounting distinguishes CPU uploads from GPU-written output");
 }
 
 void compare(vr::Geometry& cpu, vr::Geometry& gpu){
@@ -241,7 +256,8 @@ int main(int argc, char** argv){
             throw std::runtime_error("OpenGL initialization failed");
         }
         vr::GLState::Scope tracked;
-        streaming();
+        streaming(vr::StreamBuffer::Policy::Reuse);
+        streaming(vr::StreamBuffer::Policy::Discard);
         influences(argv[1]);
         dragon(argv[1]);
         std::cout << "GPU/CPU deformation, twelve influences, picking, all clips, subdivision and "

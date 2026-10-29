@@ -1,0 +1,2741 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scene>
+  <camera eye="9 3.2 14" target="-2 12 -16" />
+  <assets>
+    <model id="wall-sector" file="experiments/pantheon/meshes/wall-sector.obj">
+      <material name="*" cull="false" />
+      <material name="stone" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.45" />
+    </model>
+    <model id="door-bay" file="experiments/pantheon/meshes/door-bay.obj">
+      <material name="*" cull="false" />
+      <material name="stone" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.45" />
+    </model>
+    <model id="arch-trim" file="experiments/pantheon/meshes/arch-trim.obj">
+      <material name="*" cull="false" />
+      <material name="bronze" diffuse="0.56 0.32 0.12" ambient="0.035 0.025 0.01" specular="0.62 0.42 0.18" metallic="0.86" roughness="0.29" shininess="170" environment="true" />
+    </model>
+    <model id="column" file="experiments/pantheon/meshes/column.obj">
+      <material name="*" cull="false" />
+      <material name="marble" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.3" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.2" />
+    </model>
+    <model id="column-low" file="experiments/pantheon/meshes/column-low.obj">
+      <material name="*" cull="false" />
+      <material name="marble" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.3" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.2" />
+    </model>
+    <model id="cornice" file="experiments/pantheon/meshes/cornice.obj">
+      <material name="*" cull="false" />
+      <material name="marble" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.3" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.2" />
+    </model>
+    <model id="room-shell" file="experiments/pantheon/meshes/room-shell.obj">
+      <material name="*" cull="false" />
+      <material name="stone" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.45" />
+    </model>
+    <model id="room-floor" file="experiments/pantheon/meshes/room-floor.obj">
+      <material name="*" cull="false" />
+      <material name="wood" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+    </model>
+    <model id="inlaid-floor" file="experiments/pantheon/meshes/inlaid-floor.obj">
+      <material name="*" cull="false" />
+      <material name="marble" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.3" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.2" />
+      <material name="verde" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.26" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.2" tint="0.14 0.24 0.205" />
+      <material name="bronze" diffuse="0.56 0.32 0.12" ambient="0.035 0.025 0.01" specular="0.62 0.42 0.18" metallic="0.86" roughness="0.29" shininess="170" environment="true" />
+    </model>
+    <model id="revetment" file="experiments/pantheon/meshes/revetment.obj">
+      <material name="*" cull="false" />
+      <material name="marble" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.3" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.2" />
+    </model>
+    <model id="orbit" file="experiments/pantheon/meshes/orbit.obj">
+      <material name="*" cull="false" />
+      <material name="bronze" diffuse="0.56 0.32 0.12" ambient="0.035 0.025 0.01" specular="0.62 0.42 0.18" metallic="0.86" roughness="0.29" shininess="170" environment="true" />
+    </model>
+    <model id="coffer-0" file="experiments/pantheon/meshes/coffer-0.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-0-low" file="experiments/pantheon/meshes/coffer-0-low.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-1" file="experiments/pantheon/meshes/coffer-1.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-1-low" file="experiments/pantheon/meshes/coffer-1-low.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-2" file="experiments/pantheon/meshes/coffer-2.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-2-low" file="experiments/pantheon/meshes/coffer-2-low.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-3" file="experiments/pantheon/meshes/coffer-3.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-3-low" file="experiments/pantheon/meshes/coffer-3-low.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-4" file="experiments/pantheon/meshes/coffer-4.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="coffer-4-low" file="experiments/pantheon/meshes/coffer-4-low.obj">
+      <material name="*" diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.62" metallic="0" environment="false" texture0="experiments/pantheon/textures/beige_wall_001-albedo.jpg" normalMap="experiments/pantheon/textures/beige_wall_001-normal.jpg" normalScale="0.23" cull="false" />
+    </model>
+    <model id="sign-lapis" file="experiments/pantheon/meshes/sign.obj">
+      <material name="*" diffuse="1 1 1" texture0="experiments/pantheon/textures/sign-lapis.png" lighting="false" castShadows="false" />
+    </model>
+    <model id="sign-aes" file="experiments/pantheon/meshes/sign.obj">
+      <material name="*" diffuse="1 1 1" texture0="experiments/pantheon/textures/sign-aes.png" lighting="false" castShadows="false" />
+    </model>
+    <model id="sign-silva" file="experiments/pantheon/meshes/sign.obj">
+      <material name="*" diffuse="1 1 1" texture0="experiments/pantheon/textures/sign-silva.png" lighting="false" castShadows="false" />
+    </model>
+    <model id="sign-astra" file="experiments/pantheon/meshes/sign.obj">
+      <material name="*" diffuse="1 1 1" texture0="experiments/pantheon/textures/sign-astra.png" lighting="false" castShadows="false" />
+    </model>
+  </assets>
+  <group name="Pantheon experiment">
+    <state>
+      <uniform name="uFog" type="bool" value="false" />
+    </state>
+    <light name="Oculus sun" position="0.22 0.96 0.16 0" diffuse="3.1 2.75 2.25" specular="2.2 1.95 1.6" ambient="0.05 0.046 0.04" />
+    <group name="Rotunda architecture">
+      <transform name="Opus sectile floor 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+        <instance ref="inlaid-floor" selectable="false" />
+      </transform>
+      <transform name="Quadrant 1 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+        <transform name="Arched threshold 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="door-bay" selectable="false" />
+        </transform>
+        <transform name="Bronze arch 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="arch-trim" selectable="false" />
+        </transform>
+        <transform name="Room plaque 001" translate="0 8.55 -20.78229" scale="1 1 1" rotate="0 0 0">
+          <instance ref="sign-lapis" selectable="false" />
+        </transform>
+        <transform name="Drum sector 25 001" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 45 001" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 65 001" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Cornice 25 001" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 45 001" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 65 001" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Door entablature 001" translate="0 0.25 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 002" translate="0 11.95 -20.77229" scale="11.20686 0.28 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 003" translate="0 12.35 -20.77229" scale="11.20686 0.22 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 004" translate="0 15.4 -20.77229" scale="11.20686 0.15 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 005" translate="0 21.4 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 001" translate="8.675693 5.65 -19.48592" scale="1 1 1" rotate="0 -24 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 002" translate="13.71066 5.65 -16.33973" scale="1 1 1" rotate="0 -40 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 003" translate="17.68337 5.65 -11.92758" scale="1 1 1" rotate="0 -56 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 004" translate="20.28604 5.65 -6.591332" scale="1 1 1" rotate="0 -72 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Column 16 001" translate="5.45762 0.02 -19.03298" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 32 001" translate="10.4924 0.02 -16.79135" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 48 001" translate="14.71427 0.02 -13.24879" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 64 001" translate="17.79612 0.02 -8.679749" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 80 001" translate="19.49919 0.02 -3.438234" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Attic panel 15 001" translate="5.486964 16.85 -20.47763" scale="1 1 1" rotate="0 -15 0">
+          <transform name="Porphyry inset 001" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 001" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 002" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 30 001" translate="10.6 16.85 -18.35974" scale="1 1 1" rotate="0 -30 0">
+          <transform name="Porphyry inset 002" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 003" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 004" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 45 001" translate="14.99066 16.85 -14.99066" scale="1 1 1" rotate="0 -45 0">
+          <transform name="Porphyry inset 003" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 005" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 006" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 60 001" translate="18.35974 16.85 -10.6" scale="1 1 1" rotate="0 -60 0">
+          <transform name="Porphyry inset 004" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 007" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 008" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 75 001" translate="20.47763 16.85 -5.486964" scale="1 1 1" rotate="0 -75 0">
+          <transform name="Porphyry inset 005" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 009" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 010" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+      </transform>
+      <transform name="Quadrant 2 001" translate="0 0 0" scale="1 1 1" rotate="0 -90 0">
+        <transform name="Arched threshold 002" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="door-bay" selectable="false" />
+        </transform>
+        <transform name="Bronze arch 002" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="arch-trim" selectable="false" />
+        </transform>
+        <transform name="Room plaque 002" translate="0 8.55 -20.78229" scale="1 1 1" rotate="0 0 0">
+          <instance ref="sign-aes" selectable="false" />
+        </transform>
+        <transform name="Drum sector 25 002" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 45 002" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 65 002" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Cornice 25 002" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 45 002" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 65 002" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Door entablature 006" translate="0 0.25 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 007" translate="0 11.95 -20.77229" scale="11.20686 0.28 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 008" translate="0 12.35 -20.77229" scale="11.20686 0.22 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 009" translate="0 15.4 -20.77229" scale="11.20686 0.15 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 010" translate="0 21.4 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 005" translate="8.675693 5.65 -19.48592" scale="1 1 1" rotate="0 -24 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 006" translate="13.71066 5.65 -16.33973" scale="1 1 1" rotate="0 -40 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 007" translate="17.68337 5.65 -11.92758" scale="1 1 1" rotate="0 -56 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 008" translate="20.28604 5.65 -6.591332" scale="1 1 1" rotate="0 -72 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Column 16 002" translate="5.45762 0.02 -19.03298" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 32 002" translate="10.4924 0.02 -16.79135" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 48 002" translate="14.71427 0.02 -13.24879" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 64 002" translate="17.79612 0.02 -8.679749" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 80 002" translate="19.49919 0.02 -3.438234" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Attic panel 15 002" translate="5.486964 16.85 -20.47763" scale="1 1 1" rotate="0 -15 0">
+          <transform name="Porphyry inset 006" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 011" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 012" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 30 002" translate="10.6 16.85 -18.35974" scale="1 1 1" rotate="0 -30 0">
+          <transform name="Porphyry inset 007" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 013" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 014" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 45 002" translate="14.99066 16.85 -14.99066" scale="1 1 1" rotate="0 -45 0">
+          <transform name="Porphyry inset 008" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 015" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 016" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 60 002" translate="18.35974 16.85 -10.6" scale="1 1 1" rotate="0 -60 0">
+          <transform name="Porphyry inset 009" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 017" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 018" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 75 002" translate="20.47763 16.85 -5.486964" scale="1 1 1" rotate="0 -75 0">
+          <transform name="Porphyry inset 010" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 019" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 020" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+      </transform>
+      <transform name="Quadrant 3 001" translate="0 0 0" scale="1 1 1" rotate="0 -180 0">
+        <transform name="Arched threshold 003" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="door-bay" selectable="false" />
+        </transform>
+        <transform name="Bronze arch 003" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="arch-trim" selectable="false" />
+        </transform>
+        <transform name="Room plaque 003" translate="0 8.55 -20.78229" scale="1 1 1" rotate="0 0 0">
+          <instance ref="sign-silva" selectable="false" />
+        </transform>
+        <transform name="Drum sector 25 003" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 45 003" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 65 003" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Cornice 25 003" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 45 003" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 65 003" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Door entablature 011" translate="0 0.25 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 012" translate="0 11.95 -20.77229" scale="11.20686 0.28 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 013" translate="0 12.35 -20.77229" scale="11.20686 0.22 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 014" translate="0 15.4 -20.77229" scale="11.20686 0.15 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 015" translate="0 21.4 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 009" translate="8.675693 5.65 -19.48592" scale="1 1 1" rotate="0 -24 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 010" translate="13.71066 5.65 -16.33973" scale="1 1 1" rotate="0 -40 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 011" translate="17.68337 5.65 -11.92758" scale="1 1 1" rotate="0 -56 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 012" translate="20.28604 5.65 -6.591332" scale="1 1 1" rotate="0 -72 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Column 16 003" translate="5.45762 0.02 -19.03298" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 32 003" translate="10.4924 0.02 -16.79135" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 48 003" translate="14.71427 0.02 -13.24879" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 64 003" translate="17.79612 0.02 -8.679749" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 80 003" translate="19.49919 0.02 -3.438234" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Attic panel 15 003" translate="5.486964 16.85 -20.47763" scale="1 1 1" rotate="0 -15 0">
+          <transform name="Porphyry inset 011" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 021" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 022" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 30 003" translate="10.6 16.85 -18.35974" scale="1 1 1" rotate="0 -30 0">
+          <transform name="Porphyry inset 012" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 023" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 024" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 45 003" translate="14.99066 16.85 -14.99066" scale="1 1 1" rotate="0 -45 0">
+          <transform name="Porphyry inset 013" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 025" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 026" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 60 003" translate="18.35974 16.85 -10.6" scale="1 1 1" rotate="0 -60 0">
+          <transform name="Porphyry inset 014" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 027" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 028" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 75 003" translate="20.47763 16.85 -5.486964" scale="1 1 1" rotate="0 -75 0">
+          <transform name="Porphyry inset 015" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 029" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 030" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+      </transform>
+      <transform name="Quadrant 4 001" translate="0 0 0" scale="1 1 1" rotate="0 -270 0">
+        <transform name="Arched threshold 004" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="door-bay" selectable="false" />
+        </transform>
+        <transform name="Bronze arch 004" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+          <instance ref="arch-trim" selectable="false" />
+        </transform>
+        <transform name="Room plaque 004" translate="0 8.55 -20.78229" scale="1 1 1" rotate="0 0 0">
+          <instance ref="sign-astra" selectable="false" />
+        </transform>
+        <transform name="Drum sector 25 004" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 45 004" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Drum sector 65 004" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="wall-sector" selectable="false" />
+        </transform>
+        <transform name="Cornice 25 004" translate="0 0 0" scale="1 1 1" rotate="0 -25 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 45 004" translate="0 0 0" scale="1 1 1" rotate="0 -45 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Cornice 65 004" translate="0 0 0" scale="1 1 1" rotate="0 -65 0">
+          <instance ref="cornice" selectable="false" />
+        </transform>
+        <transform name="Door entablature 016" translate="0 0.25 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 017" translate="0 11.95 -20.77229" scale="11.20686 0.28 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 018" translate="0 12.35 -20.77229" scale="11.20686 0.22 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 019" translate="0 15.4 -20.77229" scale="11.20686 0.15 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Door entablature 020" translate="0 21.4 -20.77229" scale="11.20686 0.5 0.38" rotate="0 0 0">
+          <state diffuse=".65 .56 .4" ambient=".32 .28 .23" roughness=".65" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 013" translate="8.675693 5.65 -19.48592" scale="1 1 1" rotate="0 -24 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 014" translate="13.71066 5.65 -16.33973" scale="1 1 1" rotate="0 -40 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 015" translate="17.68337 5.65 -11.92758" scale="1 1 1" rotate="0 -56 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Wall revetment 016" translate="20.28604 5.65 -6.591332" scale="1 1 1" rotate="0 -72 0">
+          <state tint=".5 .45 .36" />
+          <instance ref="revetment" selectable="false" />
+        </transform>
+        <transform name="Column 16 004" translate="5.45762 0.02 -19.03298" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 32 004" translate="10.4924 0.02 -16.79135" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 48 004" translate="14.71427 0.02 -13.24879" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 64 004" translate="17.79612 0.02 -8.679749" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Column 80 004" translate="19.49919 0.02 -3.438234" scale="1 1 1" rotate="0 0 0">
+          <lod name="Column detail" center="0 5.9 0" fadeWidth="3">
+            <level max="26">
+              <instance ref="column" selectable="false" />
+            </level>
+            <level max="inf">
+              <instance ref="column-low" selectable="false" />
+            </level>
+          </lod>
+        </transform>
+        <transform name="Attic panel 15 004" translate="5.486964 16.85 -20.47763" scale="1 1 1" rotate="0 -15 0">
+          <transform name="Porphyry inset 016" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 031" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 032" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 30 004" translate="10.6 16.85 -18.35974" scale="1 1 1" rotate="0 -30 0">
+          <transform name="Porphyry inset 017" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 033" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 034" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 45 004" translate="14.99066 16.85 -14.99066" scale="1 1 1" rotate="0 -45 0">
+          <transform name="Porphyry inset 018" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 035" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 036" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 60 004" translate="18.35974 16.85 -10.6" scale="1 1 1" rotate="0 -60 0">
+          <transform name="Porphyry inset 019" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 037" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 038" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Attic panel 75 004" translate="20.47763 16.85 -5.486964" scale="1 1 1" rotate="0 -75 0">
+          <transform name="Porphyry inset 020" translate="0 0 0" scale="2.35 3.1 0.13" rotate="0 0 0">
+            <state diffuse="0.24 0.155 0.12" roughness="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 039" translate="-1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Pilaster 040" translate="1.35 0 0.05" scale="0.2 3.65 0.23" rotate="0 0 0">
+            <state diffuse="0.72 0.66 0.53" roughness="0.7" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+      </transform>
+    </group>
+    <group name="Coffered hemisphere - 28 meridians, five rings">
+      <transform name="Meridian 01 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 02 001" translate="0 0 0" scale="1 1 1" rotate="0 -12.85714 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 03 001" translate="0 0 0" scale="1 1 1" rotate="0 -25.71429 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 04 001" translate="0 0 0" scale="1 1 1" rotate="0 -38.57143 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 05 001" translate="0 0 0" scale="1 1 1" rotate="0 -51.42857 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 06 001" translate="0 0 0" scale="1 1 1" rotate="0 -64.28571 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 07 001" translate="0 0 0" scale="1 1 1" rotate="0 -77.14286 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 08 001" translate="0 0 0" scale="1 1 1" rotate="0 -90 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 09 001" translate="0 0 0" scale="1 1 1" rotate="0 -102.8571 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 10 001" translate="0 0 0" scale="1 1 1" rotate="0 -115.7143 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 11 001" translate="0 0 0" scale="1 1 1" rotate="0 -128.5714 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 12 001" translate="0 0 0" scale="1 1 1" rotate="0 -141.4286 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 13 001" translate="0 0 0" scale="1 1 1" rotate="0 -154.2857 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 14 001" translate="0 0 0" scale="1 1 1" rotate="0 -167.1429 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 15 001" translate="0 0 0" scale="1 1 1" rotate="0 -180 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 16 001" translate="0 0 0" scale="1 1 1" rotate="0 -192.8571 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 17 001" translate="0 0 0" scale="1 1 1" rotate="0 -205.7143 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 18 001" translate="0 0 0" scale="1 1 1" rotate="0 -218.5714 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 19 001" translate="0 0 0" scale="1 1 1" rotate="0 -231.4286 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 20 001" translate="0 0 0" scale="1 1 1" rotate="0 -244.2857 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 21 001" translate="0 0 0" scale="1 1 1" rotate="0 -257.1429 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 22 001" translate="0 0 0" scale="1 1 1" rotate="0 -270 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 23 001" translate="0 0 0" scale="1 1 1" rotate="0 -282.8571 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 24 001" translate="0 0 0" scale="1 1 1" rotate="0 -295.7143 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 25 001" translate="0 0 0" scale="1 1 1" rotate="0 -308.5714 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 26 001" translate="0 0 0" scale="1 1 1" rotate="0 -321.4286 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 27 001" translate="0 0 0" scale="1 1 1" rotate="0 -334.2857 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+      <transform name="Meridian 28 001" translate="0 0 0" scale="1 1 1" rotate="0 -347.1429 0">
+        <lod name="Coffer ring 1" center="0 42.0329 -7.297929" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-0" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-0-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 2" center="0 39.31461 -12.51735" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-1" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-1-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 3" center="0 35.29118 -16.81192" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-2" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-2-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 4" center="0 30.25987 -19.86436" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-3" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-3-low" selectable="false" />
+          </level>
+        </lod>
+        <lod name="Coffer ring 5" center="0 24.59242 -21.44912" fadeWidth="3">
+          <level max="48">
+            <instance ref="coffer-4" selectable="false" />
+          </level>
+          <level max="inf">
+            <instance ref="coffer-4-low" selectable="false" />
+          </level>
+        </lod>
+      </transform>
+    </group>
+    <transform name="I   LAPIS wing 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
+      <transform name="Room envelope 001" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <state tint="1 .96 .86" />
+        <instance ref="room-shell" selectable="false" />
+      </transform>
+      <transform name="Oak floor 001" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <instance ref="room-floor" selectable="false" />
+      </transform>
+      <group name="I   LAPIS exhibits" room="lapis">
+        <light name="I   LAPIS lamp" position="0 8.6 -26.91229 1" direction="0 -1 0" inner="46" outer="68" range="18" diffuse="3.1 2.6 1.9" specular="2 1.7 1.3" ambient="0.018 0.016 0.014" attenuation="1 0.01 0.012" />
+        <transform name="Ceiling emitter 001" translate="0 9.77 -26.91229" scale="2.2 0.12 2.2" rotate="0 0 0">
+          <state diffuse="1 .85 .6" emissive="1.7 1.4 .95" castShadows="false" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Exhibit anchor 001" translate="0 0 -27.91229" scale="1 1 1" rotate="0 0 0">
+          <transform name="Plinth 001" translate="0 0.45 0" scale="4 0.9 4" rotate="0 0 0">
+            <state diffuse=".16 .19 .18" roughness=".42" metallic=".12" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Marble form 001" translate="0 2.4 0" scale="1.5 1.5 1.5" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.3" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.2" />
+            <instance ref="material-sphere" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Stone sample 001" translate="-3.7 0 -29.71229" scale="0.5 0.5 0.5" rotate="0 0 0">
+          <instance ref="column" selectable="false" />
+        </transform>
+        <transform name="Stone sample 002" translate="3.7 0 -29.71229" scale="0.5 0.5 0.5" rotate="0 0 0">
+          <instance ref="column" selectable="false" />
+        </transform>
+      </group>
+    </transform>
+    <transform name="II   AES wing 001" translate="0 0 0" scale="1 1 1" rotate="0 -90 0">
+      <transform name="Room envelope 002" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <state tint=".8 .63 .45" />
+        <instance ref="room-shell" selectable="false" />
+      </transform>
+      <transform name="Oak floor 002" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <instance ref="room-floor" selectable="false" />
+      </transform>
+      <group name="II   AES exhibits" room="aes">
+        <light name="II   AES lamp" position="0 8.6 -26.91229 1" direction="0 -1 0" inner="46" outer="68" range="18" diffuse="3.5 2.1 1" specular="2 1.7 1.3" ambient="0.018 0.016 0.014" attenuation="1 0.01 0.012" />
+        <transform name="Ceiling emitter 002" translate="0 9.77 -26.91229" scale="2.2 0.12 2.2" rotate="0 0 0">
+          <state diffuse="1 .85 .6" emissive="1.7 1.4 .95" castShadows="false" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Exhibit anchor 002" translate="0 0 -27.91229" scale="1 1 1" rotate="0 0 0">
+          <transform name="Plinth 002" translate="0 0.45 0" scale="4 0.9 4" rotate="0 0 0">
+            <state diffuse=".16 .19 .18" roughness=".42" metallic=".12" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Armillary pivot 001" translate="0 3 0" scale="1 1 1" rotate="0 0 0" animation="spin" axis="0 1 0" speed="9">
+            <transform name="Bronze orbit 0 001" translate="0 0 0" scale="2 2 2" rotate="65 0 0">
+              <instance ref="orbit" selectable="false" />
+            </transform>
+            <transform name="Bronze orbit 1 001" translate="0 0 0" scale="2 2 2" rotate="25 55 20">
+              <instance ref="orbit" selectable="false" />
+            </transform>
+            <transform name="Bronze orbit 2 001" translate="0 0 0" scale="2 2 2" rotate="0 0 65">
+              <instance ref="orbit" selectable="false" />
+            </transform>
+            <transform name="Core 001" translate="0 0 0" scale="0.48 0.48 0.48" rotate="0 0 0">
+              <state diffuse="0.56 0.32 0.12" ambient="0.035 0.025 0.01" specular="0.62 0.42 0.18" metallic="0.86" roughness="0.29" shininess="170" environment="true" />
+              <instance ref="material-sphere" selectable="false" />
+            </transform>
+          </transform>
+        </transform>
+      </group>
+    </transform>
+    <transform name="III   SILVA wing 001" translate="0 0 0" scale="1 1 1" rotate="0 -180 0">
+      <transform name="Room envelope 003" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <state tint=".63 .68 .54" />
+        <instance ref="room-shell" selectable="false" />
+      </transform>
+      <transform name="Oak floor 003" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <instance ref="room-floor" selectable="false" />
+      </transform>
+      <group name="III   SILVA exhibits" room="silva">
+        <light name="III   SILVA lamp" position="0 8.6 -26.91229 1" direction="0 -1 0" inner="46" outer="68" range="18" diffuse="2.3 2.7 1.8" specular="2 1.7 1.3" ambient="0.018 0.016 0.014" attenuation="1 0.01 0.012" />
+        <transform name="Ceiling emitter 003" translate="0 9.77 -26.91229" scale="2.2 0.12 2.2" rotate="0 0 0">
+          <state diffuse="1 .85 .6" emissive="1.7 1.4 .95" castShadows="false" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Exhibit anchor 003" translate="0 0 -27.91229" scale="1 1 1" rotate="0 0 0">
+          <transform name="Plinth 003" translate="0 0.45 0" scale="4 0.9 4" rotate="0 0 0">
+            <state diffuse=".16 .19 .18" roughness=".42" metallic=".12" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Reading table 001" translate="0 1.15 0" scale="3.7 0.16 2.2" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Open atlas 001" translate="-0.35 1.3 0" scale="0.7 0.07 0.9" rotate="0 0 8">
+            <state diffuse=".74 .65 .43" roughness=".9" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Open atlas 002" translate="0.35 1.3 0" scale="0.7 0.07 0.9" rotate="0 0 -8">
+            <state diffuse=".74 .65 .43" roughness=".9" />
+            <instance ref="box" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Archive shelf 001" translate="-4.55 0 -28.61229" scale="1 1 1" rotate="0 0 0">
+          <transform name="Back 001" translate="0 2.5 0" scale="0.22 5 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 001" translate="0.34 0.2 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 002" translate="0.34 1.4 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 003" translate="0.34 2.6 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 004" translate="0.34 3.8 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 005" translate="0.34 5 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <group name="Shelf row 0">
+            <transform name="Book 001" translate="0.4 0.65 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 002" translate="0.4 0.65 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 003" translate="0.4 0.65 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 004" translate="0.4 0.65 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 005" translate="0.4 0.65 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 006" translate="0.4 0.65 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 007" translate="0.4 0.65 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 008" translate="0.4 0.65 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 009" translate="0.4 0.65 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 010" translate="0.4 0.65 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 011" translate="0.4 0.65 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 012" translate="0.4 0.65 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 013" translate="0.4 0.65 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+          <group name="Shelf row 1">
+            <transform name="Book 014" translate="0.4 1.85 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 015" translate="0.4 1.85 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 016" translate="0.4 1.85 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 017" translate="0.4 1.85 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 018" translate="0.4 1.85 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 019" translate="0.4 1.85 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 020" translate="0.4 1.85 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 021" translate="0.4 1.85 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 022" translate="0.4 1.85 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 023" translate="0.4 1.85 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 024" translate="0.4 1.85 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 025" translate="0.4 1.85 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 026" translate="0.4 1.85 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+          <group name="Shelf row 2">
+            <transform name="Book 027" translate="0.4 3.05 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 028" translate="0.4 3.05 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 029" translate="0.4 3.05 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 030" translate="0.4 3.05 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 031" translate="0.4 3.05 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 032" translate="0.4 3.05 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 033" translate="0.4 3.05 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 034" translate="0.4 3.05 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 035" translate="0.4 3.05 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 036" translate="0.4 3.05 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 037" translate="0.4 3.05 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 038" translate="0.4 3.05 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 039" translate="0.4 3.05 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+          <group name="Shelf row 3">
+            <transform name="Book 040" translate="0.4 4.25 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 041" translate="0.4 4.25 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 042" translate="0.4 4.25 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 043" translate="0.4 4.25 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 044" translate="0.4 4.25 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 045" translate="0.4 4.25 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 046" translate="0.4 4.25 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 047" translate="0.4 4.25 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 048" translate="0.4 4.25 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 049" translate="0.4 4.25 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 050" translate="0.4 4.25 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 051" translate="0.4 4.25 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 052" translate="0.4 4.25 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+        </transform>
+        <transform name="Archive shelf 002" translate="4.55 0 -28.61229" scale="1 1 1" rotate="0 0 0">
+          <transform name="Back 002" translate="0 2.5 0" scale="0.22 5 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 006" translate="-0.34 0.2 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 007" translate="-0.34 1.4 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 008" translate="-0.34 2.6 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 009" translate="-0.34 3.8 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Shelf board 010" translate="-0.34 5 0" scale="0.9 0.12 5.6" rotate="0 0 0">
+            <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness="0.58" metallic="0" environment="false" texture0="experiments/pantheon/textures/wood_table_001-albedo.jpg" normalMap="experiments/pantheon/textures/wood_table_001-normal.jpg" normalScale="0.6" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <group name="Shelf row 0">
+            <transform name="Book 053" translate="-0.4 0.65 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 054" translate="-0.4 0.65 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 055" translate="-0.4 0.65 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 056" translate="-0.4 0.65 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 057" translate="-0.4 0.65 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 058" translate="-0.4 0.65 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 059" translate="-0.4 0.65 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 060" translate="-0.4 0.65 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 061" translate="-0.4 0.65 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 062" translate="-0.4 0.65 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 063" translate="-0.4 0.65 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 064" translate="-0.4 0.65 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 065" translate="-0.4 0.65 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+          <group name="Shelf row 1">
+            <transform name="Book 066" translate="-0.4 1.85 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 067" translate="-0.4 1.85 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 068" translate="-0.4 1.85 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 069" translate="-0.4 1.85 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 070" translate="-0.4 1.85 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 071" translate="-0.4 1.85 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 072" translate="-0.4 1.85 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 073" translate="-0.4 1.85 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 074" translate="-0.4 1.85 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 075" translate="-0.4 1.85 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 076" translate="-0.4 1.85 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 077" translate="-0.4 1.85 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 078" translate="-0.4 1.85 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+          <group name="Shelf row 2">
+            <transform name="Book 079" translate="-0.4 3.05 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 080" translate="-0.4 3.05 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 081" translate="-0.4 3.05 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 082" translate="-0.4 3.05 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 083" translate="-0.4 3.05 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 084" translate="-0.4 3.05 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 085" translate="-0.4 3.05 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 086" translate="-0.4 3.05 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 087" translate="-0.4 3.05 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 088" translate="-0.4 3.05 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 089" translate="-0.4 3.05 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 090" translate="-0.4 3.05 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 091" translate="-0.4 3.05 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+          <group name="Shelf row 3">
+            <transform name="Book 092" translate="-0.4 4.25 -2.4" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 093" translate="-0.4 4.25 -2.01" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 094" translate="-0.4 4.25 -1.62" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 095" translate="-0.4 4.25 -1.23" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 096" translate="-0.4 4.25 -0.84" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 097" translate="-0.4 4.25 -0.45" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 098" translate="-0.4 4.25 -0.06" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 099" translate="-0.4 4.25 0.33" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 100" translate="-0.4 4.25 0.72" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 101" translate="-0.4 4.25 1.11" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".29 .12 .065" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 102" translate="-0.4 4.25 1.5" scale="0.6 0.79 0.27" rotate="0 0 0">
+              <state diffuse=".12 .24 .2" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 103" translate="-0.4 4.25 1.89" scale="0.6 0.86 0.27" rotate="0 0 0">
+              <state diffuse=".52 .37 .14" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+            <transform name="Book 104" translate="-0.4 4.25 2.28" scale="0.6 0.72 0.27" rotate="0 0 0">
+              <state diffuse=".16 .2 .28" roughness=".8" />
+              <instance ref="box" selectable="false" />
+            </transform>
+          </group>
+        </transform>
+      </group>
+    </transform>
+    <transform name="IV   ASTRA wing 001" translate="0 0 0" scale="1 1 1" rotate="0 -270 0">
+      <transform name="Room envelope 004" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <state tint=".26 .32 .48" />
+        <instance ref="room-shell" selectable="false" />
+      </transform>
+      <transform name="Oak floor 004" translate="0 0 -20.91229" scale="1 1 1" rotate="0 0 0">
+        <instance ref="room-floor" selectable="false" />
+      </transform>
+      <group name="IV   ASTRA exhibits" room="astra">
+        <light name="IV   ASTRA lamp" position="0 8.6 -26.91229 1" direction="0 -1 0" inner="46" outer="68" range="18" diffuse="1.4 2.1 3.8" specular="2 1.7 1.3" ambient="0.018 0.016 0.014" attenuation="1 0.01 0.012" />
+        <transform name="Ceiling emitter 004" translate="0 9.77 -26.91229" scale="2.2 0.12 2.2" rotate="0 0 0">
+          <state diffuse="1 .85 .6" emissive="1.7 1.4 .95" castShadows="false" />
+          <instance ref="box" selectable="false" />
+        </transform>
+        <transform name="Exhibit anchor 004" translate="0 0 -27.91229" scale="1 1 1" rotate="0 0 0">
+          <transform name="Plinth 004" translate="0 0.45 0" scale="4 0.9 4" rotate="0 0 0">
+            <state diffuse=".16 .19 .18" roughness=".42" metallic=".12" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Celestial orbit 0 001" translate="0 3 0" scale="2 2 2" rotate="55 0 0">
+            <instance ref="orbit" selectable="false" />
+          </transform>
+          <transform name="Celestial orbit 1 001" translate="0 3 0" scale="2 2 2" rotate="0 35 70">
+            <instance ref="orbit" selectable="false" />
+          </transform>
+          <transform name="Celestial orbit 2 001" translate="0 3 0" scale="2 2 2" rotate="85 25 25">
+            <instance ref="orbit" selectable="false" />
+          </transform>
+          <transform name="Azure core 001" translate="0 3 0" scale="0.9 0.9 0.9" rotate="0 0 0">
+            <state diffuse=".075 .19 .38" metallic=".4" roughness=".19" environment="true" emissive=".05 .18 .45" />
+            <instance ref="sphere-low" selectable="false" />
+          </transform>
+        </transform>
+        <transform name="Star inlay 001" translate="-4 2 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 002" translate="-2.653465 3.917526 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 003" translate="-1.306931 5.835052 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 004" translate="0.03960396 7.752577 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 005" translate="1.386139 3.670103 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 006" translate="2.732673 5.587629 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 007" translate="-3.920792 7.505155 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 008" translate="-2.574257 3.42268 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 009" translate="-1.227723 5.340206 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 010" translate="0.1188119 7.257732 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 011" translate="1.465347 3.175258 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 012" translate="2.811881 5.092784 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 013" translate="-3.841584 7.010309 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 014" translate="-2.49505 2.927835 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 015" translate="-1.148515 4.845361 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 016" translate="0.1980198 6.762887 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 017" translate="1.544554 2.680412 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 018" translate="2.891089 4.597938 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 019" translate="-3.762376 6.515464 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 020" translate="-2.415842 2.43299 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 021" translate="-1.069307 4.350515 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 022" translate="0.2772277 6.268041 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 023" translate="1.623762 2.185567 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+        <transform name="Star inlay 024" translate="2.970297 4.103093 -32.85229" scale="0.035 0.035 0.035" rotate="0 0 0">
+          <state diffuse=".5 .7 1" emissive=".4 .7 1.4" castShadows="false" />
+          <instance ref="sphere-low" selectable="false" />
+        </transform>
+      </group>
+    </transform>
+  </group>
+</scene>

@@ -1,0 +1,143 @@
+{
+  "date": "2026-10-29",
+  "method": "Per-ray cubemap array, scene-defined regions and openings; no sky geometry",
+  "sky_resolution_per_face": 1024,
+  "regional_diffuse_ibl": true,
+  "regional_reflection_refraction_fallback": true,
+  "gpu_and_cpu_tests": "inside-both.png: 10352 room pixels, 1936 world pixels, 0 mask mismatches\noutside-both.png: 1936 room pixels, 10352 world pixels, 0 mask mismatches\nPassed 22 room-sky checks",
+  "simultaneous_real_scene": {
+    "city_background_pixels": 3378,
+    "star_background_pixels": 93122,
+    "city_max_channel_difference_with_room_override": 0,
+    "star_mean_channel_difference_with_room_override": 169.23347866239988
+  },
+  "culling_comparisons": [
+    {
+      "view": "sky-astra",
+      "mode": "deferred",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-astra",
+      "mode": "deferred",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-astra-exit",
+      "mode": "deferred",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-astra-exit",
+      "mode": "deferred",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-astra-sky",
+      "mode": "deferred",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-astra-sky",
+      "mode": "deferred",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-city-sky",
+      "mode": "deferred",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-city-sky",
+      "mode": "deferred",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-mixed-forward",
+      "mode": "forward",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-mixed-forward",
+      "mode": "forward",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-mixed-msaa",
+      "mode": "msaa",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-mixed-msaa",
+      "mode": "msaa",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-threshold-inside",
+      "mode": "deferred",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-threshold-inside",
+      "mode": "deferred",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-threshold-outside",
+      "mode": "deferred",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-threshold-outside",
+      "mode": "deferred",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-all-global",
+      "mode": "deferred",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_difference": 0
+    },
+    {
+      "view": "sky-all-global",
+      "mode": "deferred",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_difference": 0
+    }
+  ],
+  "optional_portal_culling": false
+}

@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-29",
+  "scene_version": 7,
+  "implementation": "Other wings hidden; active room and its passage retained; Pantheon drawn only through the doorway projection",
+  "scenegraph_checks": 217,
+  "scope": [
+    "all four room selections",
+    "room boundary and corridor transitions",
+    "round room corners",
+    "restoration of previous visibility",
+    "shadow casters",
+    "stable light slots",
+    "frustum culling exemptions",
+    "static shadow caching preserved"
+  ],
+  "camera_checks": [
+    {
+      "view": "astra-exit",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0,
+      "mean_channel_difference": 0.0
+    },
+    {
+      "view": "astra-exit",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0,
+      "mean_channel_difference": 0.0
+    },
+    {
+      "view": "astra-floor",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0,
+      "mean_channel_difference": 0.0
+    },
+    {
+      "view": "astra-floor",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0,
+      "mean_channel_difference": 0.0
+    },
+    {
+      "view": "astra",
+      "channel": "lit",
+      "changed_pixels": 0,
+      "max_channel_difference": 0,
+      "mean_channel_difference": 0.0
+    },
+    {
+      "view": "astra",
+      "channel": "depth",
+      "changed_pixels": 0,
+      "max_channel_difference": 0,
+      "mean_channel_difference": 0.0
+    }
+  ],
+  "controller_attributes": {
+    "name": "Room visibility controller 001",
+    "translate": "0 0 0",
+    "scale": "1 1 1",
+    "rotate": "0 0 0",
+    "animation": "room-isolation",
+    "zone-lapis": "-24 0 -82 24 26 -34.6633 0 -58 24",
+    "zone-aes": "34 0 -32 112 106 32 0 0 0",
+    "zone-silva": "-21 0 34 21 14 78 0 0 0",
+    "zone-astra": "-82 0 -24 -34.6633 30 24 -58 1.065443e-14 24"
+  }
+}

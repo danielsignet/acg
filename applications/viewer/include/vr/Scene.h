@@ -4,6 +4,7 @@
 #include "Light.h"
 #include "PortalVisibility.h"
 #include "Transform.h"
+#include "SceneEnvironments.h"
 
 namespace vr{
 class RenderToTexture;
@@ -12,6 +13,9 @@ class Scene{
 public:
     // Creates one graph root and attaches its camera node.
     Scene();
+
+    SceneEnvironments& getEnvironments(){ return m_environments; }
+    const SceneEnvironments& getEnvironments() const{ return m_environments; }
 
     // Returns the root owned by this scene or resource reader.
     const std::shared_ptr<Group>& getRoot() const{
@@ -74,6 +78,7 @@ public:
     }
 
 private:
+    SceneEnvironments m_environments;
     std::shared_ptr<Group> m_root;
     std::shared_ptr<Camera> m_camera;
     std::vector<std::shared_ptr<RenderToTexture>> m_renderTargets;

@@ -10,6 +10,8 @@ public:
 
     // Moves the enabled camera tour through all six cow detail levels.
     void update(Node& node, const UpdateContext& context) override;
+    // Moving the observer does not change radiance at a fixed reflection probe.
+    bool changesRenderedContent() const override{ return false; }
 
     // Enables or pauses this effect without discarding its current state.
     void setEnabled(bool enabled);

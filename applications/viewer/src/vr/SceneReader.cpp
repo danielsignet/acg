@@ -89,10 +89,11 @@ std::shared_ptr<Scene> SceneReader::read(const std::filesystem::path& path){
     readAssets(root);
     readCamera(root);
     readVisibility(root);
+    readEnvironments(root);
 
     for (auto* child = root->first_node(); child; child = child->next_sibling()){
         const std::string tag = child->name();
-        if (tag == "assets" || tag == "camera" || tag == "visibility"){
+        if (tag == "assets" || tag == "camera" || tag == "visibility" || tag == "environments"){
             continue;
         }
         if (tag == "state"){
@@ -104,6 +105,39 @@ std::shared_ptr<Scene> SceneReader::read(const std::filesystem::path& path){
     m_scene->getCamera()->setLookAt(m_scene->getInitialEye(), m_scene->getInitialTarget());
     m_scene->getCamera()->setPerspective(48, 1.6f, 0.1f, 150);
     return m_scene;
+}
+
+// Reads room sky resources, finite volumes and their rectangular sky openings.
+void SceneReader::readEnvironments(Xml* root){
+    auto* layout=root->first_node("environments");
+    if (!layout) return;
+    std::vector<RoomSky> skies;
+    std::vector<SkyRegion> regions;
+    for (auto* item=layout->first_node();item;item=item->next_sibling()){
+        const std::string tag=item->name();
+        if (tag=="sky"){
+            skies.push_back({required(item,"id"),portablePath(required(item,"file")),
+                             number(attribute(item,"exposure","0"))});
+        } else if (tag!="region") throw std::runtime_error("Unknown environment element");
+    }
+    for (auto* item=layout->first_node("region");item;item=item->next_sibling("region")){
+        const auto id=required(item,"sky");
+        const auto found=std::find_if(skies.begin(),skies.end(),[&](const RoomSky& sky){return sky.id==id;});
+        if (id!="world" && found==skies.end()) throw std::runtime_error("Unknown room sky: "+id);
+        auto* door=item->first_node("opening");
+        if (!door || door->next_sibling()) throw std::runtime_error("Sky region requires one opening");
+        SkyRegion region;
+        region.room=required(item,"room");
+        region.sky=id=="world" ? 0 : static_cast<unsigned>(found-skies.begin())+1;
+        region.bounds=BoundingBox(vec3(required(item,"min")),vec3(required(item,"max")));
+        region.opening=BoundingBox(vec3(required(door,"min")),vec3(required(door,"max")));
+        if (item->first_attribute("cylinder")){
+            const auto v=numbers(attribute(item,"cylinder"),4);
+            region.cylinder={v[0],v[1],v[2],v[3]};
+        }
+        regions.push_back(std::move(region));
+    }
+    m_scene->getEnvironments().build(std::move(skies),std::move(regions));
 }
 
 // Reads finite cells, the exterior region and explicit rectangular openings.
@@ -277,6 +311,13 @@ std::shared_ptr<Transform> SceneReader::readTransform(Xml* xml, const std::strin
         transform->setUpdateCallback(
             std::make_shared<SpinCallback>(transform, number(attribute(xml, "speed", "35")),
                                            vec3(attribute(xml, "axis", "0.3 1 0.2"))));
+    } else if (!attribute(xml, "animation").empty()){
+        Reader::AnimationAttributes attributes;
+        for (auto* item = xml->first_attribute(); item; item = item->next_attribute()){
+            attributes.emplace(item->name(), item->value());
+        }
+        transform->setUpdateCallback(Reader::createTransformAnimation(
+            attribute(xml, "animation"), transform, attributes));
     }
     m_scene->registerTransform(transform);
     return transform;

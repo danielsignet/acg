@@ -9,8 +9,32 @@
 #include <vr/GLState.h>
 
 namespace vr{
+namespace{
+constexpr unsigned skySize=1024,skyLevels=11;
+// Copies a complete cube layer on the GPU, retaining the individual mip levels.
+void copyCube(const std::shared_ptr<Texture>& source,const std::shared_ptr<Texture>& target,
+              unsigned sourceLayer,unsigned targetLayer,unsigned levels){
+    FramebufferState saved;
+    source->apply(1);target->apply(0);
+    GLuint framebuffer=0;
+    glGenFramebuffers(1,&framebuffer);
+    GLState::bindFramebuffer(GL_READ_FRAMEBUFFER,framebuffer);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    for (unsigned level=0;level<levels;++level){
+        const int size=std::max(1,source->getWidth()>>level);
+        for (unsigned face=0;face<6;++face){
+            if (source->getTarget()==GL_TEXTURE_CUBE_MAP_ARRAY)
+                glFramebufferTextureLayer(GL_READ_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,source->getId(),level,sourceLayer*6+face);
+            else glFramebufferTexture2D(GL_READ_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
+                    GL_TEXTURE_CUBE_MAP_POSITIVE_X+face,source->getId(),level);
+            glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY,level,0,0,targetLayer*6+face,0,0,size,size);
+        }
+    }
+    GLState::deleteFramebuffers(1,&framebuffer);
+}
+}
 // Projects diffuse lighting and normalizes exposure before the temporary HDR upload.
-void EnvironmentMap::projectLighting(float* pixels, int width, int height){
+void EnvironmentMap::projectLighting(float* pixels, int width, int height, float requestedExposure){
     m_irradiance.fill(glm::vec3(0));
     double weightedLuminance = 0, totalWeight = 0;
     float brightest = 0;
@@ -35,7 +59,7 @@ void EnvironmentMap::projectLighting(float* pixels, int width, int height){
             }
         }
     }
-    const float exposure =
+    const float exposure = requestedExposure>0 ? requestedExposure :
         static_cast<float>(0.35 * totalWeight / std::max(weightedLuminance, 1e-6));
     for (std::size_t i = 0; i < static_cast<std::size_t>(width) * height * 3; ++i){
         pixels[i] *= exposure;
@@ -66,7 +90,8 @@ void EnvironmentMap::projectLighting(float* pixels, int width, int height){
 
 // Loads one HDRI and bakes reusable GGX reflections, diffuse SH and the BRDF lookup.
 EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
-                               const std::filesystem::path& image){
+                               const std::filesystem::path& image, float exposure){
+    if (!std::isfinite(exposure) || exposure<0) throw std::invalid_argument("Invalid sky exposure");
     const auto shaders = root / "shaders";
     m_skyProgram =
         std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "environment-sky.fs");
@@ -85,7 +110,8 @@ EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
     if (!pixels){
         throw std::runtime_error("Cannot load sky HDRI: " + image.string());
     }
-    projectLighting(pixels.get(), width, height);
+    projectLighting(pixels.get(), width, height, exposure);
+    m_irradiances.push_back(m_irradiance);
     FramebufferState saved;
     Antialiasing::screenPass();
     GLState::enable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
@@ -100,7 +126,7 @@ EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        m_radiance = Texture::colorCube(512, 10);
+        m_radiance = Texture::colorCube(skySize, skyLevels);
         m_prefiltered = Texture::colorCubeArray(256, 9, 1);
         m_brdf = std::make_unique<ColorTarget>(128, 128);
         m_radiance->apply(1);
@@ -132,7 +158,7 @@ EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
             }
         };
         bake.set("uPass", 0);
-        faces(m_radiance, 0, 512);
+        faces(m_radiance, 0, skySize);
         m_radiance->apply(1);
         glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
         bake.set("uPass", 1);
@@ -150,6 +176,47 @@ EnvironmentMap::EnvironmentMap(const std::filesystem::path& root,
     }
     GLState::deleteFramebuffers(1, &framebuffer);
     glDeleteTextures(1, &source);
+    m_skies=Texture::colorCubeArray(skySize,skyLevels,1);
+    copyCube(m_radiance,m_skies,0,0,skyLevels);
+    // The packed array owns the baked pixels; release the temporary cube.
+    m_radiance.reset();
+}
+
+void EnvironmentMap::configureRooms(const std::filesystem::path& root,const SceneEnvironments& layout){
+    if (layout.getSkies().empty()) return;
+    const auto count=static_cast<unsigned>(layout.getSkies().size())+1;
+    auto skies=Texture::colorCubeArray(skySize,skyLevels,count);
+    auto filtered=Texture::colorCubeArray(256,9,count);
+    copyCube(m_skies,skies,0,0,skyLevels);
+    copyCube(m_prefiltered,filtered,0,0,9);
+    auto irradiances=std::vector<std::array<glm::vec3,9>>{m_irradiance};
+    for (unsigned i=0;i<layout.getSkies().size();++i){
+        const auto& sky=layout.getSkies()[i];
+        EnvironmentMap room(root,sky.image,sky.exposure);
+        copyCube(room.m_skies,skies,0,i+1,skyLevels);
+        copyCube(room.m_prefiltered,filtered,0,i+1,9);
+        irradiances.push_back(room.m_irradiance);
+    }
+    m_skies=std::move(skies);m_prefiltered=std::move(filtered);
+    m_irradiances=std::move(irradiances);m_layout=layout;
+    m_localMaps.reset();m_readyMask=1;
+}
+
+void EnvironmentMap::applyRegions(const Program& program) const{
+    program.set("uEnvironmentCount",static_cast<int>(getSkyCount()));
+    const auto& regions=m_layout.getRegions();
+    program.set("uSkyRegionCount",static_cast<int>(regions.size()));
+    for (std::size_t i=0;i<regions.size();++i){
+        const auto suffix="["+std::to_string(i)+"]";
+        const auto& r=regions[i];
+        program.set("uSkyRegionMin"+suffix,r.bounds.getMinimum());
+        program.set("uSkyRegionMax"+suffix,r.bounds.getMaximum());
+        program.set("uSkyRegionCylinder"+suffix,r.cylinder);
+        program.set("uSkyOpeningMin"+suffix,r.opening.getMinimum());
+        program.set("uSkyOpeningMax"+suffix,r.opening.getMaximum());
+        program.set("uSkyOpeningNormal"+suffix,r.outward);
+        program.set("uSkyRegionLayer"+suffix,static_cast<int>(r.sky));
+    }
 }
 
 // Publishes the environment to a forward program using the two remaining sampler units.
@@ -164,30 +231,17 @@ void EnvironmentMap::apply(const Program& program, unsigned firstUnit) const{
     program.set("uEnvironmentEnabled", true);
     program.set("uReflectionMode", static_cast<int>(m_mode));
     program.set("uReflectionReadyMask", m_localMaps ? static_cast<int>(m_readyMask) : 1);
-    for (unsigned i = 0; i < m_irradiance.size(); ++i){
-        program.set("uIrradiance[" + std::to_string(i) + "]", m_irradiance[i]);
+    applyRegions(program);
+    for (unsigned layer=0;layer<m_irradiances.size();++layer){
+      for (unsigned i = 0; i < 9; ++i){
+        program.set("uIrradiance[" + std::to_string(layer*9+i) + "]", m_irradiances[layer][i]);
+      }
     }
 }
 
 // Copies the static environment into layer zero of a newly allocated local array.
 void EnvironmentMap::initializeLocalReflections(const std::shared_ptr<Texture>& maps){
-    FramebufferState saved;
-    maps->apply(0);
-    m_prefiltered->apply(1);
-    maps->apply(0);
-    GLuint framebuffer = 0;
-    glGenFramebuffers(1, &framebuffer);
-    GLState::bindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-    for (unsigned level = 0; level < 9; ++level){
-        const int size = std::max(1, 256 >> level);
-        for (unsigned face = 0; face < 6; ++face){
-            glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                                      m_prefiltered->getId(), level, face);
-            glCopyTexSubImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, level, 0, 0, face, 0, 0, size, size);
-        }
-    }
-    GLState::deleteFramebuffers(1, &framebuffer);
+    for (unsigned layer=0;layer<getSkyCount();++layer) copyCube(m_prefiltered,maps,layer,layer,9);
 }
 
 // Prefilters a complete scene capture into one local reflection layer.
@@ -226,10 +280,12 @@ void EnvironmentMap::drawSky(const Camera& camera, bool linearOutput){
     FramebufferState saved;
     Antialiasing::screenPass();
     m_skyProgram->use();
-    m_radiance->apply(0);
+    m_skies->apply(0);
+    applyRegions(*m_skyProgram);
     m_skyProgram->set("uSky", 0);
     m_skyProgram->set("uInverseProjection", glm::inverse(camera.getProjection()));
     m_skyProgram->set("uInverseView", glm::inverse(camera.getView()));
+    m_skyProgram->set("uEye",camera.getPosition());
     m_skyProgram->set("uLinearOutput", linearOutput);
     m_quad.draw();
 }
@@ -255,7 +311,7 @@ void EnvironmentMap::drawDeferred(const Camera& camera, const GBuffer& buffer,
         program->set(names[i], static_cast<int>(i));
     }
     apply(*program, 6);
-    m_radiance->apply(8);
+    m_skies->apply(8);
     program->set("uSky", 8);
     program->set("uEye", camera.getPosition());
     program->set("uInverseProjection", glm::inverse(camera.getProjection()));

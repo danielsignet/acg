@@ -1,0 +1,294 @@
+{
+  "rooms": {
+    "lapis": {
+      "width": 48,
+      "depth": 48,
+      "height": 26,
+      "center_depth": 58,
+      "kind": "materials / original cloudy sky"
+    },
+    "aes": {
+      "width": 64,
+      "depth": 78,
+      "height": 106,
+      "center_depth": 73,
+      "kind": "four-tower city courtyard"
+    },
+    "silva": {
+      "width": 42,
+      "depth": 44,
+      "height": 14,
+      "center_depth": 56,
+      "kind": "legacy object gallery / archive"
+    },
+    "astra": {
+      "width": 48,
+      "depth": 48,
+      "height": 30,
+      "center_depth": 58,
+      "kind": "dragon planetarium / star sky"
+    }
+  },
+  "legacy_material_spheres": [
+    "whitePlastic",
+    "redPlastic",
+    "blueCeramic",
+    "roughStone",
+    "goldMetal",
+    "copperMetal",
+    "chromeMetal",
+    "roughMetal",
+    "clearGlass"
+  ],
+  "legacy_models": [
+    "altair",
+    "c3po",
+    "cow-0.01",
+    "cow-0.05",
+    "cow-0.1",
+    "cow-0.3",
+    "cow-0.5",
+    "cow-0.99",
+    "crate",
+    "dragon",
+    "monkey",
+    "porsche"
+  ],
+  "legacy_gallery_objects": [
+    "instanceA",
+    "instanceB",
+    "animated",
+    "cowDisplay",
+    "toon",
+    "crateA",
+    "crateB",
+    "alphatest"
+  ],
+  "mirror": {
+    "name": "materialMirror",
+    "overall_width_m": 36,
+    "height_m": 7.28,
+    "plane_world_z_m": -43,
+    "central_passage_width_m": 6.48,
+    "front_normal_world": [
+      0,
+      0,
+      -1
+    ]
+  },
+  "car": {
+    "scale": 1,
+    "dimensions_m": [
+      1.978846,
+      1.3007395,
+      4.54811
+    ]
+  },
+  "dragon": {
+    "scale": 0.0065,
+    "source_animation_clips": [
+      "Fly",
+      "Idle",
+      "Run",
+      "Walk"
+    ]
+  },
+  "buildings": [
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings006.fbx",
+      "source_sha256": "555e6ee67121b8b36f9d868dbbd2e241e0f747db02b9799a33621669f9b029fc",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          4718.31,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        47.1878,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        -17,
+        0,
+        -54
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 924,
+      "added_pane_count": 336,
+      "added_glass_area_m2": 2266.75,
+      "added_glass_to_total_facade_area": 0.6729,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    },
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings007.fbx",
+      "source_sha256": "7b93663a27c9f8deee697e0bcadd9ef11d49789c0310a09a49f77ff8d8debeba",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          6878.32,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        68.7879,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        17,
+        0,
+        -54
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 1428,
+      "added_pane_count": 504,
+      "added_glass_area_m2": 3400.13,
+      "added_glass_to_total_facade_area": 0.6925,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    },
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings009.fbx",
+      "source_sha256": "4763d90a662e0345846d59a4a021c7906603b02f5e88b4c96afd4d5973290abc",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          8678.32,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        86.7879,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        -17,
+        0,
+        -88
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 1848,
+      "added_pane_count": 644,
+      "added_glass_area_m2": 4344.61,
+      "added_glass_to_total_facade_area": 0.7013,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    },
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings010.fbx",
+      "source_sha256": "f5706bea3b5c56235a56ae7cb6baf712d89f92874677df29703861d74b4d819f",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          10478.3,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        104.7877,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        17,
+        0,
+        -88
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 2268,
+      "added_pane_count": 784,
+      "added_glass_area_m2": 5289.09,
+      "added_glass_to_total_facade_area": 0.7071,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    }
+  ],
+  "legacy_sky": {
+    "source": "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+    "sha256": "5244534e9cf5b606f2ff513aa00ddb161b0a4826ffd88a0d3bd03ac29247d198",
+    "room_backdrop": "textures/legacy-cloud-sky.png",
+    "exposure": 0.5060471577382882,
+    "note": "Derived linear LDR backdrop only. Original HDR remains the global reflection/lighting source."
+  },
+  "lighting": "One sun, gallery/archive softboxes, dragon key/rim, two switchable car headlights and camera flashlight: eight light slots total."
+}

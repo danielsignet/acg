@@ -1,0 +1,515 @@
+{
+  "rooms": {
+    "lapis": {
+      "width": 48,
+      "depth": 48,
+      "height": 26,
+      "center_depth": 58,
+      "kind": "materials / original cloudy sky"
+    },
+    "aes": {
+      "width": 64,
+      "depth": 78,
+      "height": 106,
+      "center_depth": 73,
+      "kind": "four-tower city courtyard"
+    },
+    "silva": {
+      "width": 42,
+      "depth": 44,
+      "height": 14,
+      "center_depth": 56,
+      "kind": "legacy object gallery / three rotation demonstrations"
+    },
+    "astra": {
+      "width": 48,
+      "depth": 48,
+      "height": 30,
+      "center_depth": 58,
+      "kind": "dragon planetarium / star sky"
+    }
+  },
+  "legacy_material_spheres": [
+    "whitePlastic",
+    "redPlastic",
+    "blueCeramic",
+    "roughStone",
+    "goldMetal",
+    "copperMetal",
+    "chromeMetal",
+    "roughMetal",
+    "clearGlass"
+  ],
+  "legacy_models": [
+    "altair",
+    "c3po",
+    "cow-0.01",
+    "cow-0.05",
+    "cow-0.1",
+    "cow-0.3",
+    "cow-0.5",
+    "cow-0.99",
+    "crate",
+    "dragon",
+    "monkey",
+    "porsche"
+  ],
+  "legacy_gallery_objects": [
+    "instanceA",
+    "instanceB",
+    "animated",
+    "cowDisplay",
+    "toon",
+    "crateA",
+    "crateB",
+    "alphatest"
+  ],
+  "mirror": {
+    "name": "materialMirror",
+    "overall_width_m": 36,
+    "height_m": 12.0,
+    "top_world_y_m": 12.35,
+    "entrance_roof_top_m": 10.3,
+    "plane_world_z_m": -43,
+    "central_passage_width_m": 6.48,
+    "front_normal_world": [
+      0,
+      0,
+      -1
+    ]
+  },
+  "car": {
+    "scale": 1,
+    "dimensions_m": [
+      1.978846,
+      1.3007395,
+      4.54811
+    ]
+  },
+  "dragon": {
+    "scale": 0.0065,
+    "source_animation_clips": [
+      "Fly",
+      "Idle",
+      "Run",
+      "Walk"
+    ]
+  },
+  "buildings": [
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings006.fbx",
+      "source_sha256": "555e6ee67121b8b36f9d868dbbd2e241e0f747db02b9799a33621669f9b029fc",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          4718.31,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        47.1878,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        -17,
+        0,
+        -54
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 924,
+      "added_pane_count": 336,
+      "added_glass_area_m2": 2266.75,
+      "added_glass_to_total_facade_area": 0.6729,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    },
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings007.fbx",
+      "source_sha256": "7b93663a27c9f8deee697e0bcadd9ef11d49789c0310a09a49f77ff8d8debeba",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          6878.32,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        68.7879,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        17,
+        0,
+        -54
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 1428,
+      "added_pane_count": 504,
+      "added_glass_area_m2": 3400.13,
+      "added_glass_to_total_facade_area": 0.6925,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    },
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings009.fbx",
+      "source_sha256": "4763d90a662e0345846d59a4a021c7906603b02f5e88b4c96afd4d5973290abc",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          8678.32,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        86.7879,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        -17,
+        0,
+        -88
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 1848,
+      "added_pane_count": 644,
+      "added_glass_area_m2": 4344.61,
+      "added_glass_to_total_facade_area": 0.7013,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    },
+    {
+      "asset": "models/ResidentialBuildings/ResidentialBuildings010.fbx",
+      "source_sha256": "f5706bea3b5c56235a56ae7cb6baf712d89f92874677df29703861d74b4d819f",
+      "uniform_scale": 0.01,
+      "native_bounds": {
+        "min": [
+          -711.003,
+          -0.473743,
+          -1204.66
+        ],
+        "max": [
+          548.479,
+          10478.3,
+          1105.0
+        ]
+      },
+      "dimensions_m": [
+        12.5948,
+        104.7877,
+        23.0966
+      ],
+      "parent": "METROPOLIS / tower blocks",
+      "local_center_m": [
+        17,
+        0,
+        -88
+      ],
+      "source_local_translate_m": [
+        0.81262,
+        0.24473742999999998,
+        0.4983000000000004
+      ],
+      "source_window_material": "hotel_glas",
+      "source_window_triangles": 2268,
+      "added_pane_count": 784,
+      "added_glass_area_m2": 5289.09,
+      "added_glass_to_total_facade_area": 0.7071,
+      "raytracer": {
+        "glass_material": "glazing",
+        "kind": "dielectric glazing",
+        "ior": 1.52,
+        "roughness": 0.055,
+        "thickness_m": 0.012,
+        "closed_panes": true,
+        "note": "Source hotel_glas surfaces remain separate. Original FBX cores have no authored room interiors behind the new curtain wall."
+      }
+    }
+  ],
+  "legacy_sky": {
+    "source": "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+    "sha256": "5244534e9cf5b606f2ff513aa00ddb161b0a4826ffd88a0d3bd03ac29247d198",
+    "note": "Original HDR is the actual global skybox and IBL. Astra has a separate HDR cubemap, selected per ray through its opening."
+  },
+  "gyroscopes": {
+    "rigs": [
+      {
+        "method": "euler",
+        "transform": "Gyroscope euler 001",
+        "position_local_m": [
+          -12,
+          0,
+          -71
+        ],
+        "joints": [
+          "euler heading bearing 001",
+          "euler pitch bearing 001",
+          "euler roll bearing 001"
+        ],
+        "hinge_axes": [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      {
+        "method": "axis-angle",
+        "transform": "Gyroscope axis-angle 001",
+        "position_local_m": [
+          0,
+          0,
+          -71
+        ],
+        "joints": [
+          "axis-angle heading bearing 001",
+          "axis-angle pitch bearing 001",
+          "axis-angle roll bearing 001"
+        ],
+        "hinge_axes": [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      {
+        "method": "quaternion",
+        "transform": "Gyroscope quaternion 001",
+        "position_local_m": [
+          12,
+          0,
+          -71
+        ],
+        "joints": [
+          "quaternion heading bearing 001",
+          "quaternion pitch bearing 001",
+          "quaternion roll bearing 001"
+        ],
+        "hinge_axes": [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      }
+    ],
+    "cycle_seconds": 20,
+    "euler_lock_interval_seconds": [
+      4,
+      12
+    ],
+    "ring_radii_m": [
+      2.4,
+      1.95,
+      1.5
+    ],
+    "centre_height_m": 4.05,
+    "geometry": "Shared bevelled rings, hollow bronze bearings, coaxial trunnions, captured rotor shaft and flywheel",
+    "lecture": "lectures/5dv180_lecture2_acceleration_visibility_processing.txt, lines 910-1410",
+    "quaternion_note": "Unit-quaternion SLERP drives orientation. Euler factorization is only display-joint inverse kinematics; mechanical gimbals can still align."
+  },
+  "skyboxes": {
+    "global": "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+    "astra": "experiments/pantheon/textures/astra-stars.hdr",
+    "astra_exposure": 1,
+    "astra_opening_world": {
+      "min": [
+        -34.663300444092876,
+        0,
+        -5.603432326469574
+      ],
+      "max": [
+        -34.663300444092876,
+        10,
+        5.603432326469574
+      ]
+    },
+    "method": "Per-ray cubemap-array sky selection, doorway clipping, regional diffuse IBL and reflection/refraction fallback; no sky geometry"
+  },
+  "room_isolation": "Keep the active wing and its own passage. Other wings are hidden; Pantheon is visible only through the projected doorway. Restore full visibility at room exit.",
+  "dragon_room": {
+    "wall": false,
+    "floor": "closed 80 mm glass disk",
+    "ior": 1.52,
+    "floor_ring_radii_m": [
+      12,
+      18,
+      22
+    ]
+  },
+  "lighting": "Four orbiting legacy point lights, one sun, dragon key/rim, two switchable car headlights and camera flashlight: ten light slots total.",
+  "legacy_light_controls": {
+    "toggle_colors": "1 / 2 / 3 / 4",
+    "toggle_sun": "5",
+    "toggle_orbit": "T or Light orbit toolbar button",
+    "move_horizontal": "Arrow keys",
+    "move_vertical": "Page Up / Page Down",
+    "freeze_scene": "F",
+    "orbit_degrees_per_second": 38
+  },
+  "pantheon_surfaces": {
+    "plaster": {
+      "diffuse": "1 1 1",
+      "ambient": "0.32 0.28 0.23",
+      "specular": "0.05 0.05 0.05",
+      "roughness": "0.62",
+      "metallic": "0",
+      "environment": false,
+      "texture0": "experiments/pantheon/textures/pantheon-plaster-albedo.jpg",
+      "normalMap": "experiments/pantheon/textures/pantheon-plaster-normal.jpg",
+      "normalScale": "0.85",
+      "heightMap": "experiments/pantheon/textures/pantheon-plaster-height.png",
+      "heightScale": ".005",
+      "tint": "1.1 1.07 1.01"
+    },
+    "marble": {
+      "diffuse": "1 1 1",
+      "ambient": "0.32 0.28 0.23",
+      "specular": "0.05 0.05 0.05",
+      "roughness": ".23",
+      "metallic": "0",
+      "environment": true,
+      "texture0": "experiments/pantheon/textures/pantheon-marble-albedo.jpg",
+      "normalMap": "experiments/pantheon/textures/pantheon-marble-normal.jpg",
+      "normalScale": ".3",
+      "heightMap": "experiments/pantheon/textures/pantheon-marble-height.png",
+      "heightScale": ".0012",
+      "tint": "1.06 1.04 1"
+    },
+    "dark_stone": {
+      "diffuse": "1 1 1",
+      "ambient": "0.32 0.28 0.23",
+      "specular": "0.05 0.05 0.05",
+      "roughness": ".25",
+      "metallic": "0",
+      "environment": true,
+      "texture0": "experiments/pantheon/textures/pantheon-stone-albedo.jpg",
+      "normalMap": "experiments/pantheon/textures/pantheon-stone-normal.jpg",
+      "normalScale": ".35",
+      "heightMap": "experiments/pantheon/textures/pantheon-stone-height.png",
+      "heightScale": ".0012",
+      "tint": ".28 .48 .36"
+    },
+    "columns": {
+      "diffuse": "1 1 1",
+      "ambient": "0.32 0.28 0.23",
+      "specular": "0.05 0.05 0.05",
+      "roughness": ".29",
+      "metallic": "0",
+      "environment": true,
+      "texture0": "experiments/pantheon/textures/pantheon-plaster-albedo.jpg",
+      "normalMap": "experiments/pantheon/textures/pantheon-plaster-normal.jpg",
+      "normalScale": ".3",
+      "heightMap": "experiments/pantheon/textures/pantheon-plaster-height.png",
+      "heightScale": ".0008",
+      "tint": "1.25 1.2 1.1"
+    },
+    "texture_repeat_m": 3,
+    "normal_resolution": 2048,
+    "height_resolution": 1024,
+    "room_signs": {
+      "lapis": "SPHERES",
+      "aes": "CITY",
+      "silva": "LEGACY",
+      "astra": "DRAGON"
+    },
+    "room_sign_dimensions_m": [
+      3.4,
+      0.66
+    ],
+    "bump_toggle": "F6 switches height mapping; OpenGL normal maps remain as fallback"
+  }
+}

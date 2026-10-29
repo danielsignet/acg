@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
+#include <cstring>
 #include <stdexcept>
 #include <vr/FrameProfiler.h>
 #include <vr/GLState.h>
@@ -9,6 +11,20 @@
 
 namespace vr{
 static_assert(SkinWeights::Count == 12, "GPU skinning must preserve every source influence");
+
+namespace{
+StreamBuffer::Policy skinStreamPolicy(){
+    // Retain the former path for reproducible A/B measurements and driver diagnostics.
+    static const bool reuse = []{
+        const auto* value = std::getenv("ACG_SKIN_STREAM_REUSE");
+        return value && std::strcmp(value, "1") == 0;
+    }();
+    return reuse ? StreamBuffer::Policy::Reuse : StreamBuffer::Policy::Discard;
+}
+}
+
+GpuSkinData::GpuSkinData() : output(skinStreamPolicy()), paletteStream(skinStreamPolicy()){
+}
 
 GpuSkinData::~GpuSkinData(){
     const GLuint textures[]{joints, weights, palette};

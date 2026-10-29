@@ -1,3 +1,76 @@
+# Snabbare GPU-animation genom byte av buffertlagring, 2026-10-29
+
+Drakens palett- och resultatbuffertar ersätter nu sin lagring vid varje ny pose.
+Tidigare kontrollerades en GPU-fence innan en tidigare buffert återanvändes.
+CPU-detaljmätningen placerade cirka **1,87 ms per palett** i fence-hanteringen,
+medan datakopieringen tog cirka **0,0015 ms**. Både benmatriserna och
+transform-feedback-resultatet måste byta strategi; att bara ändra paletten
+flyttade kostnaden till nästa buffert.
+
+Lösningen använder befintlig OpenGL 4.1-funktionalitet. Tre buffertobjekt
+roteras som tidigare, men deras lagring ersätts med `glBufferData`. Drivrutinen
+bevarar lagring som tidigare GPU-kommandon fortfarande behöver. Övriga
+streamingbuffertar behåller sin tidigare återanvändningsstrategi.
+
+## Slutlig A/B-mätning
+
+Samma slutliga normalbinär körs med den tidigare respektive nya strategin.
+Tre upprepningar per strategi och vy, växlande ordning; 420 bilder per körning,
+de sista 120 sparas. Tabellen visar medianen av körningarnas medelvärden.
+1280 × 800, deferred/Cook–Torrance, FXAA, AO, skuggor och cubemaps på,
+VSync av, profileraren aktiv. Samtliga processer är dolda och tidsbegränsade.
+
+| Vy | Tidigare ms | Ny ms | Tidigare FPS | Ny FPS |
+| --- | ---: | ---: | ---: | ---: |
+| Rotunda | 22,64 | **17,94** | 44,2 | **55,7** |
+| Drake | 10,97 | **8,82** | 91,1 | **113,4** |
+| Sfärer | 6,46 | 6,49 | 154,8 | 153,9 |
+| Stad | 9,81 | 9,94 | 102,0 | 100,6 |
+| Legacy | 16,94 | 16,67 | 59,0 | 60,0 |
+
+Det motsvarar **26,2 % högre FPS i rotundan** och **24,5 % i drakrummet**.
+Övriga vyer har ingen aktiv deformation och skillnaderna ligger inom cirka 2 %.
+Rotundans CPU-förberedelser för GPU-deformation går från **5,68 till 0,016 ms**.
+Dess P95 går från **27,93 till 22,92 ms**; drakrummets från **14,00 till 11,22 ms**.
+Rotundan klarar fortfarande inte stabilt 60 FPS. GPU-kolumnen visar förfluten
+tid inklusive väntan; optimeringen bedöms därför på hela bildens tid.
+
+## Jämförda metoder
+
+Mappade och permanent mappade buffertar förbättrade inte helbildstiden så länge
+fence-hanteringen behölls. En uniformbuffer som rymmer drakens 165 benmatriser
+tog bort palettens väntan, men resultatbuffertens väntan återstod. En generell
+ändring av alla streamingbuffertar hjälpte vissa vyer men försämrade legacyrummet;
+den varianten valdes bort. Den slutliga ändringen gäller animationsbuffertarna.
+Den slutliga ändringen bevarar samtliga skelettvikter och använder samma modell och shaders.
+
+Sju regressionstester passerar: GPU/CPU-deformation, profilering, materialgalleri,
+forward- och deferredskuggor samt rumsisolering och animerade portaluppdateringar.
+Bufferttestet köar GPU-skrivningar och läsningar över upprepade ringvarv och
+storleksändringar för både tidigare och ny strategi. Alla tolv skelettvikter,
+animationsklipp, subdivision och picking verifieras av deformationstestet.
+
+Bildkontrollen omfattar rotundan, drakrummet och draken genom stadens portal.
+Samtliga sex djupjämförelser är pixelidentiska. Alla tolv bilder från drakrummet
+och portalvyn, inklusive två stabila cubemapbilder per vy, är pixelidentiska.
+Rotundans fyra färgbilder har små skillnader även mellan två körningar av den
+tidigare metoden: 541 bildpunkter varierar mellan kontrollerna. Varje bildpunkt
+i den nya bilden matchar exakt någon av kontrollbilderna; inga nya färgavvikelser
+uppstår. Resultaten finns också i JSON-filen.
+
+[Inställningar, försök och slutliga råvärden](performance-skin-streams.json).
+Kör om jämförelsen med:
+
+```powershell
+python experiments/pantheon/benchmark_streaming.py --views rotunda dragon spheres city legacy
+```
+
+`ACG_SKIN_STREAM_REUSE=1` väljer den tidigare strategin för A/B-mätning och
+felsökning. Normalstarten använder den nya strategin. Benchmarkverktyget väljer
+strategi separat för varje barnprocess och avslutar samtliga körningar.
+
+---
+
 # Drakens deformation och väntan, 2026-10-29
 
 Detaljmätningen skiljer nu på förberedelserna och det faktiska transform-feedback-

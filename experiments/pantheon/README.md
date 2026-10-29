@@ -268,6 +268,19 @@ gångarna i samma bild. `astra-sky` och `city-sky` visar respektive himmel.
 
 ![Båda himlarna samtidigt](skybox-doorway-preview.png)
 
+## Snabbare animationsbuffertar
+
+GPU-animationens benmatriser och deformerade hörnpunkter använder nu byte av
+buffertlagring för att undvika kostsamma fence-kontroller. Alla skelettvikter
+bevaras och samma GPU-resultat återanvänds i skuggor, speglingar och den vanliga
+bilden. Jämförelsen av flera metoder och den slutliga A/B-mätningen finns i
+[RESULTAT.md](RESULTAT.md) och [performance-skin-streams.json](performance-skin-streams.json).
+
+`python experiments/pantheon/benchmark_streaming.py --views rotunda dragon`
+kör dolda, begränsade processer med både tidigare och ny strategi. Varje process
+avslutas efter mätningen. `ACG_SKIN_STREAM_REUSE=1` väljer den tidigare strategin
+för felsökning; benchmarkverktyget sätter flaggan bara i sina barnprocesser.
+
 ## Profilerarens tidsuppdelning
 
 Prestandavyn visar åtskilda CPU/GPU-tider. Upprepade pass summeras; nästlade

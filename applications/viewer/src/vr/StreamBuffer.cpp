@@ -21,6 +21,7 @@ GLuint StreamBuffer::acquire(std::size_t bytes, const void* data){
     }
     m_current = (m_current + 1) % m_slots.size();
     auto& slot = m_slots[m_current];
+    const bool discard = m_policy == Policy::Discard;
     bool busy = false;
     if (slot.fence){
         const auto status = glClientWaitSync(slot.fence, 0, 0);
@@ -35,11 +36,13 @@ GLuint StreamBuffer::acquire(std::size_t bytes, const void* data){
         glGenBuffers(1, &slot.buffer);
     }
     glBindBuffer(GL_ARRAY_BUFFER, slot.buffer);
-    if (busy || bytes > slot.capacity){
+    if (discard || busy || bytes > slot.capacity){
+        m_orphans += slot.capacity > 0 && (discard || busy);
         slot.capacity = std::max(bytes, slot.capacity);
+        // Queued draws retain the previous store. Writing the replacement
+        // therefore requires no explicit fence query or wait.
         glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(slot.capacity), nullptr,
                      GL_STREAM_DRAW);
-        m_orphans += busy;
     }
     if (data && bytes){
         glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(bytes), data);
@@ -49,6 +52,9 @@ GLuint StreamBuffer::acquire(std::size_t bytes, const void* data){
 }
 
 void StreamBuffer::seal(){
+    if (m_policy == Policy::Discard){
+        return;
+    }
     auto& slot = m_slots[m_current];
     if (!slot.buffer){
         return;

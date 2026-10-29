@@ -15,6 +15,7 @@ void UpdateVisitor::update(Node& root, const UpdateContext& context){
     FrameProfiler::Scope update(context.profiler, FrameProfiler::Stage::Update);
     m_visited.clear();
     m_callbackCount = 0;
+    m_dynamicUpdates = false;
     m_skinnedVertices = m_skinInfluences = 0;
     m_context = context;
     root.accept(*this);
@@ -22,11 +23,13 @@ void UpdateVisitor::update(Node& root, const UpdateContext& context){
 
 // Records a first visit before processing this node.
 bool UpdateVisitor::enter(Node& node){
+    if (!node.getUpdateEnabled()) return false;
     if (!m_visited.insert(&node).second){
         return false;
     }
     if (auto callback = node.getUpdateCallback()){
         callback->update(node, m_context);
+        m_dynamicUpdates = m_dynamicUpdates || callback->changesRenderedContent();
         ++m_callbackCount;
     }
     return true;

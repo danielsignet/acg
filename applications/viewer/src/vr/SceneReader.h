@@ -35,6 +35,7 @@ private:
     void readCamera(Xml* root);
     // Reads finite cells, the exterior region and explicit rectangular openings.
     void readVisibility(Xml* root);
+    void readEnvironments(Xml* root);
 
     // Attaches local state and recursively builds the ordered child nodes.
     void readChildren(Xml* xml, Group& group);

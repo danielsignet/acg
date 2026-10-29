@@ -29,6 +29,21 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
     GLState::getIntegerv(GL_VIEWPORT, viewport);
     m_viewport = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
     m_environmentPrograms.clear();
+    if (m_extensionRoot!=&root){
+        m_extensionRoot=&root;m_extensions.clear();
+        std::set<Node*> visited;
+        const std::function<void(Node&)> discover=[&](Node& node){
+            if (!visited.insert(&node).second) return;
+            if (auto extension=std::dynamic_pointer_cast<SceneRenderExtension>(node.getUpdateCallback()))
+                m_extensions.push_back(extension);
+            if (auto* group=dynamic_cast<Group*>(&node))
+                for (const auto& child:group->getChildren()) discover(*child);
+        };
+        discover(root);
+    }
+    for (const auto& weak:m_extensions) if (const auto extension=weak.lock())
+        extension->beforeSceneRender({root,camera,m_environment,m_states.front().getProgram(),
+                                     m_shadingMode,viewport[2],viewport[3],m_environmentCapture});
     collectLights(root);
     collectGeometry(root, camera, frozen ? *frozen : camera.getProjection() * camera.getView(),
                     portals);
@@ -43,7 +58,7 @@ void RenderVisitor::collectLights(Node& root){
     FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Lights);
     m_lights = vr::collectLights(root, m_camera->getPosition());
     for (unsigned i = 0; i < m_lights.size(); ++i){
-        m_stats.lights += m_lights[i].node->getEnabled() && m_globalState.getLightEnabled(i);
+        m_stats.lights += m_lights[i].active && m_lights[i].node->getEnabled() && m_globalState.getLightEnabled(i);
     }
 }
 
@@ -241,7 +256,7 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
         program.set("uLightCount", static_cast<int>(m_lights.size()));
         for (unsigned i = 0; i < m_lights.size(); ++i){
             // Per-object light switches are already represented by uLightMask.
-            m_lights[i].node->apply(program, i, m_lights[i].model, true);
+            m_lights[i].node->apply(program, i, m_lights[i].model, m_lights[i].active);
         }
     }
     program.set("uEnvironmentEnabled", m_environment != nullptr);

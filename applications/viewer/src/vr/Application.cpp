@@ -50,6 +50,7 @@ void Application::reload(){
     auto deferred = std::make_unique<DeferredRenderer>(m_root);
     auto environment = std::make_unique<EnvironmentMap>(
         m_root, "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr");
+    environment->configureRooms(m_root,scene->getEnvironments());
     environment->setReflectionMode(m_reflectionMode);
     renderer->setEnvironment(environment.get());
     deferred->setEnvironment(environment.get());
@@ -522,13 +523,18 @@ void Application::render(){
     {
         FrameProfiler::Scope pass(&m_profiler, FrameProfiler::Stage::Cubemaps);
         if (m_reflectionMode == ReflectionMode::Cubemaps){
-            if (!m_reflectionProbes){
+            std::string room;
+            for (const auto& region:m_scene->getEnvironments().getRegions())
+                if(region.contains(camera.getPosition())) {room=region.room;break;}
+            if (!m_reflectionProbes || room!=m_reflectionProbeRoom){
                 m_reflectionProbes =
                     std::make_unique<ReflectionProbes>(*m_scene, *m_environment, m_program);
+                m_reflectionProbeRoom=room;
                 m_reflectionProbes->setStateCaching(m_sceneCaching);
             }
             m_reflectionProbes->update(*m_scene, camera, *m_environment, m_shadingMode,
-                                       m_portalResult, !m_frozenEye.has_value());
+                                       m_portalResult, !m_frozenEye.has_value() &&
+                                           (m_updater.hasDynamicUpdates() || m_flashlight->getEnabled()));
         } else if (m_reflectionProbes){
             m_reflectionProbes->idle();
         }
@@ -545,11 +551,13 @@ void Application::render(){
             *m_scene->getRoot(), camera, frozen, &m_portalResult,
             m_deferredEnabled ? m_deferred.get() : nullptr, [&]{
                 FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
+                float surfaceDistance=0;
                 m_target =
                     pickModel(m_renderer->getRenderList(), camera.getPosition(),
-                              glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f));
-                m_deferred->setFocusDistance(m_target ? std::optional<float>(m_target->distance)
-                                                      : std::nullopt);
+                              glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f),&surfaceDistance);
+                const auto& projection=camera.getProjection();
+                const float farPlane=std::abs(projection[3][2]/(projection[2][2]+1));
+                m_deferred->setFocusDistance(std::isfinite(surfaceDistance)?surfaceDistance:farPlane);
             });
     };
     if (m_deferredEnabled){

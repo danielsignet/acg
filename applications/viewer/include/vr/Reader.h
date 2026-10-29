@@ -1,5 +1,6 @@
 #pragma once
 #include "SceneGraph.h"
+#include "UpdateCallback.h"
 #include <utility>
 
 namespace vr{
@@ -7,6 +8,19 @@ using MaterialOverrides = std::map<std::string, std::shared_ptr<State>>;
 
 class Reader{
 public:
+    using AnimationAttributes = std::map<std::string, std::string>;
+    using AnimationFactory = std::function<std::shared_ptr<UpdateCallback>(
+        const std::shared_ptr<Transform>&, const AnimationAttributes&)>;
+
+    // Registers application-owned XML animations without adding scene-specific
+    // callbacks to the library. Register before loading scenes; spin is reserved.
+    static void registerTransformAnimation(const std::string& name, AnimationFactory factory);
+
+    // Creates a registered animation, reporting unsupported names explicitly.
+    static std::shared_ptr<UpdateCallback> createTransformAnimation(
+        const std::string& name, const std::shared_ptr<Transform>& target,
+        const AnimationAttributes& attributes);
+
     // Stores the resource root used for model and texture lookup.
     explicit Reader(std::filesystem::path root) : m_root(std::move(root)){
     }

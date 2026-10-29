@@ -126,6 +126,10 @@ public:
         return m_visible;
     }
 
+    // Gates update traversal independently of rendering and shared resources.
+    void setUpdateEnabled(bool enabled){ m_updateEnabled = enabled; }
+    bool getUpdateEnabled() const{ return m_updateEnabled; }
+
     // Tags a subtree with the visibility cell inherited by its descendants.
     void setRoomId(std::string id){
         m_roomId = std::move(id);
@@ -157,6 +161,7 @@ private:
     mutable bool m_cullingExemption = false;
     bool m_cullingEnabled = true;
     bool m_visible = true;
+    bool m_updateEnabled = true;
     std::string m_roomId;
 };
 } // namespace vr

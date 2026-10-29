@@ -107,7 +107,7 @@ public:
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 24>& getBindings(){
+    static const std::array<Binding, 25>& getBindings(){
         return m_bindings;
     }
 
@@ -165,7 +165,7 @@ private:
          {Action::CookTorranceShader, ShadingMode::CookTorrance, BufferView::Lit, GLFW_KEY_P,
           "P  Cook-Torrance"}}};
 
-    inline static constexpr std::array<Binding, 24> m_bindings{
+    inline static constexpr std::array<Binding, 25> m_bindings{
         {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
          {Action::Antialiasing, GLFW_KEY_F3, "F3", "Anti-aliasing"},
          {Action::Subdivision, GLFW_KEY_F4, "F4", "Subdivision"},
@@ -182,6 +182,7 @@ private:
          {Action::PointBlue, GLFW_KEY_3, "3", "Point Blue"},
          {Action::PointWhite, GLFW_KEY_4, "4", "Point White"},
          {Action::PointSun, GLFW_KEY_5, "5", "Sun"},
+         {Action::PointOrbit, GLFW_KEY_T, "T", "Light orbit"},
          {Action::Culling, GLFW_KEY_C, "C", "Culling"},
          {Action::FreezeFrustum, GLFW_KEY_F, "F", "Freeze view/scene"},
          {Action::ShaderMenu, GLFW_KEY_Z, "Z", "Shader"},

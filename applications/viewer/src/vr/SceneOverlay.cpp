@@ -27,6 +27,7 @@ constexpr ToolbarButton multiviewButton{Action::BufferPreviews, 764, 156};
 constexpr ToolbarButton aaButton{Action::Antialiasing, 12, 232};
 constexpr ToolbarButton reflectionsButton{Action::Reflections, 256, 260};
 constexpr ToolbarButton bumpButton{Action::BumpMapping, 528, 260};
+constexpr ToolbarButton orbitButton{Action::PointOrbit, 800, 232};
 constexpr float secondaryTop = 56;
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
@@ -128,7 +129,10 @@ void SceneOverlay::click(Application& app, float x, float y){
         app.execute(Action::Hud);
         return;
     }
-    for (const auto& button :{aaButton, reflectionsButton, bumpButton}){
+    for (const auto& button :{aaButton, reflectionsButton, bumpButton, orbitButton}){
+        if (button.action == Action::PointOrbit && !app.m_lightOrbitCallback){
+            continue;
+        }
         if (inside({button.x, secondaryTop, button.width, 28})){
             app.execute(button.action);
             return;
@@ -217,6 +221,12 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(bumpButton.x, secondaryTop, bumpButton.width, 28,{0.09f, 0.16f, 0.2f, 1});
     m_text.draw(std::string("Bump maps: ") + (app.m_bumpMappingEnabled ? "ON" : "OFF") + " [F6]",
                 bumpButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+    if (app.m_lightOrbitCallback){
+        const bool moving = app.m_frozenLightOrbitEnabled.value_or(app.m_lightOrbitCallback->getEnabled());
+        m_text.rectangle(orbitButton.x, secondaryTop, orbitButton.width, 28,{0.09f, 0.16f, 0.2f, 1});
+        m_text.draw(std::string("Light orbit: ") + (moving ? "ON" : "PAUSED") + " [T]",
+                    orbitButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+    }
     const auto hide = menuToggleRectangle(app);
     m_text.rectangle(hide.x, hide.y, hide.z, hide.w,{0.09f, 0.16f, 0.2f, 1});
     m_text.draw("Hide menus [Tab]", hide.x + 10, hide.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});
@@ -336,7 +346,7 @@ void SceneOverlay::drawFooter(const Application& app){
     m_text.draw("Lights", 20, top + 7, 13,{0.7f, 0.8f, 0.88f, 1});
     drawToolbar(app, top);
     m_text.draw(
-        "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: lamps   F: freeze view/scene   "
+        "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: lamps   T: orbit   F: freeze scene   "
         "G: buffers   F1: performance   Tab: menus   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     const auto& shadowStats = app.m_shadowRenderer->getStats();

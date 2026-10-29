@@ -234,7 +234,7 @@ std::shared_ptr<vr::Texture> vr::Texture::colorCube(int size, unsigned levels){
 // Packs multiple HDR reflection cubemaps into one sampler binding.
 std::shared_ptr<vr::Texture> vr::Texture::colorCubeArray(int size, unsigned levels,
                                                          unsigned layers){
-    if (layers == 0 || layers > 16){
+    if (layers == 0 || layers > MaxCubeArrayLayers){
         throw std::invalid_argument("Invalid reflection cubemap layer count");
     }
     auto texture = colorCube(size, levels);

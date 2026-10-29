@@ -666,6 +666,40 @@ void run(const std::filesystem::path& path){
               << " shadow rendering checks passed: both lights, six cube faces, off-camera/portal "
                  "casters, alpha holes, RTT state\n";
 }
+// Direct lights may outnumber shadow cubemaps without overlapping IBL samplers.
+void lightBudget(const std::filesystem::path& path){
+    auto program = std::make_shared<vr::Program>(path / "shaders/phong-shading.vs",
+                                                 path / "shaders/phong-shading.fs");
+    vr::Scene scene;
+    scene.getRoot()->setState(std::make_shared<vr::State>());
+    scene.getRoot()->addChild(vr::GeometryFactory::createBox());
+    for (unsigned i = 0; i < vr::State::MaxLights; ++i){
+        auto light = std::make_shared<vr::Light>();
+        light->setPosition(i == 0 ? glm::vec4(0, 1, 0, 0) : glm::vec4(2, 3, 2, 1));
+        light->setDiffuse({0.1f, 0.1f, 0.1f});
+        light->setRange(10);
+        scene.getRoot()->addChild(light);
+    }
+    const auto camera = scene.getCamera();
+    camera->setPerspective(50, static_cast<float>(width) / height, 0.1f, 20);
+    camera->setLookAt({0, 1, 5},{0, 0, 0});
+    vr::ShadowRenderer shadows(path, 64, 64);
+    shadows.attach(scene);
+    shadows.render(scene, camera->getPosition(), true, false);
+    check(shadows.getPointTarget(vr::State::MaxPointShadows - 1) != nullptr,
+          "Point shadows fill their independent sampler budget");
+    bool capped = false;
+    try{ shadows.getPointTarget(vr::State::MaxPointShadows); }
+    catch (const std::out_of_range&){ capped = true; }
+    check(capped, "Additional direct lights do not allocate excess shadow samplers");
+    vr::RenderVisitor renderer(program);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, width, height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    renderer.render(*scene.getRoot(), *camera, nullptr, nullptr, deferred.get());
+    check(renderer.getStats().lights == vr::State::MaxLights && glGetError() == GL_NO_ERROR,
+          "Every direct light remains available when the shadow sampler budget is full");
+}
 } // namespace
 
 int main(int argc, char** argv){
@@ -699,6 +733,7 @@ int main(int argc, char** argv){
             deferred->setPreviews(false);
         }
         callerState(argv[1]);
+        lightBudget(argv[1]);
         run(argv[1]);
     } catch (const std::exception& e){
         std::cerr << "FAILED: " << e.what() << '\n';

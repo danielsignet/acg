@@ -180,7 +180,7 @@ private:
         textures.setLightEnabled(1, false);
         check(!textures.merged(vr::State()).getLightEnabled(1), "Per-light state inheritance");
         rejects([&]{ textures.setTexture(4, texture); }, "Invalid texture slot");
-        rejects([&]{ textures.setLightEnabled(8, true); }, "Invalid light slot");
+        rejects([&]{ textures.setLightEnabled(vr::State::MaxLights, true); }, "Invalid light slot");
         rejects([&]{ g->setData({{0, 0, 0}},{0, 1, 2},{{0, 1, 0}}); },
                 "Out-of-range geometry indices");
         rejects([&]{ g->setData({{0, 0, 0}},{0, 0, 0},{}); }, "Missing normals");
@@ -650,7 +650,8 @@ private:
         check(points, "Keys 1-5 identify the four colored lights and daylight");
         check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
               "L toggles the flashlight independently of F's culling inspection");
-        check(vr::Controls::getBindings().size() == 24 &&
+        check(vr::Controls::getBindings().size() == 25 &&
+                  vr::Controls::find(GLFW_KEY_T)->action == Action::PointOrbit &&
                   vr::Controls::find(GLFW_KEY_F1)->action == Action::Performance &&
                   !vr::Controls::find(GLFW_KEY_P) &&
                   vr::Controls::find(GLFW_KEY_V)->action == Action::DepthOfField &&

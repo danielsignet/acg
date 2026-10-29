@@ -1,0 +1,41 @@
+newmtl stone
+Ka 0 0 0
+Kd 1 1 1
+Ks .04 .04 .04
+Ns 48
+
+newmtl marble
+Ka 0 0 0
+Kd 1 1 1
+Ks .04 .04 .04
+Ns 48
+
+newmtl verde
+Ka 0 0 0
+Kd 1 1 1
+Ks .04 .04 .04
+Ns 48
+
+newmtl bronze
+Ka 0 0 0
+Kd 1 1 1
+Ks .04 .04 .04
+Ns 48
+
+newmtl wood
+Ka 0 0 0
+Kd 1 1 1
+Ks .04 .04 .04
+Ns 48
+
+newmtl glazing
+Ka 0 0 0
+Kd 1 1 1
+Ks .04 .04 .04
+Ns 48
+
+newmtl mullion
+Ka 0 0 0
+Kd 1 1 1
+Ks .04 .04 .04
+Ns 48

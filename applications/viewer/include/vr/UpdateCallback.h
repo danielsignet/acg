@@ -24,6 +24,9 @@ public:
 
     // Updates the target from elapsed time while honoring its enabled state.
     virtual void update(Node& node, const UpdateContext& context) = 0;
+
+    // Structural controllers can opt out of continuous reflection updates.
+    virtual bool changesRenderedContent() const{ return true; }
 };
 
 class FunctionCallback : public UpdateCallback{

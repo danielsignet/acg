@@ -9,6 +9,9 @@
 namespace vr{
 class Texture{
 public:
+    // Shared allocation budget for room skies and local reflection cubemaps.
+    static constexpr unsigned MaxCubeArrayLayers = 16;
+
     // Validates and stores RGBA pixels for lazy OpenGL upload.
     Texture(int width, int height, std::vector<unsigned char> rgba, bool repeat = true);
 

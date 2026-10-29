@@ -231,7 +231,7 @@ void DeferredRenderer::light(const Camera& camera, const State& state,
     program->set("uEye", camera.getPosition());
     program->set("uLightCount", static_cast<int>(lights.size()));
     for (unsigned i = 0; i < lights.size(); ++i){
-        lights[i].node->apply(*program, i, lights[i].model, true);
+        lights[i].node->apply(*program, i, lights[i].model, lights[i].active);
     }
     drawQuad();
 }

@@ -460,8 +460,11 @@ void RenderingValidator::validateModelTargeting(){
     camera->setLookAt({0, 8, 12},{0, 30, 13});
     app.render();
     require(!app.m_target, "Aiming into empty space clears the highlighted model");
-    require(!app.m_deferred->getFocusDistance(),
-            "Empty-space targeting clears the previous DoF focus");
+    const auto& projection = camera->getProjection();
+    const float farDistance = projection[3][2] / (projection[2][2] + 1.0f);
+    const auto focus = app.m_deferred->getFocusDistance();
+    require(focus && std::abs(*focus - farDistance) < 0.01f,
+            "Empty-space targeting focuses at the far plane instead of disabling DoF");
     const auto status = app.m_status;
     clickTargetAction(0);
     require(!target->getSubdivided() && app.m_status == status,
@@ -507,8 +510,9 @@ void RenderingValidator::validateModelTargeting(){
     camera->setLookAt({30, 4, 10},{30, 0, 9.9f});
     app.render();
     require(!app.m_target, "The outdoor floor remains an unselectable ray occluder");
-    require(!app.m_deferred->getFocusDistance(),
-            "An unselectable floor cannot become a DoF target");
+    const auto floorFocus = app.m_deferred->getFocusDistance();
+    require(floorFocus && *floorFocus > 0 && *floorFocus < farDistance,
+            "An unselectable floor provides a geometric DoF focus without becoming selectable");
     camera->setView(originalView);
 }
 
@@ -850,6 +854,17 @@ void RenderingValidator::validateObjectAnimation(){
 // Checks that light-ring motion is independent of object-animation pause.
 void RenderingValidator::validateLightOrbit(){
     auto& app = m_application;
+    const bool wasMoving = app.m_lightOrbitCallback->getEnabled();
+    const bool wasHud = app.m_showHud, wasMenus = app.m_showMenus;
+    app.m_showHud = app.m_showMenus = true;
+    app.handleKey(GLFW_KEY_T);
+    require(app.m_lightOrbitCallback->getEnabled() != wasMoving,
+            "T toggles the light orbit independently of object animation");
+    app.handleClick(810, 66);
+    require(app.m_lightOrbitCallback->getEnabled() == wasMoving,
+            "The light-orbit toolbar button uses the same control as T");
+    app.m_showHud = wasHud;
+    app.m_showMenus = wasMenus;
     const auto orbit = m_application.m_scene->findTransform("lightOrbit");
     const auto orbitMatrix = orbit->getMatrix();
     m_application.execute(Controls::Action::PointOrbit);
@@ -1225,7 +1240,7 @@ void RenderingValidator::validateShadows(){
         collectLights(*app.m_scene->getRoot(), app.m_scene->getCamera()->getPosition());
     for (unsigned i = 0; i < activeLights.size(); ++i){
         const auto& light = activeLights[i];
-        if (!light.node->getEnabled() || !app.m_scene->getRoot()->getState()->getLightEnabled(i)){
+        if (!light.active || !light.node->getEnabled() || !app.m_scene->getRoot()->getState()->getLightEnabled(i)){
             continue;
         }
         if (light.node->getPosition().w != 0){

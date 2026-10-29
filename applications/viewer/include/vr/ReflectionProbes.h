@@ -66,6 +66,7 @@ private:
         glm::mat4 model;
         std::string room;
         unsigned revision = 0;
+        Node* excluded=nullptr;
     };
 
     std::vector<Probe> m_probes;

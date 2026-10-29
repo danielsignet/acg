@@ -405,6 +405,51 @@ void localReflections(const std::filesystem::path& root){
     probes.update(scene, *camera, environment, vr::ShadingMode::CookTorrance,{}, true);
     check(probes.getFaces() == 0, "Offscreen reflective objects do not trigger cube captures");
     check(glGetError() == GL_NO_ERROR, "Local cubemap capture leaves valid OpenGL state");
+
+    // Room skies consume layers from the same array as local probes. Exercise
+    // both the original single-sky case and the maximum supported sky count.
+    for (unsigned i = 0; i < 16; ++i){
+        auto instance = vr::ModelInstance::create("extra probe", vr::GeometryFactory::createBox());
+        auto state = std::make_shared<vr::State>();
+        state->setUniform("uEnvironmentMaterial", true);
+        instance->setState(state);
+        scene.getRoot()->addChild(instance);
+    }
+    const auto checkLayerBudget = [&]{
+        vr::ReflectionProbes limited(scene, environment, program);
+        check(limited.getProbeCount() + environment.getSkyCount() == vr::Texture::MaxCubeArrayLayers,
+              "Local probes reserve room for every sky within the shared cubemap layer budget");
+        unsigned assigned = 0, fallback = 0;
+        for (const auto& node : scene.getRoot()->getChildren()){
+            const auto instance = std::dynamic_pointer_cast<vr::ModelInstance>(node);
+            if (!instance) continue;
+            const int id = std::get<int>(instance->getState()->getUniforms().at("uReflectionProbe"));
+            check(id >= 0 && static_cast<unsigned>(id) <= limited.getProbeCount(),
+                  "No model references a cubemap outside the allocated array");
+            assigned += id > 0;
+            fallback += id == 0;
+        }
+        check(assigned == limited.getProbeCount() && fallback > 0,
+              "Models beyond the probe budget use their sky reflection fallback");
+        program->use();
+        environment.apply(*program);
+        glActiveTexture(GL_TEXTURE14);
+        GLint faces = 0;
+        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_TEXTURE_DEPTH, &faces);
+        check(faces == static_cast<GLint>(vr::Texture::MaxCubeArrayLayers * 6) &&
+                  glGetError() == GL_NO_ERROR,
+              "The packed sky and local-probe array allocates successfully on the GPU");
+    };
+    checkLayerBudget();
+    std::vector<vr::RoomSky> skies;
+    for (unsigned i = 1; i < vr::SceneEnvironments::MaxSkies; ++i){
+        skies.push_back({"sky-" + std::to_string(i),
+                        "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr", 0});
+    }
+    vr::SceneEnvironments layout;
+    layout.build(std::move(skies), {});
+    environment.configureRooms(root, layout);
+    checkLayerBudget();
 }
 } // namespace
 

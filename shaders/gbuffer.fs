@@ -16,9 +16,13 @@ layout(location = 6) out vec4 gPlane;
 uniform bool uReceiveShadows, uEnvironmentMaterial, uMirror, uMirrorAvailable;
 uniform vec2 uViewport;
 uniform vec2 uViewportOrigin;
+uniform vec3 uEye;
+#include "room-window.glsl"
+#include "room-portal.glsl"
 
 // Stores visible surface data without evaluating any lights.
 void main(){
+    if (outsideRoomWindow(worldPosition)) discard;
     vec4 surface = sampleSurface(texCoord);
     vec3 normal, plane;
     surfaceNormals(normal, plane);
@@ -36,5 +40,9 @@ void main(){
         gAmbient.rgb = vec3(0);
         gEmissive = vec4(uMirrorAvailable
             ? texture(uTextures[3], (gl_FragCoord.xy - uViewportOrigin) / uViewport).rgb : vec3(0.01), 0);
+    }
+    if (uRoomPortal){
+        gAlbedo.rgb=vec3(0);gAmbient.rgb=vec3(0);
+        gEmissive=vec4(roomPortalColor(worldPosition),0);
     }
 }

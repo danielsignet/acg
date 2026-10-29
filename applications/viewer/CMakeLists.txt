@@ -147,6 +147,9 @@ set(VIEWER_RESOURCES
     shaders/antialiasing.fs
     shaders/brdf.glsl
     shaders/environment.glsl
+    shaders/room-skies.glsl
+    shaders/room-window.glsl
+    shaders/room-portal.glsl
     shaders/glass.glsl
     shaders/environment-bake.fs
     shaders/environment-sky.fs

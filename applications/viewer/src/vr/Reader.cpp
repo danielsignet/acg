@@ -4,6 +4,34 @@
 #include <vr/Reader.h>
 
 namespace vr{
+namespace{
+std::map<std::string, Reader::AnimationFactory>& animationFactories(){
+    static std::map<std::string, Reader::AnimationFactory> factories;
+    return factories;
+}
+}
+
+void Reader::registerTransformAnimation(const std::string& name, AnimationFactory factory){
+    if (name.empty() || name == "spin" || !factory ||
+        !animationFactories().emplace(name, std::move(factory)).second){
+        throw std::invalid_argument("Invalid or duplicate animation: " + name);
+    }
+}
+
+std::shared_ptr<UpdateCallback> Reader::createTransformAnimation(
+    const std::string& name, const std::shared_ptr<Transform>& target,
+    const AnimationAttributes& attributes){
+    const auto found = animationFactories().find(name);
+    if (found == animationFactories().end()){
+        throw std::runtime_error("Unregistered transform animation: " + name);
+    }
+    auto callback = found->second(target, attributes);
+    if (!callback){
+        throw std::runtime_error("Animation factory returned an empty callback: " + name);
+    }
+    return callback;
+}
+
 // Finds a resource relative to the configured root and validates its existence.
 std::filesystem::path Reader::resolve(const std::filesystem::path& file) const{
     auto path = file.is_absolute() ? file : m_root / file;

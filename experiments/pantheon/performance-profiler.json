@@ -464,5 +464,15 @@
         "Render setup / submission": 0.024253
       }
     }
-  ]
+  ],
+  "skinning_detail": {
+    "frame_ms": 19.884293,
+    "gpu_total_ms": 5.003976,
+    "gpu_transform_feedback_ms": 0.136201,
+    "gpu_setup_and_gaps_ms": 4.867775,
+    "cpu_total_ms": 3.603042,
+    "cpu_dispatch_ms": 0.002035,
+    "vertices": 23008.0,
+    "note": "GPU total includes preparation and command submission gaps. Detail timestamps bracket only transform feedback. A temporary CPU phase probe located most CPU time inside paletteStream.acquire (fence/buffer upload API), not vertex arithmetic. The precise driver cause is not established; tested buffer changes showed no benefit and were reverted."
+  }
 }

@@ -45,7 +45,8 @@ FrameProfiler::descriptions(){
          {"Skin positions / bounds", false},
          {"Room portal textures", true},
          {"Render setup / submission", false},
-         {"Profiler query collection", false}}};
+         {"Profiler query collection", false},
+         {"Skinning transform feedback", true}}};
     return stages;
 }
 
@@ -111,11 +112,12 @@ FrameProfiler::breakdown(const Summary& summary){
                                           {"Skin palettes", false},
                                           {"CPU vertex skinning", false},
                                           {"Scene graph / callbacks", false},
-                                          {"GPU skinning (once)"},
+                                          {"Deformation setup / wait"},
                                           {"Skin positions / bounds", false},
                                           {"Room portal textures"},
                                           {"Render setup / submission", false},
                                           {"Profiler query collection", false},
+                                          {"Vertex deformation (GPU)"},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
@@ -149,6 +151,7 @@ FrameProfiler::breakdown(const Summary& summary){
     add(21,{Stage::PortalViews});
     add(22,{Stage::Submission});
     add(23,{Stage::Profiler});
+    add(24,{Stage::SkinningDraw});
     // Retain support for manually constructed summaries with inclusive timings.
     if (!summary.hasExclusiveTimings){
         for (std::size_t i = 14; i <= 17; ++i){

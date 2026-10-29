@@ -1,3 +1,29 @@
+# Drakens deformation och väntan, 2026-10-29
+
+Detaljmätningen skiljer nu på förberedelserna och det faktiska transform-feedback-
+passet. I samma rotundavy med 23 008 animerade hörnpunkter:
+
+| Del av GPU-tidsintervallet | Tid |
+| --- | ---: |
+| Faktisk deformation, tre delmeshar sammanlagt | **0,136 ms** |
+| Förberedelser och luckor mellan kommandon | **4,868 ms** |
+| Hela det tidigare skinningsintervallet | **5,004 ms** |
+
+De cirka 5 ms i den tidigare tabellen ska alltså inte tolkas som ren deformation.
+En tillfällig CPU-detaljmätning lokaliserade huvuddelen av CPU-kostnaden till
+`paletteStream.acquire`, som hanterar synkronisering och uppladdning av benmatriser.
+Det exakta drivrutinsanropet och orsaken till väntan är ännu inte fastställda.
+Försök med ändrad buffertlagring gav ingen vinst och har återställts.
+
+Prestandavyn visar nu **Deformation setup / wait** och **Vertex deformation (GPU)**
+som separata rader. Nästlade tider summeras fortfarande till 100 %.
+GPU-beräkningen görs en gång per delmesh och pose; skuggor, reflektioner och den
+vanliga bilden återanvänder resultatet. Modell och animationskvalitet är oförändrade.
+Detaljvärden finns i `skinning_detail` i [performance-profiler.json](performance-profiler.json).
+Detta förtydligar mätningen; överföringens prestandaproblem återstår att lösa.
+
+---
+
 # Profilerarens restpost och faktiska kostnader, 2026-10-29
 
 `Other / gaps` är total tid minus namngivna, åtskilda mätintervall. På CPU:n

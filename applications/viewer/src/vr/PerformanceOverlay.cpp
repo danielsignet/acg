@@ -10,7 +10,7 @@ constexpr float panelWidth = 584;
 constexpr float counterOffset = static_cast<float>(FrameProfiler::SliceCount - 14) * 11;
 constexpr float panelHeight = 396 + counterOffset + 44;
 constexpr std::array<std::size_t, FrameProfiler::SliceCount> displayOrder{
-    9, 10, 13, 14, 15, 16, 17, 19, 20, 18, 1, 22, 23, 0, 11, 12, 21, 8, 2, 3, 7, 4, 5, 6, 24};
+    9, 10, 13, 14, 15, 16, 17, 19, 24, 20, 18, 1, 22, 23, 0, 11, 12, 21, 8, 2, 3, 7, 4, 5, 6, 25};
 const std::array<glm::vec4, FrameProfiler::SliceCount> colors{
     {{1, 0.72f, 0.3f, 1},{0.76f, 0.6f, 1, 1},{0.3f, 0.95f, 0.8f, 1},{0.4f, 0.75f, 1, 1},
      {1, 0.55f, 0.7f, 1},{0.65f, 0.9f, 0.4f, 1},{0.65f, 0.72f, 0.8f, 1},{1, 0.5f, 0.2f, 1},
@@ -18,7 +18,7 @@ const std::array<glm::vec4, FrameProfiler::SliceCount> colors{
      {0.65f, 0.85f, 1, 1},{0.4f, 0.9f, 0.7f, 1},{0.9f, 0.65f, 1, 1},{0.65f, 0.8f, 1, 1},
      {1, 0.8f, 0.45f, 1},{1, 0.45f, 0.6f, 1},{0.65f, 0.9f, 0.75f, 1},{0.5f, 0.9f, 1, 1},
      {0.9f, 0.7f, 0.5f, 1},{0.8f, 0.55f, 1, 1},{0.55f, 0.8f, 0.75f, 1},
-     {0.75f, 0.75f, 0.95f, 1},{0.9f, 0.92f, 0.95f, 1}}};
+     {0.75f, 0.75f, 0.95f, 1},{0.4f, 0.95f, 0.9f, 1},{0.9f, 0.92f, 0.95f, 1}}};
 
 // Formats the few timing and percentage values shown in the compact view.
 std::string decimal(double value, int precision = 2){

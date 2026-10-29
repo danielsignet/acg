@@ -171,9 +171,12 @@ void GpuSkinning::skin(Geometry& geometry){
     m_program->set("uPalette", 2);
     GLState::bindVertexArray(data.inputArray);
     glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, output);
-    glBeginTransformFeedback(GL_POINTS);
-    glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(geometry.m_vertices.size()));
-    glEndTransformFeedback();
+    {
+        FrameProfiler::Scope draw(m_profiler, FrameProfiler::Stage::SkinningDraw);
+        glBeginTransformFeedback(GL_POINTS);
+        glDrawArrays(GL_POINTS, 0, static_cast<GLsizei>(geometry.m_vertices.size()));
+        glEndTransformFeedback();
+    }
     data.paletteStream.seal();
     data.revision = skin.revision;
     ++m_stats.draws;

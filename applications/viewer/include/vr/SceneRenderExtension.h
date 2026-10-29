@@ -7,6 +7,7 @@ class Node;
 class Camera;
 class EnvironmentMap;
 class Program;
+class FrameProfiler;
 
 struct SceneRenderContext{
     Node& root;
@@ -16,6 +17,7 @@ struct SceneRenderContext{
     ShadingMode shading;
     int width,height;
     bool environmentCapture=false;
+    FrameProfiler* profiler=nullptr;
 };
 
 // Optional application-owned auxiliary passes, discovered from node callbacks.

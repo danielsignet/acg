@@ -1,0 +1,228 @@
+[
+  {
+    "asset": "marble_01",
+    "role": "albedo",
+    "file": "textures/marble_01-albedo.jpg",
+    "source": "https://polyhaven.com/a/marble_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_diff_1k.jpg",
+    "authors": {
+      "Rob Tuytel": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 305029,
+    "sha256": "b10dabea976d68baa976a0d4e8dac58789df8d26a1b50697f320106f1b00a229"
+  },
+  {
+    "asset": "marble_01",
+    "role": "normal",
+    "file": "textures/marble_01-normal.jpg",
+    "source": "https://polyhaven.com/a/marble_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_nor_gl_1k.jpg",
+    "authors": {
+      "Rob Tuytel": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 110230,
+    "sha256": "77c2a9b549a6a408659f8197be91945aeb0abc33e697f1dd2ce24ee8dc7c2bc0"
+  },
+  {
+    "asset": "beige_wall_001",
+    "role": "albedo",
+    "file": "textures/beige_wall_001-albedo.jpg",
+    "source": "https://polyhaven.com/a/beige_wall_001",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beige_wall_001/beige_wall_001_diff_1k.jpg",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 33074,
+    "sha256": "72104704d0b9bd3713c5f6238971252b63eccf6e61263059c674caa8f3d0fa6d"
+  },
+  {
+    "asset": "beige_wall_001",
+    "role": "normal",
+    "file": "textures/beige_wall_001-normal.jpg",
+    "source": "https://polyhaven.com/a/beige_wall_001",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/beige_wall_001/beige_wall_001_nor_gl_1k.jpg",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 153434,
+    "sha256": "cec747be50f91da0693986080b6f59ef868d53cb2ab7d577982165ece63ed75e"
+  },
+  {
+    "asset": "wood_table_001",
+    "role": "albedo",
+    "file": "textures/wood_table_001-albedo.jpg",
+    "source": "https://polyhaven.com/a/wood_table_001",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_diff_1k.jpg",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 215573,
+    "sha256": "460dd08d240f4a1f02982415048c3c5c200f385db212da18dc7e2df68bf4d0be"
+  },
+  {
+    "asset": "wood_table_001",
+    "role": "normal",
+    "file": "textures/wood_table_001-normal.jpg",
+    "source": "https://polyhaven.com/a/wood_table_001",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_nor_gl_1k.jpg",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 51927,
+    "sha256": "9bf7ddf5721e225c20290f1772ae37f9bdfd49658f6d458259eb794e2149d3cf"
+  },
+  {
+    "asset": "beige_wall_001",
+    "role": "albedo",
+    "file": "textures/pantheon-plaster-albedo.jpg",
+    "source": "https://polyhaven.com/a/beige_wall_001",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/beige_wall_001/beige_wall_001_diff_2k.jpg",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 235868,
+    "sha256": "222d4d2e7d5c425c97e5a66790852388cec7706714d773f769fba6bfe08cea4e",
+    "resolution": "2k"
+  },
+  {
+    "asset": "beige_wall_001",
+    "role": "normal",
+    "file": "textures/pantheon-plaster-normal.jpg",
+    "source": "https://polyhaven.com/a/beige_wall_001",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/beige_wall_001/beige_wall_001_nor_gl_2k.jpg",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 815507,
+    "sha256": "7f5cbecd6766f44034f3b78b4addb1559e12bdd5a77501bd418a736609e7cedc",
+    "resolution": "2k"
+  },
+  {
+    "asset": "beige_wall_001",
+    "role": "height",
+    "file": "textures/pantheon-plaster-height.png",
+    "source": "https://polyhaven.com/a/beige_wall_001",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/beige_wall_001/beige_wall_001_disp_1k.png",
+    "authors": {
+      "Dimitrios Savva": "Photography",
+      "Rico Cilliers": "Processing"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 2439037,
+    "sha256": "8fe8af0284dfa6c6a16e469646449db97de054e7af82eeb00e8458cbe4f7871d",
+    "resolution": "1k"
+  },
+  {
+    "asset": "marble_01",
+    "role": "albedo",
+    "file": "textures/pantheon-marble-albedo.jpg",
+    "source": "https://polyhaven.com/a/marble_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_01/marble_01_diff_2k.jpg",
+    "authors": {
+      "Rob Tuytel": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 1269188,
+    "sha256": "d403786171716f86718bdd67eba923d4fb6125c0636bacef0e6a21dd5d623a48",
+    "resolution": "2k"
+  },
+  {
+    "asset": "marble_01",
+    "role": "normal",
+    "file": "textures/pantheon-marble-normal.jpg",
+    "source": "https://polyhaven.com/a/marble_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/marble_01/marble_01_nor_gl_2k.jpg",
+    "authors": {
+      "Rob Tuytel": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 409581,
+    "sha256": "d5e17ccb2913adbf28fcb781fddf0aa711259ddea6c1c918442f9a3589aa4660",
+    "resolution": "2k"
+  },
+  {
+    "asset": "marble_01",
+    "role": "height",
+    "file": "textures/pantheon-marble-height.png",
+    "source": "https://polyhaven.com/a/marble_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/marble_01/marble_01_disp_1k.png",
+    "authors": {
+      "Rob Tuytel": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 1946213,
+    "sha256": "4bce4fc17d1e17abadb4041d856524039d1f772b3b7ed1bdc93d5ecebd00982a",
+    "resolution": "1k"
+  },
+  {
+    "asset": "grey_cartago_03",
+    "role": "albedo",
+    "file": "textures/pantheon-stone-albedo.jpg",
+    "source": "https://polyhaven.com/a/grey_cartago_03",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_cartago_03/grey_cartago_03_diff_2k.jpg",
+    "authors": {
+      "Lucas Sánchez Ros": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 2478130,
+    "sha256": "27aa314d415807582e36e9da7652a52c4a140de95c63a74e39cd678ccfbc5ea0",
+    "resolution": "2k"
+  },
+  {
+    "asset": "grey_cartago_03",
+    "role": "normal",
+    "file": "textures/pantheon-stone-normal.jpg",
+    "source": "https://polyhaven.com/a/grey_cartago_03",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/grey_cartago_03/grey_cartago_03_nor_gl_2k.jpg",
+    "authors": {
+      "Lucas Sánchez Ros": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 2235611,
+    "sha256": "7ebcb0df0981372f8bf6704c25fa65b1ca8541b1d51c3a53311266676d762932",
+    "resolution": "2k"
+  },
+  {
+    "asset": "grey_cartago_03",
+    "role": "height",
+    "file": "textures/pantheon-stone-height.png",
+    "source": "https://polyhaven.com/a/grey_cartago_03",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/1k/grey_cartago_03/grey_cartago_03_disp_1k.png",
+    "authors": {
+      "Lucas Sánchez Ros": "All"
+    },
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 1760220,
+    "sha256": "6890226df7151b48f160be06ea212dda2adbb43103c43f67a269923033968b28",
+    "resolution": "1k"
+  }
+]

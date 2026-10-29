@@ -9,6 +9,7 @@ class Geometry;
 class FrameProfiler;
 
 struct GpuSkinData{
+    GpuSkinData();
     ~GpuSkinData();
     GLuint inputArray = 0, inputBuffer = 0, jointBuffer = 0, weightBuffer = 0;
     GLuint joints = 0, weights = 0, palette = 0;

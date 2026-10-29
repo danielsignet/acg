@@ -115,6 +115,7 @@ void repeatedScopes(){
             {
                 Profiler::Scope portal(&profiler,Stage::PortalViews);
                 Profiler::Scope skin(&profiler,Stage::GpuSkinning);
+                Profiler::Scope dispatch(&profiler,Stage::SkinningDraw);
                 glFinish();
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
                 glClear(GL_COLOR_BUFFER_BIT);
@@ -150,9 +151,10 @@ void repeatedScopes(){
     exclusive.cpuExclusive[index(Stage::PortalViews)]=2;
     exclusive.gpuExclusive[index(Stage::PortalViews)]=2;
     exclusive.gpuExclusive[index(Stage::GpuSkinning)]=1;
+    exclusive.gpuExclusive[index(Stage::SkinningDraw)]=.25;
     const auto slices=Profiler::breakdown(exclusive);
     check(slices[18].cpuMs==.2 && slices[21].cpuMs==2 && slices[21].gpuMs==2 &&
-              slices.back().gpuMs==5,
+              slices[19].gpuMs==1 && slices[24].gpuMs==.25 && slices.back().gpuMs==4.75,
           "Exclusive traversal and portal timings are not subtracted twice");
 }
 

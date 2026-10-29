@@ -20,30 +20,34 @@ namespace vr{
 void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* frozen,
                            const PortalResult* portals, DeferredRenderer* deferred,
                            const std::function<void()>& beforeDraw){
-    m_camera = &camera;
-    m_deferred = deferred;
-    m_globalState = root.getState() ? m_states.front().merged(*root.getState()) : m_states.front();
-    setEye(camera.getPosition());
-    m_stats ={};
-    GLint viewport[4]{};
-    GLState::getIntegerv(GL_VIEWPORT, viewport);
-    m_viewport = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
-    m_environmentPrograms.clear();
-    if (m_extensionRoot!=&root){
-        m_extensionRoot=&root;m_extensions.clear();
-        std::set<Node*> visited;
-        const std::function<void(Node&)> discover=[&](Node& node){
-            if (!visited.insert(&node).second) return;
-            if (auto extension=std::dynamic_pointer_cast<SceneRenderExtension>(node.getUpdateCallback()))
-                m_extensions.push_back(extension);
-            if (auto* group=dynamic_cast<Group*>(&node))
-                for (const auto& child:group->getChildren()) discover(*child);
-        };
-        discover(root);
+    {
+        FrameProfiler::Scope setup(m_profiler, FrameProfiler::Stage::Submission);
+        m_camera = &camera;
+        m_deferred = deferred;
+        m_globalState = root.getState() ? m_states.front().merged(*root.getState()) : m_states.front();
+        setEye(camera.getPosition());
+        m_stats ={};
+        GLint viewport[4]{};
+        GLState::getIntegerv(GL_VIEWPORT, viewport);
+        m_viewport = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
+        m_environmentPrograms.clear();
+        if (m_extensionRoot!=&root){
+            m_extensionRoot=&root;m_extensions.clear();
+            std::set<Node*> visited;
+            const std::function<void(Node&)> discover=[&](Node& node){
+                if (!visited.insert(&node).second) return;
+                if (auto extension=std::dynamic_pointer_cast<SceneRenderExtension>(node.getUpdateCallback()))
+                    m_extensions.push_back(extension);
+                if (auto* group=dynamic_cast<Group*>(&node))
+                    for (const auto& child:group->getChildren()) discover(*child);
+            };
+            discover(root);
+        }
     }
     for (const auto& weak:m_extensions) if (const auto extension=weak.lock())
         extension->beforeSceneRender({root,camera,m_environment,m_states.front().getProgram(),
-                                     m_shadingMode,viewport[2],viewport[3],m_environmentCapture});
+                                     m_shadingMode, static_cast<int>(m_viewport.z),
+                                     static_cast<int>(m_viewport.w), m_environmentCapture, m_profiler});
     collectLights(root);
     collectGeometry(root, camera, frozen ? *frozen : camera.getProjection() * camera.getView(),
                     portals);
@@ -79,25 +83,28 @@ void RenderVisitor::collectGeometry(Node& root, const Camera& camera,
 
 // Draws opaque instances first and transparent instances in stable back-to-front order.
 void RenderVisitor::drawRenderList(const Camera& camera){
-    m_globalState.setUniform("uBrdfMode", m_shadingMode == ShadingMode::CookTorrance ? 2
-                                          : m_shadingMode == ShadingMode::BlinnPhong ? 1
-                                                                                     : 0);
     std::vector<const RenderNode*> opaque, transparent;
-    for (const auto& item : m_culler.getRenderList()){
-        const auto mirror = item.state.getUniforms().find("uMirror");
-        if ((m_clipPlane || m_environmentCapture) && mirror != item.state.getUniforms().end() &&
-            std::get<bool>(mirror->second)){
-            continue;
+    {
+        FrameProfiler::Scope setup(m_profiler, FrameProfiler::Stage::Submission);
+        m_globalState.setUniform("uBrdfMode", m_shadingMode == ShadingMode::CookTorrance ? 2
+                                              : m_shadingMode == ShadingMode::BlinnPhong ? 1
+                                                                                         : 0);
+        for (const auto& item : m_culler.getRenderList()){
+            const auto mirror = item.state.getUniforms().find("uMirror");
+            if ((m_clipPlane || m_environmentCapture) && mirror != item.state.getUniforms().end() &&
+                std::get<bool>(mirror->second)){
+                continue;
+            }
+            (item.state.getBlend() ? transparent : opaque).push_back(&item);
         }
-        (item.state.getBlend() ? transparent : opaque).push_back(&item);
+        const auto distance = [&](const RenderNode* item){
+            const auto center =
+                glm::vec3(item->model * glm::vec4(item->geometry->getBound().getCenter(), 1));
+            return glm::dot(center - camera.getPosition(), center - camera.getPosition());
+        };
+        std::stable_sort(transparent.begin(), transparent.end(),
+                         [&](const auto* a, const auto* b){ return distance(a) > distance(b); });
     }
-    const auto distance = [&](const RenderNode* item){
-        const auto center =
-            glm::vec3(item->model * glm::vec4(item->geometry->getBound().getCenter(), 1));
-        return glm::dot(center - camera.getPosition(), center - camera.getPosition());
-    };
-    std::stable_sort(transparent.begin(), transparent.end(),
-                     [&](const auto* a, const auto* b){ return distance(a) > distance(b); });
     const auto submit = std::chrono::steady_clock::now();
     if (m_deferred){
         m_deferred->render(

@@ -1,3 +1,55 @@
+# Profilerarens restpost och faktiska kostnader, 2026-10-29
+
+`Other / gaps` är total tid minus namngivna, åtskilda mätintervall. På CPU:n
+omfattar den kod och drivrutinsanrop utanför mätblocken. GPU-tidsstämplarna
+mäter förfluten tid; även GPU-väntan på kommandon kan ingå. CPU- och GPU-tider
+överlappar och ska inte summeras till bildtiden.
+
+Två bokföringsfel är rättade: upprepade GPU-pass skrev över tidigare tidsstämplar,
+och portalernas rendertexturer saknade egen mätning. Varje körning av ett pass
+har nu egna tidsstämplar. Nästlade CPU/GPU-pass räknas en gång i procentvyn.
+Portaltexturer, renderförberedelser och insamling av profileringsfrågor har egna rader.
+
+| Fast vy | GPU Other före | GPU Other efter | Portaltexturer efter |
+| --- | ---: | ---: | ---: |
+| Från drakrummet mot utgången | 64,9 % | 0,6 % | 1,82 ms |
+| Från staden mot draken | 18,8 % | 1,0 % | 1,50 ms |
+| Från sfärerna mot legacy | 22,2 % | 0,3 % | 1,58 ms |
+
+Detta är en korrigerad uppdelning, **ingen motsvarande FPS-vinst**. Körningarna
+är sekventiella och prestanda varierar. 1280 × 800, normal RelWithDebInfo,
+deferred/Cook–Torrance, FXAA, AO, skuggor och cubemaps, VSync av.
+420 bilder per vy; de sista 120 redovisas. Kameraposer, råvärden och inställningar
+finns i [performance-profiler.json](performance-profiler.json).
+
+I rotundans diagnostikkörning tar hela bilden **19,58 ms**. GPU-intervallen för
+skuggor tar **5,87 ms**, skinning **5,12 ms**, AO **2,35 ms** och cubemaps
+**2,27 ms**. Skuggornas CPU-arbete tar **7,74 ms**. I legacy tar skuggorna
+**9,40 ms CPU / 5,42 ms GPU**; fyra rörliga punktljus kräver upp till 24 skuggvyer.
+
+| Diagnostik i samma rotundavy | Bildtid | P95 |
+| --- | ---: | ---: |
+| Full kvalitet | 19,58 ms | 24,78 ms |
+| Skuggor av | 11,33 ms | 15,69 ms |
+| AO av | 17,55 ms | 23,36 ms |
+| CPU-skinning | 16,92 ms | 21,64 ms |
+
+Dessa reglage ändrades enbart i separata mätprocesser. Normalstartens kvalitet
+är oförändrad. CPU-skinningens bättre resultat visar att den nuvarande GPU-vägen
+behöver undersökas kring buffertar, palettuppladdning och synkronisering innan
+kostnaden tillskrivs enbart shaderberäkning.
+
+Prioritet: minska skuggornas upprepade traversering och draws med rums-/ljusgränser,
+skugg-LOD och bättre delning av statiska casterlistor; undersök skinningens
+CPU/GPU-överlämning; pröva AO i halv upplösning med djupstyrd uppsampling;
+sprid cubemapfiltrering över bilder och uppdatera bara ändrade prober.
+
+Profilerarens regressionstest omfattar upprepade GPU-pass, nästlade mätningar
+och att procentuppdelningen summerar till 100 %. Scengraf, rendering och
+rumstester körs också i normalversionen.
+
+---
+
 # Rumsstyrt arbete och prestanda, 2026-10-29
 
 Dolda rumsgrenar får inga animationsuppdateringar. Deras ljus behåller sina

@@ -94,9 +94,72 @@ void breakdownTests(){
     }
 }
 
+// Repeated/nested passes must accumulate, rather than overwrite GPU timestamps.
+void repeatedScopes(){
+    using Profiler=vr::FrameProfiler;
+    using Stage=Profiler::Stage;
+    Profiler profiler;
+    profiler.setEnabled(true);
+    for(unsigned frame=0;frame<4;++frame){
+        const auto start=std::chrono::steady_clock::now();
+        profiler.beginFrame(.016);
+        {
+            Profiler::Scope whole(&profiler,Stage::Frame);
+            Profiler::Scope render(&profiler,Stage::Render);
+            {
+                Profiler::Scope geometry(&profiler,Stage::Geometry);
+                glFinish(); // test-only: make the first interval deterministically nontrivial
+                std::this_thread::sleep_for(std::chrono::milliseconds(4));
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+            {
+                Profiler::Scope portal(&profiler,Stage::PortalViews);
+                Profiler::Scope skin(&profiler,Stage::GpuSkinning);
+                glFinish();
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                glClear(GL_COLOR_BUFFER_BIT);
+            }
+            { Profiler::Scope geometry(&profiler,Stage::Geometry);glClear(GL_COLOR_BUFFER_BIT); }
+        }
+        profiler.endFrame(std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count());
+        glFinish();
+    }
+    const auto summary=profiler.summarize();
+    const auto index=[](Stage s){return static_cast<std::size_t>(s);};
+    check(summary.hasExclusiveTimings,"Live scopes provide disjoint timings");
+    check(summary.cpu[index(Stage::PortalViews)]>=summary.cpu[index(Stage::GpuSkinning)] &&
+              summary.cpuExclusive[index(Stage::PortalViews)]<summary.cpu[index(Stage::PortalViews)],
+          "Nested CPU work is charged to its own stage, once");
+    if(profiler.getGpuSupported()){
+        check(summary.gpu[index(Stage::Geometry)]>2,
+              "Both GPU geometry intervals survive; the last short interval cannot overwrite the first");
+        check(summary.gpu[index(Stage::PortalViews)]>=summary.gpu[index(Stage::GpuSkinning)] &&
+                  summary.gpuExclusive[index(Stage::PortalViews)]<summary.gpu[index(Stage::PortalViews)],
+              "Nested GPU intervals are separated from their parent pass");
+    }
+    double cpu=0,gpu=0;
+    for(const auto& slice:Profiler::breakdown(summary)){cpu+=slice.cpuPercent;gpu+=slice.gpuPercent;}
+    check(std::abs(cpu-100)<1e-6 && (!summary.gpuSamples || std::abs(gpu-100)<1e-6),
+          "Repeated and nested runtime scopes still partition the frame into exactly 100 percent");
+    Profiler::Summary exclusive;
+    exclusive.hasExclusiveTimings=true;
+    exclusive.cpu[index(Stage::Frame)]=10;
+    exclusive.gpu[index(Stage::Render)]=8;
+    exclusive.cpuExclusive[index(Stage::Update)]=.2;
+    exclusive.cpuExclusive[index(Stage::AnimationTracks)]=.4;
+    exclusive.cpuExclusive[index(Stage::PortalViews)]=2;
+    exclusive.gpuExclusive[index(Stage::PortalViews)]=2;
+    exclusive.gpuExclusive[index(Stage::GpuSkinning)]=1;
+    const auto slices=Profiler::breakdown(exclusive);
+    check(slices[18].cpuMs==.2 && slices[21].cpuMs==2 && slices[21].gpuMs==2 &&
+              slices.back().gpuMs==5,
+          "Exclusive traversal and portal timings are not subtracted twice");
+}
+
 // Exercises nested timestamps, real frame intervals, bounded history and toggles.
 void run(){
     breakdownTests();
+    repeatedScopes();
     using Stage = vr::FrameProfiler::Stage;
     vr::FrameProfiler profiler;
     profiler.beginFrame(0.05);

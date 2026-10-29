@@ -98,9 +98,11 @@ public:
 
     void beforeSceneRender(const vr::SceneRenderContext& context) override{
         if (!m_portals) return;
-        if (m_active.empty()) {m_portals->render(context,"",{},{});return;}
+        auto measured=context;
+        measured.profiler=m_context.profiler;
+        if (m_active.empty()) {m_portals->render(measured,"",{},{});return;}
         for(const auto& zone:m_zones) if(zone.room==m_active){
-            m_portals->render(context,m_active,zone.openingMin,zone.openingMax);break;
+            m_portals->render(measured,m_active,zone.openingMin,zone.openingMax);break;
         }
     }
 

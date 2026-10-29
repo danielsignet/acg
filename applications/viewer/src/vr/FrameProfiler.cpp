@@ -42,7 +42,10 @@ FrameProfiler::descriptions(){
          {"Skin palette matrices", false},
          {"CPU vertex skinning", false},
          {"GPU skinning (once)", true},
-         {"Skin positions / bounds", false}}};
+         {"Skin positions / bounds", false},
+         {"Room portal textures", true},
+         {"Render setup / submission", false},
+         {"Profiler query collection", false}}};
     return stages;
 }
 
@@ -79,6 +82,7 @@ void FrameProfiler::setEnabled(bool enabled){
 void FrameProfiler::resetAverages(){
     m_active = false;
     m_recording = nullptr;
+    m_scopeTop = nullptr;
     m_history.clear();
     m_current ={};
     m_skipped = 0;
@@ -109,12 +113,15 @@ FrameProfiler::breakdown(const Summary& summary){
                                           {"Scene graph / callbacks", false},
                                           {"GPU skinning (once)"},
                                           {"Skin positions / bounds", false},
+                                          {"Room portal textures"},
+                                          {"Render setup / submission", false},
+                                          {"Profiler query collection", false},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
             const auto index = static_cast<std::size_t>(stage);
-            slices[slice].cpuMs += summary.cpu[index];
-            slices[slice].gpuMs += summary.gpu[index];
+            slices[slice].cpuMs += summary.hasExclusiveTimings ? summary.cpuExclusive[index] : summary.cpu[index];
+            slices[slice].gpuMs += summary.hasExclusiveTimings ? summary.gpuExclusive[index] : summary.gpu[index];
         }
     };
     add(0,{Stage::Shadows});
@@ -139,13 +146,17 @@ FrameProfiler::breakdown(const Summary& summary){
     add(18,{Stage::Update});
     add(19,{Stage::GpuSkinning});
     add(20,{Stage::SkinBounds});
-    // Animation stages are nested in Update; show only its remaining traversal/callback work.
-    for (std::size_t i = 14; i <= 17; ++i){
-        slices[18].cpuMs -= slices[i].cpuMs;
+    add(21,{Stage::PortalViews});
+    add(22,{Stage::Submission});
+    add(23,{Stage::Profiler});
+    // Retain support for manually constructed summaries with inclusive timings.
+    if (!summary.hasExclusiveTimings){
+        for (std::size_t i = 14; i <= 17; ++i){
+            slices[18].cpuMs -= slices[i].cpuMs;
+        }
+        slices[9].cpuMs = std::max(0.0, slices[9].cpuMs - slices[10].cpuMs);
     }
     slices[18].cpuMs = std::max(0.0, slices[18].cpuMs);
-    // Commands run inside event polling; attribute their work exactly once.
-    slices[9].cpuMs = std::max(0.0, slices[9].cpuMs - slices[10].cpuMs);
     const double cpu = summary.cpu[static_cast<std::size_t>(Stage::Frame)];
     const double gpu = summary.gpu[static_cast<std::size_t>(Stage::Render)];
     double measuredCpu = 0, measuredGpu = 0;
@@ -177,14 +188,21 @@ void FrameProfiler::collect(){
             return item.sequence == queries.sequence;
         });
         if (sample != m_history.end()){
-            for (std::size_t i = 0; i < StageCount; ++i){
-                if (!queries.used[i]){
-                    continue;
-                }
+            std::array<double, MaxGpuScopes> duration{}, children{};
+            for (std::size_t i = 0; i < queries.count; ++i){
                 GLuint64 start = 0, end = 0;
                 glGetQueryObjectui64v(queries.ids[i * 2], GL_QUERY_RESULT, &start);
                 glGetQueryObjectui64v(queries.ids[i * 2 + 1], GL_QUERY_RESULT, &end);
-                sample->gpu[i] = end >= start ? static_cast<double>(end - start) / 1e6 : 0;
+                duration[i] = end >= start ? static_cast<double>(end - start) / 1e6 : 0;
+                const auto parent = queries.intervals[i].parent;
+                if (parent >= 0){
+                    children[static_cast<std::size_t>(parent)] += duration[i];
+                }
+            }
+            for (std::size_t i = 0; i < queries.count; ++i){
+                const auto stage = static_cast<std::size_t>(queries.intervals[i].stage);
+                sample->gpu[stage] += duration[i];
+                sample->gpuExclusive[stage] += std::max(0.0, duration[i] - children[i]);
             }
             sample->gpuReady = true;
         }
@@ -197,15 +215,21 @@ void FrameProfiler::beginFrame(double intervalSeconds){
     if (!m_enabled){
         return;
     }
+    const auto queryStart = std::chrono::steady_clock::now();
     collect();
+    const auto queryMs = std::chrono::duration<double, std::milli>(
+                             std::chrono::steady_clock::now() - queryStart).count();
     m_current ={};
     m_current.sequence = ++m_sequence;
+    const auto queryStage = static_cast<std::size_t>(Stage::Profiler);
+    m_current.cpu[queryStage] = m_current.cpuExclusive[queryStage] = queryMs;
     m_current.intervalMs = std::max(0.0, intervalSeconds * 1000);
     m_recording = nullptr;
+    m_scopeTop = nullptr;
     if (m_gpuSupported){
         for (auto& queries : m_queries){
             if (!queries.pending){
-                queries.used.fill(false);
+                queries.count = 0;
                 queries.last = 0;
                 queries.sequence = m_sequence;
                 m_recording = &queries;
@@ -254,35 +278,52 @@ FrameProfiler::Scope::Scope(FrameProfiler* profiler, Stage stage)
         return;
     }
     m_start = std::chrono::steady_clock::now();
+    m_sequence = m_profiler->m_sequence;
+    m_parent = m_profiler->m_scopeTop;
+    m_profiler->m_scopeTop = this;
     const auto i = static_cast<std::size_t>(stage);
-    m_gpu = descriptions()[i].gpu && m_profiler->m_recording;
-    if (m_gpu){
+    if (descriptions()[i].gpu && m_profiler->m_recording &&
+        m_profiler->m_recording->count < MaxGpuScopes){
         auto& queries = *m_profiler->m_recording;
-        queries.used[i] = true;
-        glQueryCounter(queries.ids[i * 2], GL_TIMESTAMP);
+        m_gpuSlot = static_cast<int>(queries.count++);
+        int parent = -1;
+        for (auto scope = m_parent; scope; scope = scope->m_parent){
+            if (scope->m_gpuSlot >= 0){
+                parent = scope->m_gpuSlot;
+                break;
+            }
+        }
+        queries.intervals[m_gpuSlot] ={stage, parent};
+        glQueryCounter(queries.ids[m_gpuSlot * 2], GL_TIMESTAMP);
     }
 }
 
 // Publishes CPU duration and queues the matching GPU timestamp.
 FrameProfiler::Scope::~Scope(){
-    if (!m_profiler || !m_profiler->m_active){
+    if (!m_profiler || !m_profiler->m_active || m_sequence != m_profiler->m_sequence){
         return;
     }
     const auto i = static_cast<std::size_t>(m_stage);
-    if (m_gpu){
+    if (m_gpuSlot >= 0){
         auto& queries = *m_profiler->m_recording;
-        queries.last = queries.ids[i * 2 + 1];
+        queries.last = queries.ids[m_gpuSlot * 2 + 1];
         glQueryCounter(queries.last, GL_TIMESTAMP);
     }
-    m_profiler->m_current.cpu[i] +=
-        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - m_start)
-            .count();
+    const auto duration = std::chrono::duration<double, std::milli>(
+                              std::chrono::steady_clock::now() - m_start).count();
+    m_profiler->m_current.cpu[i] += duration;
+    m_profiler->m_current.cpuExclusive[i] += std::max(0.0, duration - m_childCpuMs);
+    if (m_parent){
+        m_parent->m_childCpuMs += duration;
+    }
+    m_profiler->m_scopeTop = m_parent;
 }
 
 // Averages the bounded history and computes the 95th-percentile frame interval.
 FrameProfiler::Summary FrameProfiler::summarize() const{
     Summary result;
     result.samples = static_cast<unsigned>(m_history.size());
+    result.hasExclusiveTimings = !m_history.empty();
     result.skipped = m_skipped;
     std::vector<double> intervals;
     for (const auto& sample : m_history){
@@ -292,8 +333,10 @@ FrameProfiler::Summary FrameProfiler::summarize() const{
         result.latestCpu = sample.cpu;
         for (std::size_t i = 0; i < StageCount; ++i){
             result.cpu[i] += sample.cpu[i];
+            result.cpuExclusive[i] += sample.cpuExclusive[i];
             if (sample.gpuReady){
                 result.gpu[i] += sample.gpu[i];
+                result.gpuExclusive[i] += sample.gpuExclusive[i];
             }
         }
         if (sample.gpuReady){
@@ -315,9 +358,15 @@ FrameProfiler::Summary FrameProfiler::summarize() const{
         for (auto& time : result.cpu){
             time /= result.samples;
         }
+        for (auto& time : result.cpuExclusive){
+            time /= result.samples;
+        }
     }
     if (result.gpuSamples){
         for (auto& time : result.gpu){
+            time /= result.gpuSamples;
+        }
+        for (auto& time : result.gpuExclusive){
             time /= result.gpuSamples;
         }
     }

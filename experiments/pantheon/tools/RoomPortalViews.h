@@ -4,6 +4,7 @@
 #include <vr/EnvironmentMap.h>
 #include <vr/FramebufferState.h>
 #include <vr/GLState.h>
+#include <vr/FrameProfiler.h>
 #include <algorithm>
 #include <cmath>
 #include <functional>
@@ -55,6 +56,7 @@ public:
             glm::vec2 low=glm::max(projected.low,source.low),high=glm::min(projected.high,source.high);
             low=glm::max(low,glm::vec2(-1));high=glm::min(high,glm::vec2(1));
             if (glm::any(glm::lessThanEqual(high-low,glm::vec2(.002f)))) continue;
+            vr::FrameProfiler::Scope measured(context.profiler,vr::FrameProfiler::Stage::PortalViews);
             // A small pixel guard keeps filtering from sampling an uncaptured edge.
             low=glm::max(low-glm::vec2(4.0f/context.width,4.0f/context.height),glm::vec2(-1));
             high=glm::min(high+glm::vec2(4.0f/context.width,4.0f/context.height),glm::vec2(1));

@@ -26,8 +26,6 @@ Från repots rot:
 ```powershell
 .\experiments\pantheon\build.ps1
 .\experiments\pantheon\run.ps1
-.\experiments\pantheon\run.ps1 -Debug
-.\experiments\pantheon\run.ps1 -Debug -Reflections cubemaps
 .\experiments\pantheon\run.ps1 -View materials
 .\experiments\pantheon\run.ps1 -View mirror
 .\experiments\pantheon\run.ps1 -View city
@@ -46,9 +44,7 @@ De tidigare vynamnen `lapis`, `aes`, `silva` och `astra` fungerar också.
 `rotunda` och `dome` visar centralrummet. `mirror` visar spegelväggen inifrån
 materialrummet. Alla vyer laddar hela scenen och går att navigera vidare från.
 
-`-Debug` bygger vid behov en riktig Debug-version och startar den i Visual Studios
-debugger. F5 fortsätter körningen när debuggern har stannat på ett fel.
-`build.ps1 -Configuration Debug` bygger om Debug-versionen efter kodändringar.
+Normalstarten använder **RelWithDebInfo** utan debugger.
 
 Den vanliga starten visar HUD och menyer. Endast den dolda benchmarkkörningen
 använder `--no-menus`. Tab döljer eller visar menyerna.
@@ -271,6 +267,19 @@ bakas vid laddning, inte varje bildruta.
 gångarna i samma bild. `astra-sky` och `city-sky` visar respektive himmel.
 
 ![Båda himlarna samtidigt](skybox-doorway-preview.png)
+
+## Profilerarens tidsuppdelning
+
+Prestandavyn visar åtskilda CPU/GPU-tider. Upprepade pass summeras; nästlade
+pass belastar bara sin egen rad. **Room portal textures** mäter öppningarnas
+rendertexturer, inklusive dem som behövs i spegeln. **Render setup / submission**
+och **Profiler query collection** visar tidigare omätt CPU-arbete.
+
+**Other / gaps** är återstående tid utanför namngivna pass. GPU-kolumnen mäter
+förfluten tid inklusive väntan och är inte ett mått på enbart shaderarbete.
+CPU och GPU överlappar. CSV-exporten behåller de ursprungliga inkluderande
+kolumnerna och lägger till `exclusive_cpu_*`, `exclusive_gpu_*`, `cpu_other_ms`
+och `gpu_other_ms`. [Mätresultat och prioriteringar](RESULTAT.md).
 
 ## Verifiera och mäta
 

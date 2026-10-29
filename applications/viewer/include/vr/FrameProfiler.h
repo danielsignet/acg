@@ -44,6 +44,9 @@ public:
         Skinning,
         GpuSkinning,
         SkinBounds,
+        PortalViews,
+        Submission,
+        Profiler,
         Count
     };
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);
@@ -97,6 +100,7 @@ public:
         std::uint64_t sequence = 0;
         double intervalMs = 0;
         std::array<double, StageCount> cpu{}, gpu{};
+        std::array<double, StageCount> cpuExclusive{}, gpuExclusive{};
         Counters counters{};
         bool countersValid = false;
         bool gpuReady = false;
@@ -105,10 +109,12 @@ public:
     struct Summary{
         std::array<double, StageCount> cpu{}, gpu{};
         std::array<double, StageCount> latestCpu{}, latestGpu{};
+        std::array<double, StageCount> cpuExclusive{}, gpuExclusive{};
         Counters counters{};
         double frameMs = 0, p95Ms = 0, peakMs = 0;
         unsigned samples = 0, gpuSamples = 0, counterSamples = 0;
         std::uint64_t gpuLag = 0, skipped = 0;
+        bool hasExclusiveTimings = false;
     };
 
     struct Slice{
@@ -118,7 +124,7 @@ public:
         double cpuPercent = 0, gpuPercent = 0;
     };
 
-    static constexpr std::size_t SliceCount = 22;
+    static constexpr std::size_t SliceCount = 25;
 
     class Scope final{
     public:
@@ -133,7 +139,10 @@ public:
         FrameProfiler* m_profiler;
         Stage m_stage;
         std::chrono::steady_clock::time_point m_start;
-        bool m_gpu = false;
+        Scope* m_parent = nullptr;
+        double m_childCpuMs = 0;
+        int m_gpuSlot = -1;
+        std::uint64_t m_sequence = 0;
     };
 
     // Defers allocating queries until profiling is first enabled.
@@ -185,9 +194,12 @@ public:
     static const std::array<Description, StageCount>& descriptions();
 
 private:
+    static constexpr std::size_t MaxGpuScopes = 128;
     struct Queries{
-        std::array<GLuint, StageCount * 2> ids{};
-        std::array<bool, StageCount> used{};
+        struct Interval{ Stage stage; int parent = -1; };
+        std::array<GLuint, MaxGpuScopes * 2> ids{};
+        std::array<Interval, MaxGpuScopes> intervals{};
+        std::size_t count = 0;
         std::uint64_t sequence = 0;
         GLuint last = 0;
         bool pending = false;
@@ -197,6 +209,7 @@ private:
     void collect();
     std::array<Queries, 8> m_queries;
     Queries* m_recording = nullptr;
+    Scope* m_scopeTop = nullptr;
     std::deque<Sample> m_history;
     Sample m_current;
     std::uint64_t m_sequence = 0, m_skipped = 0;

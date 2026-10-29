@@ -351,6 +351,10 @@ void Viewer::writeBenchmark() const{
     for (const auto& stage : FrameProfiler::descriptions()){
         output << ",\"cpu_" << stage.name << "_ms\",\"gpu_" << stage.name << "_ms\"";
     }
+    for (const auto& stage : FrameProfiler::descriptions()){
+        output << ",\"exclusive_cpu_" << stage.name << "_ms\",\"exclusive_gpu_" << stage.name << "_ms\"";
+    }
+    output << ",cpu_other_ms,gpu_other_ms";
     using Counter = FrameProfiler::Counter;
     const std::pair<const char*, Counter> counts[]{
         {"shadow_draws", Counter::ShadowDraws},
@@ -371,6 +375,11 @@ void Viewer::writeBenchmark() const{
     for (std::size_t i = 0; i < FrameProfiler::StageCount; ++i){
         output << ',' << summary.cpu[i] << ',' << summary.gpu[i];
     }
+    for (std::size_t i = 0; i < FrameProfiler::StageCount; ++i){
+        output << ',' << summary.cpuExclusive[i] << ',' << summary.gpuExclusive[i];
+    }
+    const auto breakdown = FrameProfiler::breakdown(summary);
+    output << ',' << breakdown.back().cpuMs << ',' << breakdown.back().gpuMs;
     for (const auto& counter : counts){
         output << ',' << summary.counters[static_cast<std::size_t>(counter.second)];
     }

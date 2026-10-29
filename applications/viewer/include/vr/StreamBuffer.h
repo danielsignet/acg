@@ -4,12 +4,15 @@
 #include <glad/glad.h>
 
 namespace vr{
-// Three independently fenced stores; busy stores are orphaned rather than overwritten.
-// Uses OpenGL 4.1 core operations and does not require persistent-mapping extensions.
+// Rotates three stores. Discard replaces storage without polling GPU fences;
+// Reuse keeps signaled stores and orphans busy ones. Both use OpenGL 4.1 core.
 class StreamBuffer final{
 public:
+    enum class Policy{ Reuse, Discard };
     ~StreamBuffer();
     StreamBuffer() = default;
+    explicit StreamBuffer(Policy policy) : m_policy(policy){
+    }
     StreamBuffer(const StreamBuffer&) = delete;
     StreamBuffer& operator=(const StreamBuffer&) = delete;
     GLuint acquire(std::size_t bytes, const void* data = nullptr);
@@ -36,5 +39,6 @@ private:
 
     std::array<Slot, 3> m_slots{};
     std::size_t m_current = 2, m_uploadedBytes = 0, m_orphans = 0;
+    Policy m_policy = Policy::Reuse;
 };
 } // namespace vr

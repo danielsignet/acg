@@ -277,6 +277,8 @@ och **Profiler query collection** visar tidigare omätt CPU-arbete.
 
 **Other / gaps** är återstående tid utanför namngivna pass. GPU-kolumnen mäter
 förfluten tid inklusive väntan och är inte ett mått på enbart shaderarbete.
+**Deformation setup / wait** skiljer förberedelser och väntan från **Vertex
+deformation (GPU)**, som mäter själva transform-feedback-passet.
 CPU och GPU överlappar. CSV-exporten behåller de ursprungliga inkluderande
 kolumnerna och lägger till `exclusive_cpu_*`, `exclusive_gpu_*`, `cpu_other_ms`
 och `gpu_other_ms`. [Mätresultat och prioriteringar](RESULTAT.md).

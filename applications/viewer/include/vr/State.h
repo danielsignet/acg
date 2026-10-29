@@ -24,8 +24,11 @@ public:
 
     static constexpr unsigned MaxTextures = 4;
     static constexpr unsigned MaterialTextureUnits = MaxTextures + 1;
-    static constexpr unsigned MaxLights = 8;
-    static constexpr unsigned MaxShadowMaps = MaxLights + 1;
+    // The full light mask must remain exactly representable in the RGBA16F G-buffer.
+    static constexpr unsigned MaxLights = 10;
+    // Keep shadow samplers within units 5-13; environment maps use 14-15.
+    static constexpr unsigned MaxPointShadows = 8;
+    static constexpr unsigned MaxShadowMaps = MaxPointShadows + 1;
 
     // Creates the complete initial rendering state for the supplied shader program.
     static State defaults(const std::shared_ptr<Program>& program);

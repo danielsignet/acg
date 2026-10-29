@@ -9,7 +9,7 @@ struct Light{
     bool enabled, spotlight;
 };
 
-uniform Light uLights[8];
+uniform Light uLights[10];
 uniform int uLightCount;
 uniform vec3 uEye;
 uniform sampler2D uSunShadow;
@@ -17,7 +17,7 @@ uniform samplerCube uPointShadows[8];
 uniform mat4 uSunVP;
 uniform mat3 uSunPlane;
 uniform bool uShadows, uReceiveShadows, uShadowPCF;
-uniform int uSunShadowIndex, uPointShadowSlot[8];
+uniform int uSunShadowIndex, uPointShadowSlot[10];
 uniform float uPointShadowFar[8];
 
 // Interpolates a three-texel PCF kernel over four texel centers per axis.

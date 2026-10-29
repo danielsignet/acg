@@ -5,6 +5,7 @@
 #include "LightCollector.h"
 #include "PathVisitor.h"
 #include "RenderMode.h"
+#include "SceneRenderExtension.h"
 #include <functional>
 #include <map>
 #include <set>
@@ -116,6 +117,8 @@ public:
     }
 
 private:
+    Node* m_extensionRoot=nullptr;
+    std::vector<std::weak_ptr<SceneRenderExtension>> m_extensions;
     FrameProfiler* m_profiler = nullptr;
     // Collects lights before culling so off-screen lights still affect visible geometry.
     void collectLights(Node& root);

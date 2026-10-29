@@ -6,7 +6,7 @@
 namespace vr{
 // Finds the closest visible model, including glass, while ignoring transparent debug walls.
 std::optional<ModelHit> pickModel(const std::vector<RenderNode>& items, const glm::vec3& eye,
-                                  const glm::vec3& direction){
+                                  const glm::vec3& direction, float* surfaceDistance){
     std::optional<ModelHit> hit;
     float nearest = std::numeric_limits<float>::infinity();
     for (const auto& item : items){
@@ -36,6 +36,7 @@ std::optional<ModelHit> pickModel(const std::vector<RenderNode>& items, const gl
                       : std::nullopt;
         }
     }
+    if(surfaceDistance) *surfaceDistance=nearest;
     return hit;
 }
 } // namespace vr

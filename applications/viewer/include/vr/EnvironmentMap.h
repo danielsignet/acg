@@ -5,13 +5,18 @@
 #include "Program.h"
 #include "ScreenQuad.h"
 #include "RenderMode.h"
+#include "SceneEnvironments.h"
 #include <array>
 
 namespace vr{
 class EnvironmentMap final{
 public:
     // Loads one HDRI and bakes reusable GGX reflections, diffuse SH and the BRDF lookup.
-    EnvironmentMap(const std::filesystem::path& root, const std::filesystem::path& image);
+    EnvironmentMap(const std::filesystem::path& root, const std::filesystem::path& image,
+                   float exposure = 0);
+    // Bakes room skies once and shares their textures across all render passes.
+    void configureRooms(const std::filesystem::path& root, const SceneEnvironments& layout);
+    unsigned getSkyCount() const{ return static_cast<unsigned>(m_irradiances.size()); }
     // Publishes the environment to a forward program using the two remaining sampler units.
     void apply(const Program& program, unsigned firstUnit = 14) const;
     // Draws an HDR or display-encoded sky before forward scene geometry.
@@ -44,8 +49,9 @@ public:
 
 private:
     // Projects diffuse lighting and normalizes exposure before the temporary HDR upload.
-    void projectLighting(float* pixels, int width, int height);
-    std::shared_ptr<Texture> m_radiance, m_prefiltered;
+    void projectLighting(float* pixels, int width, int height, float exposure);
+    void applyRegions(const Program& program) const;
+    std::shared_ptr<Texture> m_radiance, m_skies, m_prefiltered;
     std::shared_ptr<Texture> m_localMaps;
     std::unique_ptr<ColorTarget> m_brdf;
     std::shared_ptr<Program> m_skyProgram, m_deferredProgram, m_multisampleProgram;
@@ -53,6 +59,8 @@ private:
     ReflectionMode m_mode = ReflectionMode::Environment;
     unsigned m_readyMask = 1;
     std::array<glm::vec3, 9> m_irradiance{};
+    std::vector<std::array<glm::vec3,9>> m_irradiances;
+    SceneEnvironments m_layout;
     glm::vec3 m_sunDirection{0, 1, 0};
     ScreenQuad m_quad;
 };

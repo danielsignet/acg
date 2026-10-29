@@ -137,6 +137,7 @@ private:
     std::unique_ptr<EnvironmentMap> m_environment;
     std::unique_ptr<PlanarReflection> m_reflection;
     std::unique_ptr<ReflectionProbes> m_reflectionProbes;
+    std::string m_reflectionProbeRoom;
     std::unique_ptr<ShadowRenderer> m_shadowRenderer;
     std::unique_ptr<Flashlight> m_flashlight;
     std::optional<ModelHit> m_target;

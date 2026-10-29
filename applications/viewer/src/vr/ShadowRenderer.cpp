@@ -76,7 +76,7 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
     bool sunRendered = false;
     unsigned slot = 0;
     for (unsigned i = 0; i < lights.size(); ++i){
-        if (!lights[i].node->getEnabled() || !state.getLightEnabled(i)){
+        if (!lights[i].active || !lights[i].node->getEnabled() || !state.getLightEnabled(i)){
             continue;
         }
         const auto position = lights[i].model * lights[i].node->getPosition();
@@ -84,6 +84,9 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
             renderSun(state, bounds, glm::vec3(position), glm::vec3(0), static_cast<int>(i));
             sunRendered = true;
         } else if (position.w != 0){
+            if (slot == State::MaxPointShadows){
+                continue;
+            }
             if (slot == m_points.size()){
                 auto target = createPointTarget(slot);
                 scene.attachRenderTarget(target);
@@ -94,7 +97,7 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
         }
     }
     state.setShadowMap(0, m_sun->getTexture());
-    for (unsigned i = 0; i < State::MaxLights; ++i){
+    for (unsigned i = 0; i < State::MaxPointShadows; ++i){
         state.setShadowMap(i + 1, i < m_points.size() ? m_points[i]->getTexture() : nullptr);
     }
     m_stats.cpuMs =

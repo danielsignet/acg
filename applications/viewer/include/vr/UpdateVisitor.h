@@ -9,6 +9,7 @@ class UpdateVisitor : public NodeVisitor{
 public:
     // Executes each unique node callback once during this update.
     void update(Node& root, const UpdateContext& context);
+    bool hasDynamicUpdates() const{ return m_dynamicUpdates; }
 
     // Executes this group's callback once, then visits its children.
     void apply(Group& node) override;
@@ -42,6 +43,7 @@ public:
     }
 
 private:
+    bool m_dynamicUpdates = false;
     // Records a first visit before processing this node.
     bool enter(Node& node);
     UpdateContext m_context{0, 0};

@@ -14,7 +14,7 @@ constexpr unsigned maxProbes = 15;
 // Restores picking and scene visibility even when an auxiliary draw fails.
 class HideInstance final{
 public:
-    explicit HideInstance(ModelInstance& instance)
+    explicit HideInstance(Node& instance)
         : m_instance(instance), m_visible(instance.getVisible()){
         instance.setVisible(false);
     }
@@ -24,7 +24,7 @@ public:
     }
 
 private:
-    ModelInstance& m_instance;
+    Node& m_instance;
     bool m_visible;
 };
 } // namespace
@@ -35,12 +35,21 @@ ReflectionProbes::ReflectionProbes(Scene& scene, EnvironmentMap& environment,
     : m_renderer(program){
     CullVisitor collector;
     collector.collect(*scene.getRoot(), glm::mat4(1), scene.getCamera()->getPosition(), false);
+    const auto probeLimit = std::min(maxProbes,
+        Texture::MaxCubeArrayLayers - environment.getSkyCount());
     std::set<ModelInstance*> assigned;
+    // A room switch replaces the probe array. Clear previous layer IDs before
+    // assigning the visible instances, including candidates beyond the limit.
+    for(const auto& item:collector.getRenderList()){
+        if(item.instance && item.instance->getSelectable() && assigned.insert(item.instance).second){
+            if(!item.instance->getState()) item.instance->setState(std::make_shared<State>());
+            item.instance->getState()->setUniform("uReflectionProbe",0);
+        }
+    }
+    assigned.clear();
+    std::map<int,unsigned> groups;
     for (const auto& item : collector.getRenderList()){
         const auto found = item.state.getUniforms().find("uEnvironmentMaterial");
-        if (m_probes.size() == maxProbes){
-            break;
-        }
         if (!item.instance || !item.instance->getSelectable() ||
             found == item.state.getUniforms().end() || !std::get<bool>(found->second) ||
             !assigned.insert(item.instance).second){
@@ -49,11 +58,32 @@ ReflectionProbes::ReflectionProbes(Scene& scene, EnvironmentMap& environment,
         if (!item.instance->getState()){
             item.instance->setState(std::make_shared<State>());
         }
-        m_probes.push_back({item.instance, item.instanceModel, item.room});
+        const auto tagged=item.state.getUniforms().find("uReflectionGroup");
+        const int group=tagged==item.state.getUniforms().end()?0:std::get<int>(tagged->second);
+        if(group && groups.count(group)){
+            item.instance->getState()->setUniform("uReflectionProbe",static_cast<int>(groups[group]));
+            continue;
+        }
+        if(m_probes.size()==probeLimit) continue;
+        Node* excluded=item.instance;
+        if(group){
+            std::shared_ptr<Node> ancestor=item.instance->shared_from_this();
+            while(ancestor){
+                if(ancestor->getState()){
+                    const auto local=ancestor->getState()->getUniforms().find("uReflectionGroup");
+                    if(local!=ancestor->getState()->getUniforms().end() && std::get<int>(local->second)==group)
+                        excluded=ancestor.get();
+                }
+                if(ancestor->getParents().empty()) break;
+                ancestor=ancestor->getParents().front().lock();
+            }
+        }
+        m_probes.push_back({item.instance, item.instanceModel, item.room,0,excluded});
+        if(group) groups[group]=static_cast<unsigned>(m_probes.size());
         item.instance->getState()->setUniform("uReflectionProbe",
                                               static_cast<int>(m_probes.size()));
     }
-    m_maps = Texture::colorCubeArray(256, 9, getProbeCount() + 1);
+    m_maps = Texture::colorCubeArray(256, 9, getProbeCount() + environment.getSkyCount());
     environment.initializeLocalReflections(m_maps);
     environment.setLocalReflections(m_maps, m_readyMask);
     m_capture = Texture::colorCube(captureSize, 8);
@@ -140,7 +170,7 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
     GLState::clearDepth(1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
-        HideInstance hidden(*probe.instance);
+        HideInstance hidden(*(probe.excluded?probe.excluded:probe.instance));
         m_renderer.setShadingMode(shading);
         // The probe originates at the excluded object's center, rather than the observer.
         auto portals = scene.getPortalGraph().collect(center, nullptr);
@@ -149,7 +179,7 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
     m_stats = m_renderer.getStats();
     m_faces = 1;
     if (++m_face == 6){
-        environment.prefilterLocal(m_capture, m_maps, m_cursor + 1);
+        environment.prefilterLocal(m_capture, m_maps, m_cursor + environment.getSkyCount());
         m_filterDraws = 6 * 9;
         m_readyMask |= 1u << (m_cursor + 1);
         environment.setLocalReflections(m_maps, m_readyMask);

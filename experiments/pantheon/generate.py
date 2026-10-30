@@ -391,7 +391,7 @@ def main():
             points=[world((x,y,-depth),i) for x in (-width,width) for y in (0,height)]
             ET.SubElement(visibility,"portal",{"from":frm,"to":to,"min":vec([min(p[a] for p in points) for a in range(3)]),"max":vec([max(p[a] for p in points) for a in range(3)])})
     root=group(scene,"Pantheon experiment")
-    zones={}
+    zones={"hub-radius":vec((DOOR-.2,))}
     for i,(name,*_) in enumerate(themes):
         size=ROOMS[name]
         front=58-math.sqrt(24**2-HALF**2) if name in {"lapis","astra"} else START
@@ -406,6 +406,9 @@ def main():
         opening=[world((x,y,-front),i) for x in (-HALF,HALF) for y in (0,10)]
         zones["opening-"+name]=vec((*[min(p[a] for p in opening) for a in range(3)],
                                      *[max(p[a] for p in opening) for a in range(3)]))
+        entry=[world((x,y,-DOOR),i) for x in (-3,3) for y in (0,7.4)]
+        zones["entry-"+name]=vec((*[min(p[a] for p in entry) for a in range(3)],
+                                   *[max(p[a] for p in entry) for a in range(3)]))
     transform(root,"Room visibility controller",animation="room-isolation",**zones)
     s=state(root)
     ET.SubElement(s,"uniform",name="uFog",type="bool",value="false")

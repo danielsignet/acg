@@ -276,7 +276,7 @@
     <portal from="astra" to="astra-passage" min="-34 0 -5.603432" max="-34 6 5.603432" />
   </visibility>
   <group name="Pantheon experiment">
-    <transform name="Room visibility controller 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0" animation="room-isolation" zone-lapis="-24 0 -82 24 26 -34.6633 0 -58 24" opening-lapis="-5.603432 0 -34.6633 5.603432 10 -34.6633" zone-aes="34 0 -32 112 106 32 0 0 0" opening-aes="34 0 -5.603432 34 10 5.603432" zone-silva="-21 0 34 21 14 78 0 0 0" opening-silva="-5.603432 0 34 5.603432 10 34" zone-astra="-82 -30 -24 -34.6633 30 24 -58 1.065443e-14 24" opening-astra="-34.6633 0 -5.603432 -34.6633 10 5.603432" />
+    <transform name="Room visibility controller 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0" animation="room-isolation" zone-lapis="-24 0 -82 24 26 -34.6633 0 -58 24" opening-lapis="-5.603432 0 -34.6633 5.603432 10 -34.6633" zone-aes="34 0 -32 112 106 32 0 0 0" opening-aes="34 0 -5.603432 34 10 5.603432" zone-silva="-21 0 34 21 14 78 0 0 0" opening-silva="-5.603432 0 34 5.603432 10 34" zone-astra="-82 -30 -24 -34.6633 30 24 -58 1.065443e-14 24" opening-astra="-34.6633 0 -5.603432 -34.6633 10 5.603432" hub-radius="20.71229" entry-lapis="-3 0 -20.91229 3 7.4 -20.91229" entry-aes="20.91229 0 -3 20.91229 7.4 3" entry-silva="-3 0 20.91229 3 7.4 20.91229" entry-astra="-20.91229 0 -3 -20.91229 7.4 3" />
     <state>
       <uniform name="uFog" type="bool" value="false" />
       <uniform name="uRoomWindowEnabled" type="bool" value="false" />

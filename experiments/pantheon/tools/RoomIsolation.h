@@ -4,6 +4,7 @@
 #include <sstream>
 #include <cmath>
 #include <set>
+#include <cstdlib>
 #include <vr/UpdateVisitor.h>
 #include <vr/GpuSkinning.h>
 #include "RoomPortalViews.h"
@@ -18,6 +19,7 @@ public:
         glm::vec3 minimum,maximum;
         glm::vec3 circle; // horizontal centre x/z and optional radius
         glm::vec3 openingMin{0},openingMax{0};
+        glm::vec3 entryMin{0},entryMax{0};
         bool contains(const glm::vec3& p) const{
             if (glm::any(glm::lessThan(p,minimum-1e-4f)) ||
                 glm::any(glm::greaterThan(p,maximum+1e-4f))) return false;
@@ -28,6 +30,10 @@ public:
 
     RoomIsolation(const std::shared_ptr<vr::Transform>& target,const vr::Reader::AnimationAttributes& attrs)
         : m_target(target){
+        if (const auto hub = attrs.find("hub-radius"); hub != attrs.end()) m_hubRadius = std::stof(hub->second);
+        if (!std::isfinite(m_hubRadius) || m_hubRadius < 0) throw std::invalid_argument("Invalid hub radius");
+        const auto* mode = std::getenv("PANTHEON_HUB_WORK");
+        m_fullHub = mode && std::string(mode) == "all";
         for (const auto& [key,value]:attrs){
             if (key.compare(0,5,"zone-")!=0) continue;
             std::istringstream input(value);
@@ -45,8 +51,16 @@ public:
                 throw std::invalid_argument("Invalid room opening");
             zone.openingMin={box[0],box[1],box[2]};
             zone.openingMax={box[3],box[4],box[5]};
+            zone.entryMin = zone.openingMin; zone.entryMax = zone.openingMax;
+            if (const auto entry = attrs.find("entry-"+zone.room); entry != attrs.end()){
+                std::istringstream input(entry->second);
+                for (float& x : box) if (!(input>>x) || !std::isfinite(x))
+                    throw std::invalid_argument("Invalid hall doorway");
+                zone.entryMin={box[0],box[1],box[2]}; zone.entryMax={box[3],box[4],box[5]};
+            }
             m_zones.push_back(zone);
         }
+        for (const auto& zone : m_zones) m_hubCeiling=std::min(m_hubCeiling,zone.entryMax.y);
         if (!target || m_zones.empty()) throw std::invalid_argument("Missing room isolation target/zones");
     }
 
@@ -64,9 +78,15 @@ public:
             active=zone.room;selected=&zone;break;
         }
         m_context=context;
+        const auto eye = camera->getPosition();
+        m_hubActive = !m_fullHub && active.empty() && m_hubRadius > 0 && eye.y >= 0 && eye.y < m_hubCeiling &&
+                      glm::dot(glm::vec2(eye.x,eye.z),glm::vec2(eye.x,eye.z)) < m_hubRadius*m_hubRadius;
+        m_primaryRooms = neededRooms(*camera, "");
+        for (const auto& mirror : m_mirrors) if (const auto node = mirror.node.lock())
+            node->setVisible(mirror.visible && (!m_hubActive || m_primaryRooms.count(mirror.room)));
         m_updatedRooms.clear();
         for(const auto& [weak,enabled]:m_work) if(const auto wing=weak.lock()){
-            const bool run=enabled && (active.empty() || wing->getRoomId()==active);
+            const bool run=enabled && (active.empty() ? (!m_hubActive || !m_initialized || m_primaryRooms.count(wing->getRoomId())) : wing->getRoomId()==active);
             wing->setUpdateEnabled(run);
             if(run) m_updatedRooms.insert(wing->getRoomId());
         }
@@ -106,8 +126,80 @@ public:
         }
     }
 
+    bool roomVisible(const std::string& room, const vr::Camera&) const override{
+        return !m_hubActive || room.empty() || room=="rotunda" || m_primaryRooms.count(room);
+    }
+
+    bool roomVisibleInView(const std::string& room,const vr::SceneRenderContext& context) const override{
+        if (!m_hubActive || context.environmentCapture || context.reflectionPass || room.empty() ||
+            room=="rotunda" || room.find("-passage")!=std::string::npos) return true;
+        bool known=false;
+        std::string source;
+        for (const auto& zone:m_zones){
+            known=known || zone.room==room;
+            if (zone.contains(context.camera.getPosition())) source=zone.room;
+        }
+        if (!known) return true;
+        if (context.reflectionPass && !m_mirrors.empty()) source=m_mirrors.front().room;
+        const auto eye=context.camera.getPosition();
+        if (source.empty() && glm::length(glm::vec2(eye.x,eye.z))>=m_hubRadius) return true;
+        return neededRooms(context.camera,source).count(room)!=0;
+    }
+
+    bool dynamicEnvironment() const override{ return m_hubActive && m_context.animate; }
+
+    void prepareFrameView(const vr::SceneRenderContext& context) override{
+        if (!m_hubActive) return;
+        std::string source;
+        if (context.reflectionPass && !m_mirrors.empty()) source=m_mirrors.front().room;
+        else for (const auto& zone : m_zones) if (zone.contains(context.camera.getPosition())) {source=zone.room;break;}
+        const vr::Frustum frustum(context.camera.getProjection()*context.camera.getView());
+        // Auxiliary views retain the full physical scene, including roofs and
+        // objects visible above another room. Wake every intersecting subtree.
+        for (const auto& [weak,enabled] : m_work) if (enabled) if (const auto wing=weak.lock())
+            if (wing->getRoomId()==source || wing->hasCullingExemption() ||
+                frustum.classify(wing->getWorldBound(glm::mat4(1)))!=vr::Visibility::Outside)
+                prepareDestination(*wing,false);
+    }
+
 private:
-    void prepareDestination(vr::Node& wing){
+    struct Rect{glm::vec2 low{-1},high{1};bool valid=true;};
+    static Rect projected(const glm::mat4& vp, const glm::vec3& low, const glm::vec3& high){
+        // Include the curved floor lip and a conservative guard at doorway edges.
+        const auto minimum=low-glm::vec3(.75f),maximum=high+glm::vec3(.75f);
+        if (vr::Frustum(vp).classify(vr::BoundingBox(minimum,maximum))==vr::Visibility::Outside) return {{},{},false};
+        Rect result{glm::vec2(1e20f),glm::vec2(-1e20f),true};
+        for(int corner=0;corner<8;++corner){
+            const auto p=vp*glm::vec4(corner&1?maximum.x:minimum.x,corner&2?maximum.y:minimum.y,corner&4?maximum.z:minimum.z,1);
+            if (p.w<=1e-4f) return {};
+            const auto ndc=glm::vec2(p)/p.w;
+            result.low=glm::min(result.low,ndc);result.high=glm::max(result.high,ndc);
+        }
+        return result;
+    }
+    static void intersect(Rect& a,const Rect& b){
+        a.low=glm::max(a.low,b.low);a.high=glm::min(a.high,b.high);
+        a.valid=a.valid && b.valid && glm::all(glm::greaterThanEqual(a.high-a.low,glm::vec2(-1e-4f)));
+    }
+    std::set<std::string> neededRooms(const vr::Camera& camera,const std::string& source) const{
+        std::set<std::string> result;
+        const auto vp=camera.getProjection()*camera.getView();
+        Rect sourceWindow;
+        for (const auto& zone:m_zones) if (zone.room==source){
+            result.insert(source);
+            intersect(sourceWindow,projected(vp,zone.openingMin,zone.openingMax));
+            intersect(sourceWindow,projected(vp,zone.entryMin,zone.entryMax));
+        }
+        for (const auto& zone:m_zones){
+            if (zone.room==source) continue;
+            auto window=sourceWindow;
+            intersect(window,projected(vp,zone.entryMin,zone.entryMax));
+            intersect(window,projected(vp,zone.openingMin,zone.openingMax));
+            if (window.valid) result.insert(zone.room);
+        }
+        return result;
+    }
+    void prepareDestination(vr::Node& wing,bool prepareSkin=true){
         if(!m_updatedRooms.insert(wing.getRoomId()).second) return;
         struct Restore{
             vr::Node& node;bool enabled;
@@ -116,7 +208,7 @@ private:
         wing.setUpdateEnabled(true);
         vr::UpdateVisitor update;
         update.update(wing,m_context);
-        if(m_context.gpuSkinning) m_context.gpuSkinning->prepare();
+        if(prepareSkin && m_context.gpuSkinning) m_context.gpuSkinning->prepare();
     }
 
     void initialize(vr::Transform& target){
@@ -129,6 +221,12 @@ private:
             if (!found) throw std::runtime_error("Missing room subtree: "+zone.room);
         }
         m_owner=owner;
+        const std::function<void(vr::Node&,std::string)> mirrors=[&](vr::Node& node,std::string room){
+            if (!node.getRoomId().empty()) room=node.getRoomId();
+            if (node.getName()=="materialMirror") m_mirrors.push_back({node.shared_from_this(),room,node.getVisible()});
+            if (auto* group=dynamic_cast<vr::Group*>(&node)) for (const auto& child:group->getChildren()) mirrors(*child,room);
+        };
+        mirrors(*owner,"");
         std::vector<RoomPortalViews::Portal> portals;
         for(const auto& zone:m_zones){
             std::shared_ptr<vr::Node> wing;
@@ -154,6 +252,11 @@ private:
             if (const auto camera=std::dynamic_pointer_cast<vr::Camera>(child)) m_camera=camera;
         if (m_camera.expired()) throw std::runtime_error("Missing scene camera for room isolation");
     }
+    struct Mirror{std::weak_ptr<vr::Node> node;std::string room;bool visible;};
+    std::vector<Mirror> m_mirrors;
+    std::set<std::string> m_primaryRooms;
+    float m_hubRadius=0,m_hubCeiling=44;
+    bool m_fullHub=false,m_hubActive=false;
     std::weak_ptr<vr::Transform> m_target;
     std::weak_ptr<vr::Group> m_owner;
     std::weak_ptr<vr::Camera> m_camera;

@@ -65,7 +65,8 @@ public:
         CarHeadlights,
         ModelAnimation,
         Reflections,
-        BumpMapping
+        BumpMapping,
+        Vsync
     };
 
     struct Binding{
@@ -107,7 +108,7 @@ public:
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 25>& getBindings(){
+    static const std::array<Binding, 26>& getBindings(){
         return m_bindings;
     }
 
@@ -165,12 +166,13 @@ private:
          {Action::CookTorranceShader, ShadingMode::CookTorrance, BufferView::Lit, GLFW_KEY_P,
           "P  Cook-Torrance"}}};
 
-    inline static constexpr std::array<Binding, 25> m_bindings{
+    inline static constexpr std::array<Binding, 26> m_bindings{
         {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
          {Action::Antialiasing, GLFW_KEY_F3, "F3", "Anti-aliasing"},
          {Action::Subdivision, GLFW_KEY_F4, "F4", "Subdivision"},
          {Action::Reflections, GLFW_KEY_F5, "F5", "Reflections"},
          {Action::BumpMapping, GLFW_KEY_F6, "F6", "Bump maps"},
+         {Action::Vsync, GLFW_KEY_F7, "F7", "VSync"},
          {Action::Hud, GLFW_KEY_TAB, "Tab", "Menus"},
          {Action::AmbientOcclusion, GLFW_KEY_O, "O", "Ambient occlusion"},
          {Action::Performance, GLFW_KEY_F1, "F1", "Performance"},

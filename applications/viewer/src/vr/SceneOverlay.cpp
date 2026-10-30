@@ -32,13 +32,14 @@ constexpr float secondaryTop = 56;
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
 
-constexpr std::array<ToolbarButton, 7> buttons{{{Action::PointRed, 78, 56},
+constexpr std::array<ToolbarButton, 8> buttons{{{Action::PointRed, 78, 56},
                                                 {Action::PointGreen, 142, 56},
                                                 {Action::PointBlue, 206, 56},
                                                 {Action::PointWhite, 270, 56},
                                                 {Action::PointSun, 334, 56},
                                                 shaderButton,
-                                                {Action::Culling, 602, 120}}};
+                                                {Action::Culling, 602, 120},
+                                                {Action::Vsync, 734, 164}}};
 
 const char* shaderName(ShadingMode mode){
     if (mode == ShadingMode::BlinnPhong){
@@ -385,6 +386,9 @@ void SceneOverlay::drawToolbar(const Application& app, float top){
             if (enabled){
                 foreground ={0.3f, 0.9f, 0.78f, 1};
             }
+        } else if (button.action == Action::Vsync){
+            text = std::string("VSync: ") + (app.m_vsync ? "ON" : "OFF") + " [F7]";
+            background = app.m_vsync ? glm::vec4(0.14f, 0.22f, 0.27f, 1) : background;
         }
         m_text.rectangle(button.x, top, button.width, 32, background);
         m_text.draw(text, button.x + 7, top + 7, 11, foreground);

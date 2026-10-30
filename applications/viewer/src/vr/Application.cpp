@@ -225,6 +225,12 @@ void Application::execute(Controls::Action action){
         m_status = m_deferredEnabled
                        ? "Deferred rendering"
                        : "Forward rendering; AO, G-buffer views and post effects use Deferred [F2]";
+    } else if (action == Action::Vsync){
+        m_vsync = !m_vsync;
+        glfwSwapInterval(m_vsync ? 1 : 0);
+        m_profiler.resetAverages();
+        m_status = m_vsync ? "VSync on; averages reset"
+                           : "VSync off (uncapped); averages reset";
     } else if (action == Action::BumpMapping){
         m_bumpMappingEnabled = !m_bumpMappingEnabled;
         m_scene->getRoot()->getState()->setUniform("uBumpMapping", m_bumpMappingEnabled);

@@ -9,6 +9,7 @@
 #include <vr/ShadowCameras.h>
 #include <vr/ShadowCollector.h>
 #include <vr/ShadowRenderer.h>
+#include <vr/SkeletalAnimation.h>
 
 namespace vr{
 // Creates directional and point-light shadow resources.
@@ -106,7 +107,7 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
 
 // Resolves depth-only batch state and world bounds once for this frame's casters.
 void ShadowRenderer::prepareCasters(){
-    std::vector<StaticCaster> staticCasters;
+    std::vector<CasterState> staticCasters;
     m_worldBounds.reserve(m_casters.size());
     for (std::size_t index = 0; index < m_casters.size(); ++index){
         const auto& node = m_casters[index];
@@ -157,20 +158,26 @@ void ShadowRenderer::invalidate(){
     }
 }
 
-bool ShadowRenderer::hasDynamicCasters(const Frustum& frustum, const Frustum* cone) const{
+std::vector<ShadowRenderer::CasterState> ShadowRenderer::dynamicCasters(
+    const Frustum& frustum, const Frustum* cone, bool& volatileTexture) const{
+    std::vector<CasterState> states;
+    volatileTexture = false;
     for (const auto& batch : m_batches){
-        if (!batch.dynamic){
-            continue;
-        }
+        if (!batch.dynamic) continue;
         for (const auto index : batch.casters){
-            if (!m_casters[index].cullingEnabled ||
+            const auto& node = m_casters[index];
+            if (!node.cullingEnabled ||
                 (frustum.classify(m_worldBounds[index]) != Visibility::Outside &&
                  (!cone || cone->classify(m_worldBounds[index]) != Visibility::Outside))){
-                return true;
+                volatileTexture = volatileTexture || (batch.albedo && batch.albedo->isRenderTarget());
+                states.push_back({node.geometry, node.geometry->getDataRevision(),
+                    batch.albedo ? batch.albedo->getRevision() : 0, node.model, batch.alphaCutoff,
+                    batch.lodRange, node.cullingEnabled,
+                    node.geometry->getSkin() ? node.geometry->getSkin()->revision : 0});
             }
         }
     }
-    return false;
+    return states;
 }
 
 // Moving light views use the normal single pass. Stable views cache static depth,
@@ -181,10 +188,19 @@ void ShadowRenderer::renderFace(RenderToTexture& target, unsigned layer, FaceCac
     ++m_stats.passes;
     const auto& camera = *target.getCameras().at(layer);
     const auto projection = camera.getProjection() * camera.getView();
+    bool volatileTexture = false;
+    auto currentDynamics = dynamicCasters(Frustum(projection), cone, volatileTexture);
+    const bool sameDynamics = !volatileTexture && currentDynamics == cache.dynamicCasters;
     const bool sameCone = cone ? cache.cone && *cache.cone == cone->getPlanes() : !cache.cone;
     const bool stable = cache.observed && cache.projection == projection && sameCone &&
                         cache.staticRevision == m_staticRevision && cache.point == point &&
                         cache.farPlane == farPlane && cache.radial == radial;
+    if (m_caching && stable && sameDynamics &&
+        cache.activeRevision == target.getContentRevision(layer)){
+        ++m_stats.cacheHits;
+        ++m_stats.reusedFaces;
+        return;
+    }
     if (!m_caching || !m_hasStatic || !stable){
         cache.ready = false;
         cache.observed = true;
@@ -195,7 +211,7 @@ void ShadowRenderer::renderFace(RenderToTexture& target, unsigned layer, FaceCac
         cache.cone =
             cone ? std::optional<std::array<glm::vec4, 6>>(cone->getPlanes()) : std::nullopt;
         cache.staticRevision = m_staticRevision;
-        cache.hadDynamic = true;
+        cache.dynamicCasters = std::move(currentDynamics);
         target.renderFace(
             layer, [&](const Camera& view){ drawDepthPass(view, radial, point, farPlane, cone); });
         cache.activeRevision = target.getContentRevision(layer);
@@ -213,18 +229,13 @@ void ShadowRenderer::renderFace(RenderToTexture& target, unsigned layer, FaceCac
         ++m_stats.staticRebuilds;
     }
     ++m_stats.cacheHits;
-    const bool dynamic = hasDynamicCasters(Frustum(projection), cone);
-    if (!dynamic && !cache.hadDynamic && cache.activeRevision == target.getContentRevision(layer)){
-        ++m_stats.reusedFaces;
-        return;
-    }
     target.renderFace(layer, [&](const Camera& view){
         target.copyDepthFrom(*cache.depth, layer);
-        if (dynamic){
+        if (!currentDynamics.empty()){
             drawDepthPass(view, radial, point, farPlane, cone, Casters::Dynamic);
         }
     });
-    cache.hadDynamic = dynamic;
+    cache.dynamicCasters = std::move(currentDynamics);
     cache.activeRevision = target.getContentRevision(layer);
 }
 

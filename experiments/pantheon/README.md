@@ -14,8 +14,8 @@ Tidigare versioners scen, generator och resultat finns i
 `history/v1`, `history/v2`, `history/v3` och `history/v4`. Inga nya modellpaket eller tjänster behövs vid körning.
 
 Alla fyra rum har uttryckliga miljögränser så att skyboxar följer både det
-egna rummets och destinationsrummets öppning. Lokala cubemaps uppdateras vid
-rumsbyte; fasadvåningar delar en probe per byggnad. C-3PO och Altaïr är nu
+egna rummets och destinationsrummets öppning. Lokala cubemaps behålls över
+rumsbyten i en beständig atlas; fasadvåningar delar en probe per byggnad. C-3PO och Altaïr är nu
 cirka 5,5 meter höga med större socklar. Kalksten och marmorgolv har tydligare
 normalmappar. [Senaste kontroller och bilder](RESULTAT.md).
 

@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-30",
+  "baseline_commit": "8d98f33",
+  "configuration": "RelWithDebInfo; vrlib rebuilt from all source files; viewers and tests relinked",
+  "binary_sha256": "ac383fe19b08182a57c14a0c2535e600ccf16d522e9557d7505d62d78a971f93",
+  "transition_test": {
+    "resolution": [
+      960,
+      600
+    ],
+    "pose_time": 0.5,
+    "extra_boundary_crossings": 8,
+    "fixed": {
+      "mirror": {
+        "late_fixed_pose_changed_pixels": 0,
+        "mirror_rendered_in_outward_view": true,
+        "threshold_retention_and_refresh_equality": "passed by reflection_transitions"
+      },
+      "no-mirror": {
+        "late_fixed_pose_changed_pixels": 0,
+        "mirror_rendered_in_outward_view": false,
+        "threshold_retention_and_refresh_equality": "passed by reflection_transitions"
+      }
+    }
+  },
+  "tests_passed": [
+    "material_gallery",
+    "rendering",
+    "room_skies",
+    "room_isolation",
+    "room_work",
+    "reflection_transitions"
+  ],
+  "performance_check": {
+    "hardware": "Intel Core i5-10600K / GTX 1080 / NVIDIA 560.94",
+    "resolution": [
+      1280,
+      800
+    ],
+    "frames": 480,
+    "history": 120,
+    "vsync": false,
+    "hidden": true,
+    "normal_hud": true,
+    "shading": "cook",
+    "aa": "fxaa",
+    "reflections": "cubemaps",
+    "runs": [
+      {
+        "view": "hall",
+        "variant": "before",
+        "frame_ms": 8.287891,
+        "p95_ms": 18.4913,
+        "fps": 120.65796
+      },
+      {
+        "view": "hall",
+        "variant": "after",
+        "frame_ms": 7.776093,
+        "p95_ms": 16.178,
+        "fps": 128.59928
+      },
+      {
+        "view": "mirror",
+        "variant": "before",
+        "frame_ms": 8.819598,
+        "p95_ms": 10.6468,
+        "fps": 113.383848
+      },
+      {
+        "view": "mirror",
+        "variant": "after",
+        "frame_ms": 8.584625,
+        "p95_ms": 9.941,
+        "fps": 116.487325
+      }
+    ],
+    "limitation": "One run per view and version. Regression check only; no general speedup or stable-60-FPS claim."
+  },
+  "remaining_tradeoffs": [
+    "New or evicted probes use the room sky until a complete local map is ready.",
+    "Six capture frames and budgeted GGX filtering retain update latency for moving scenes."
+  ]
+}

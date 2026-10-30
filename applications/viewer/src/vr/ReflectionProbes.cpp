@@ -2,6 +2,7 @@
 #include <set>
 #include <stdexcept>
 #include <vr/FramebufferState.h>
+#include <vr/FrameWork.h>
 #include <vr/GLState.h>
 #include <vr/ModelInstance.h>
 #include <vr/ReflectionProbes.h>
@@ -87,6 +88,7 @@ ReflectionProbes::ReflectionProbes(Scene& scene, EnvironmentMap& environment,
     environment.initializeLocalReflections(m_maps);
     environment.setLocalReflections(m_maps, m_readyMask);
     m_capture = Texture::colorCube(captureSize, 8);
+    m_filtered = Texture::colorCubeArray(256,9,1);
     m_depth = Texture::depth(captureSize, captureSize);
     m_renderer.setEnvironment(&environment);
     m_renderer.setEnvironmentCapture();
@@ -114,7 +116,7 @@ const Camera* ReflectionProbes::plan(const Camera& camera, const PortalResult& v
                                                 const std::function<bool(const std::string&)>& roomVisible){
     m_hasPlan = true;
     m_planValid = false;
-    if (m_probes.empty()){
+    if (m_probes.empty() || m_filterCursor<54){
         return nullptr;
     }
     const Frustum frustum(camera.getProjection() * camera.getView());
@@ -153,6 +155,29 @@ const Camera* ReflectionProbes::plan(const Camera& camera, const PortalResult& v
 void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap& environment,
                               ShadingMode shading, const PortalResult& visibility, bool dynamic){
     idle();
+    if(m_filterCursor<54){
+        m_hasPlan=m_planValid=false;
+        // Budget texture samples as well as submissions. Sharp level zero is
+        // a single lookup; rougher levels use the full 32-sample GGX kernel.
+        unsigned count=0,samples=0;
+        while(m_filterCursor+count<54 && count<18){
+            const unsigned level=(m_filterCursor+count)/6;
+            const unsigned size=std::max(1u,256u>>level);
+            const unsigned cost=size*size*(level?32u:1u);
+            if(count && samples+cost>1024u*1024u) break;
+            samples+=cost;++count;
+        }
+        environment.prefilterLocalRange(m_capture,m_filtered,0,m_filterCursor,count);
+        m_filterDraws=count;m_filterCursor+=count;
+        if(m_filterCursor==54){
+            environment.publishLocal(m_filtered,m_maps,m_cursor+environment.getSkyCount());
+            m_readyMask|=1u<<(m_cursor+1);
+            environment.setLocalReflections(m_maps,m_readyMask);
+            m_probes[m_cursor].revision=m_revision;
+            m_cursor=(m_cursor+1)%getProbeCount();
+        }
+        return;
+    }
     if (!m_hasPlan) plan(camera, visibility, dynamic);
     m_hasPlan = false;
     if (!m_planValid) return;
@@ -195,13 +220,14 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
     m_stats = m_renderer.getStats();
     m_faces = 1;
     if (++m_face == 6){
-        environment.prefilterLocal(m_capture, m_maps, m_cursor + environment.getSkyCount());
-        m_filterDraws = 6 * 9;
-        m_readyMask |= 1u << (m_cursor + 1);
-        environment.setLocalReflections(m_maps, m_readyMask);
-        probe.revision = m_revision;
+        if(frameWorkOptimized()) m_filterCursor=0;
+        else{
+            environment.prefilterLocal(m_capture,m_maps,m_cursor+environment.getSkyCount());
+            m_filterDraws=54;m_readyMask|=1u<<(m_cursor+1);
+            environment.setLocalReflections(m_maps,m_readyMask);
+            probe.revision=m_revision;m_cursor=(m_cursor+1)%getProbeCount();
+        }
         m_face = 0;
-        m_cursor = (m_cursor + 1) % getProbeCount();
     }
 }
 } // namespace vr

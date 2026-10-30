@@ -78,6 +78,12 @@ void run(const std::filesystem::path& root){
           "Stable light views reuse static casters while still rendering dynamic depth");
     check(cached.getStats().draws == 0 && cached.getStats().reusedFaces == 7,
           "A callback alone must not rerender unchanged dynamic caster poses");
+    check(cached.getStats().collectionCacheHits>0 && cached.getStats().casterRebuilds==0,
+          "An unchanged graph reuses resolved branches, bounds and caster batches on the CPU");
+    const auto* retainedCasters=&cached.getCasters();
+    verify();
+    check(&cached.getCasters()==retainedCasters,
+          "An unchanged root retains its caster list without copying resolved material states");
     moving->setMatrix(glm::scale(glm::translate(glm::mat4(1),{2, 1, 0}),{1, 2, 1}));
     verify();
     moving->setVisible(false);
@@ -158,6 +164,21 @@ void run(const std::filesystem::path& root){
     deform();
     check(skinned->getDataRevision()==dataRevision,"GPU pose changes retain the source mesh revision");
     verify();gpu->endFrame();
+    // Receiver selection must skip irrelevant lights, then recover their exact
+    // physical shadows when an auxiliary view needs the room again.
+    std::vector<vr::ShadowReceiver> receivers;
+    cached.render(scene,{0,3,10},true,true,&receivers);
+    check(cached.getStats().passes==0 && cached.getStats().lightsSkipped==2,
+          "A frame with no shadow receivers submits no light views");
+    verify();
+    point->setRange(8);
+    receivers.push_back({vr::BoundingBox({100,100,100},{101,101,101}),2u});
+    cached.render(scene,{0,3,10},true,true,&receivers);
+    check(cached.getStats().passes==0,"A finite light cannot affect distant receivers or masked surfaces");
+    receivers.push_back({vr::BoundingBox({-1,0,-1},{1,2,1}),3u});
+    cached.render(scene,{0,3,10},true,true,&receivers);
+    check(cached.getStats().passes==7,"An auxiliary receiver restores all required light views");
+    verify();
     check(glGetError() == GL_NO_ERROR, "Shadow depth caching preserves valid OpenGL state");
 }
 } // namespace

@@ -371,9 +371,19 @@ void localReflections(const std::filesystem::path& root){
         probes.update(scene, *camera, environment, vr::ShadingMode::CookTorrance,{}, false);
         check(probes.getFaces() == 1 && owner->getVisible(),
               "Each update captures at most one face and restores the excluded owner");
-        check(probes.getReadyCount() == (face == 5 ? 1u : 0u),
-              "Incomplete local cubemaps remain unpublished until all six faces exist");
+        check(probes.getReadyCount() == 0,
+              "Captured cube faces remain unpublished until incremental filtering finishes");
     }
+    unsigned filterFrames=0;
+    while(!probes.getReadyCount() && filterFrames++<24){
+        check(probes.plan(*camera,{},false)==nullptr,
+              "Filtering does not wake a capture camera or its shadow dependencies");
+        probes.update(scene,*camera,environment,vr::ShadingMode::CookTorrance,{},false);
+        check(probes.getFaces()==0 && probes.getFilterDraws()>0 && probes.getFilterDraws()<=18,
+              "Each filter frame obeys its submission budget without recapturing scene faces");
+    }
+    check(probes.getReadyCount()==1 && filterFrames>6 && filterFrames<24,
+          "A complete filtered cube becomes available within a bounded number of frames");
     const auto sample = [&]{
         program->use();
         environment.apply(*program);
@@ -392,11 +402,18 @@ void localReflections(const std::filesystem::path& root){
     probes.invalidate();
     for (unsigned face = 0; face < 6; ++face){
         probes.update(scene, *camera, environment, vr::ShadingMode::CookTorrance,{}, false);
-        if (face < 5){
-            check(glm::distance(sample(), red) < 0.001f,
+        check(glm::distance(sample(), red) < 0.001f,
                   "Updating one face never exposes a mixture of old and new cube faces");
-        }
     }
+    bool published=false;
+    for(unsigned frame=0;frame<24 && !published;++frame){
+        probes.update(scene,*camera,environment,vr::ShadingMode::CookTorrance,{},false);
+        const auto value=sample();
+        published=glm::distance(value,red)>=.001f;
+        check(!published || (value.b>.9f && value.r<.1f),
+              "The old complete reflection survives every partial filter pass until atomic publication");
+    }
+    check(published,"Incremental filtering eventually publishes the material change");
     const auto blue = sample();
     check(blue.b > 0.9f && blue.r < 0.1f,
           "Invalidating a local probe publishes changed scene materials");

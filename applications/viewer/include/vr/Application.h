@@ -100,6 +100,8 @@ private:
 
     // Draws the application HUD after rendering the 3D scene.
     void overlay();
+    bool performanceVisible() const{ return m_profiler.getEnabled() && !m_benchmarkHud; }
+    bool m_benchmarkHud = false;
 
     // Collects submission, culling and attachment counters for this scene frame.
     FrameProfiler::Counters performanceCounters() const;
@@ -141,6 +143,7 @@ private:
     std::unique_ptr<ShadowRenderer> m_shadowRenderer;
     std::unique_ptr<Flashlight> m_flashlight;
     std::optional<ModelHit> m_target;
+    ModelPicker m_picker;
     std::unique_ptr<SceneOverlay> m_overlay;
     std::unique_ptr<DebugLines> m_debugLines;
     std::optional<glm::mat4> m_frozenFrustum;

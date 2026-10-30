@@ -1,9 +1,12 @@
 #include <algorithm>
 #include <chrono>
+#include <map>
+#include <tuple>
 #include <glm/gtc/matrix_transform.hpp>
 #include <vr/FramebufferState.h>
 #include <vr/GLState.h>
 #include <vr/Geometry.h>
+#include <vr/FrameWork.h>
 #include <vr/Light.h>
 #include <vr/LightCollector.h>
 #include <vr/ShadowCameras.h>
@@ -44,11 +47,9 @@ void ShadowRenderer::attach(Scene& scene) const{
 }
 
 // Updates light depth images independently of observer frustum and portal culling.
-void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled, bool filtered){
+void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled, bool filtered,
+                            const std::vector<ShadowReceiver>* receivers){
     m_stats ={};
-    m_casters.clear();
-    m_batches.clear();
-    m_worldBounds.clear();
     m_visibleModels.clear();
     const auto start = std::chrono::steady_clock::now();
     auto root = scene.getRoot();
@@ -63,9 +64,11 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
         state.setPassUniform("uPointShadowSlot[" + std::to_string(i) + "]", -1);
     }
     if (!enabled){
+        m_casters=std::make_shared<const std::vector<RenderNode>>();
         return;
     }
-    m_casters = m_collector.collect(*root, lodEye);
+    m_casters = m_collector.collectShared(*root, lodEye);
+    m_stats.collectionCacheHits=static_cast<unsigned>(m_collector.getBranchCacheHits());
     const auto lights = collectLights(*root, lodEye);
     const auto bounds = root->getBound();
     if (!bounds.valid()){
@@ -82,14 +85,20 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
         }
         const auto position = lights[i].model * lights[i].node->getPosition();
         if (position.w == 0 && !sunRendered){
-            renderSun(state, bounds, glm::vec3(position), glm::vec3(0), static_cast<int>(i));
+            if (!receivers || needed(lights[i],i,*receivers))
+                renderSun(state, bounds, glm::vec3(position), glm::vec3(0), static_cast<int>(i));
+            else ++m_stats.lightsSkipped;
             sunRendered = true;
         } else if (position.w != 0){
             if (slot == State::MaxPointShadows){
                 continue;
             }
-            if (slot == m_points.size()){
-                auto target = createPointTarget(slot);
+            // Reserve stable slots even when a light cannot reach any current view.
+            if (receivers && !needed(lights[i],i,*receivers)){
+                ++m_stats.lightsSkipped; ++slot; continue;
+            }
+            while (slot >= m_points.size()){
+                auto target = createPointTarget(static_cast<unsigned>(m_points.size()));
                 scene.attachRenderTarget(target);
                 m_points.push_back(std::move(target));
                 m_pointCaches.emplace_back();
@@ -105,12 +114,54 @@ void ShadowRenderer::render(Scene& scene, const glm::vec3& lodEye, bool enabled,
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
 }
 
+bool ShadowRenderer::needed(const PositionedLight& light, unsigned index,
+                            const std::vector<ShadowReceiver>& receivers) const{
+    const auto position=light.model*light.node->getPosition();
+    const bool directional=position.w==0;
+    const auto point=directional?glm::vec3(0):glm::vec3(position)/position.w;
+    const float range=light.node->getRange();
+    std::optional<Frustum> cone;
+    if(!directional && light.node->getSpot()){
+        const auto direction=glm::normalize(glm::mat3(light.model)*light.node->getSpotDirection());
+        Camera beam;
+        beam.setLookAt(point,point+direction,std::abs(direction.y)>.95f?glm::vec3(0,0,1):glm::vec3(0,1,0));
+        beam.setPerspective(light.node->getOuterAngle()*2,1,.05f,range>0?range:100000);
+        cone.emplace(beam.getProjection()*beam.getView());
+    }
+    for(const auto& receiver:receivers){
+        if(!(receiver.lightMask & (1u<<index))) continue;
+        if(!receiver.bounds.valid()) return true;
+        if(directional) return true;
+        const auto nearest=glm::clamp(point,receiver.bounds.getMinimum(),receiver.bounds.getMaximum());
+        if(range>0 && glm::dot(nearest-point,nearest-point)>range*range) continue;
+        if(cone && cone->classify(receiver.bounds)==Visibility::Outside) continue;
+        return true;
+    }
+    return false;
+}
+
 // Resolves depth-only batch state and world bounds once for this frame's casters.
 void ShadowRenderer::prepareCasters(){
+    std::vector<PreparedCaster> prepared;
+    prepared.reserve(m_casters->size());
+    for(const auto& node:*m_casters){
+        const auto texture=node.state.getTexture(0);
+        prepared.push_back({node.geometry,node.model,node.state.getRevision(),
+            node.geometry->getDataRevision(),node.geometry->getSkin()?node.geometry->getSkin()->revision:0,
+            texture?texture->getRevision():0,node.cullingEnabled,node.dynamic});
+    }
+    if(m_caching && frameWorkOptimized() && m_preparedValid && prepared==m_prepared) return;
+    m_prepared=std::move(prepared);
+    m_preparedValid=true;
+    ++m_casterRevision;
+    m_volatileCasterTexture=false;
+    ++m_stats.casterRebuilds;
+    m_batches.clear();m_worldBounds.clear();
+    std::map<std::tuple<Geometry*,Texture*,float,float,float,bool>,std::size_t> batches;
     std::vector<CasterState> staticCasters;
-    m_worldBounds.reserve(m_casters.size());
-    for (std::size_t index = 0; index < m_casters.size(); ++index){
-        const auto& node = m_casters[index];
+    m_worldBounds.reserve(m_casters->size());
+    for (std::size_t index = 0; index < m_casters->size(); ++index){
+        const auto& node = (*m_casters)[index];
         m_worldBounds.push_back(node.geometry->getWorldBound(node.model));
         const auto alpha = node.state.getUniforms().find("uAlphaCutoff");
         float cutoff =
@@ -124,22 +175,20 @@ void ShadowRenderer::prepareCasters(){
                                ? glm::vec2(0, 1)
                                : std::get<glm::vec2>(coverage->second);
         const bool dynamic = node.dynamic || (albedo && albedo->isRenderTarget());
+        m_volatileCasterTexture=m_volatileCasterTexture || (albedo && albedo->isRenderTarget());
         if (!dynamic){
             staticCasters.push_back({node.geometry, node.geometry->getDataRevision(),
                                      albedo ? albedo->getRevision() : 0, node.model, cutoff, range,
                                      node.cullingEnabled});
         }
-        const auto found =
-            std::find_if(m_batches.begin(), m_batches.end(), [&](const Batch& batch){
-                return batch.geometry == node.geometry && batch.albedo == albedo &&
-                       batch.alphaCutoff == cutoff && batch.lodRange == range &&
-                       batch.dynamic == dynamic;
-            });
-        if (found == m_batches.end()){
+        const auto key=std::make_tuple(node.geometry,albedo.get(),cutoff,range.x,range.y,dynamic);
+        const auto found=batches.find(key);
+        if (found == batches.end()){
+            batches.emplace(key,m_batches.size());
             m_batches.push_back(
                 {node.geometry, std::move(albedo), cutoff, range,{index}, dynamic});
         } else{
-            found->casters.push_back(index);
+            m_batches[found->second].casters.push_back(index);
         }
     }
     m_hasStatic = !staticCasters.empty();
@@ -150,6 +199,8 @@ void ShadowRenderer::prepareCasters(){
 }
 
 void ShadowRenderer::invalidate(){
+    m_prepared.clear();
+    m_preparedValid=false;
     m_sunCache ={};
     for (auto& target : m_pointCaches){
         for (auto& face : target){
@@ -165,7 +216,7 @@ std::vector<ShadowRenderer::CasterState> ShadowRenderer::dynamicCasters(
     for (const auto& batch : m_batches){
         if (!batch.dynamic) continue;
         for (const auto index : batch.casters){
-            const auto& node = m_casters[index];
+            const auto& node = (*m_casters)[index];
             if (!node.cullingEnabled ||
                 (frustum.classify(m_worldBounds[index]) != Visibility::Outside &&
                  (!cone || cone->classify(m_worldBounds[index]) != Visibility::Outside))){
@@ -188,17 +239,22 @@ void ShadowRenderer::renderFace(RenderToTexture& target, unsigned layer, FaceCac
     ++m_stats.passes;
     const auto& camera = *target.getCameras().at(layer);
     const auto projection = camera.getProjection() * camera.getView();
-    bool volatileTexture = false;
-    auto currentDynamics = dynamicCasters(Frustum(projection), cone, volatileTexture);
-    const bool sameDynamics = !volatileTexture && currentDynamics == cache.dynamicCasters;
     const bool sameCone = cone ? cache.cone && *cache.cone == cone->getPlanes() : !cache.cone;
     const bool stable = cache.observed && cache.projection == projection && sameCone &&
                         cache.staticRevision == m_staticRevision && cache.point == point &&
                         cache.farPlane == farPlane && cache.radial == radial;
+    if(m_caching && frameWorkOptimized() && stable && !m_volatileCasterTexture &&
+        cache.casterRevision==m_casterRevision && cache.activeRevision==target.getContentRevision(layer)){
+        ++m_stats.cacheHits;++m_stats.reusedFaces;return;
+    }
+    bool volatileTexture = false;
+    auto currentDynamics = dynamicCasters(Frustum(projection), cone, volatileTexture);
+    const bool sameDynamics = !volatileTexture && currentDynamics == cache.dynamicCasters;
     if (m_caching && stable && sameDynamics &&
         cache.activeRevision == target.getContentRevision(layer)){
         ++m_stats.cacheHits;
         ++m_stats.reusedFaces;
+        cache.casterRevision=m_casterRevision;
         return;
     }
     if (!m_caching || !m_hasStatic || !stable){
@@ -212,6 +268,7 @@ void ShadowRenderer::renderFace(RenderToTexture& target, unsigned layer, FaceCac
             cone ? std::optional<std::array<glm::vec4, 6>>(cone->getPlanes()) : std::nullopt;
         cache.staticRevision = m_staticRevision;
         cache.dynamicCasters = std::move(currentDynamics);
+        cache.casterRevision=m_casterRevision;
         target.renderFace(
             layer, [&](const Camera& view){ drawDepthPass(view, radial, point, farPlane, cone); });
         cache.activeRevision = target.getContentRevision(layer);
@@ -236,6 +293,7 @@ void ShadowRenderer::renderFace(RenderToTexture& target, unsigned layer, FaceCac
         }
     });
     cache.dynamicCasters = std::move(currentDynamics);
+    cache.casterRevision=m_casterRevision;
     cache.activeRevision = target.getContentRevision(layer);
 }
 
@@ -261,7 +319,7 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
         }
         m_visibleModels.clear();
         for (const auto index : batch.casters){
-            if (m_casters[index].cullingEnabled){
+            if ((*m_casters)[index].cullingEnabled){
                 ++m_stats.boundsTested;
                 const auto& bound = m_worldBounds[index];
                 if (frustum.classify(bound) == Visibility::Outside ||
@@ -272,7 +330,7 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
             } else{
                 ++m_stats.unculled;
             }
-            m_visibleModels.push_back(m_casters[index].model);
+            m_visibleModels.push_back((*m_casters)[index].model);
         }
         if (m_visibleModels.empty()){
             continue;

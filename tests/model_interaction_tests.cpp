@@ -77,6 +77,12 @@ void picking(){
     root->addChild(transform);
     auto list = collect(*root);
     const auto hit = vr::pickModel(list.getRenderList(),{0, 0, 8},{0, 0, -1});
+    vr::ModelPicker cached;
+    float surface=0;
+    const auto cachedHit=cached.pick(list.getRenderList(),{0,0,8},{0,0,-1},&surface);
+    cached.pick(list.getRenderList(),{0,0,8},{0,0,-1});
+    check(cachedHit && cachedHit->instance==model.get() && cached.getQueryCount()==1 && surface==cachedHit->distance,
+          "A stationary ray reuses its exact hit and focus distance");
     check(hit && hit->instance == model.get() && std::abs(hit->distance - 5.5f) < 0.0001f,
           "Camera ray finds the nearest transformed surface at its world-space distance");
     check(!vr::pickModel(list.getRenderList(),{0, 2, 8},{0, 0, -1}), "Ray misses empty space");
@@ -89,6 +95,9 @@ void picking(){
     indices.erase(indices.begin(), indices.begin() + 6);
     mesh->setData(positions, indices, normals);
     const auto updated = vr::pickModel(collect(*root).getRenderList(),{0, 0, 8},{0, 0, -1});
+    const auto changed=cached.pick(collect(*root).getRenderList(),{0,0,8},{0,0,-1});
+    check(changed && cached.getQueryCount()==2 && std::abs(changed->distance-8.5f)<.0001f,
+          "Source mesh changes invalidate a cached pick even with identical bounds");
     check(
         updated && std::abs(updated->distance - 8.5f) < 0.0001f,
         "Changing triangle data invalidates the picking BVH even when mesh bounds stay unchanged");

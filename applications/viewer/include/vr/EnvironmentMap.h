@@ -41,6 +41,12 @@ public:
     // Prefilters a complete scene capture into one local reflection layer.
     void prefilterLocal(const std::shared_ptr<Texture>& source,
                         const std::shared_ptr<Texture>& maps, unsigned layer);
+    // Incremental GGX bake. Only the first slice regenerates source mipmaps.
+    void prefilterLocalRange(const std::shared_ptr<Texture>& source,
+        const std::shared_ptr<Texture>& maps, unsigned layer, unsigned first, unsigned count);
+    // Publish a finished scratch cube in one ordered GPU operation sequence.
+    void publishLocal(const std::shared_ptr<Texture>& filtered,
+        const std::shared_ptr<Texture>& maps, unsigned layer);
 
     // Returns the HDRI's brightest upper-hemisphere direction for the directional light.
     const glm::vec3& getSunDirection() const{

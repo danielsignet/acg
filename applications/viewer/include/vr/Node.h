@@ -32,6 +32,9 @@ public:
     virtual bool contains(const Node* node) const{
         return this == node;
     }
+    // Structural light presence is independent of visibility, bounds and animation.
+    virtual bool containsLights() const{ return false; }
+    virtual void dirtyLightPresence(){}
 
     // Returns the node name used for lookup and graph visualization.
     const std::string& getName() const{

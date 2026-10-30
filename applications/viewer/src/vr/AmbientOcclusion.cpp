@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <stdexcept>
 #include <vr/AmbientOcclusion.h>
+#include <vr/FrameWork.h>
 #include <vr/FramebufferState.h>
 #include <vr/GLState.h>
 
@@ -14,6 +16,8 @@ AmbientOcclusion::AmbientOcclusion(const std::filesystem::path& root){
         std::make_shared<Program>(shaders / "screen-quad.vs", shaders / "ssao-resolve.fs");
     m_sampleProgram->use();
     constexpr unsigned samples = 64;
+    const auto* reference=std::getenv("ACG_AO_SAMPLES");
+    m_sampleProgram->set("uSampleCount",!frameWorkOptimized() || (reference && std::string(reference)=="64")?64:32);
     for (unsigned i = 0; i < samples; ++i){
         const float t = (static_cast<float>(i) + 0.5f) / samples;
         const float angle = static_cast<float>(i) * 2.39996323f;

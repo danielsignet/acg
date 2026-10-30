@@ -60,13 +60,13 @@ void SceneOverlay::draw(const Application& application){
     if (menus){
         drawHeader(application);
     }
-    if (application.m_profiler.getEnabled()){
+    if (application.performanceVisible()){
         drawPerformance(application);
     } else if (menus){
         drawLabels(application);
     }
     if (menus && application.m_deferredEnabled && application.m_bufferPreviews &&
-        !application.m_profiler.getEnabled()){
+        !application.performanceVisible()){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
             const auto rect = application.m_deferred->previewRectangle(i);
             const bool selected = application.m_bufferView == static_cast<BufferView>(i + 1);
@@ -90,7 +90,7 @@ void SceneOverlay::draw(const Application& application){
 glm::vec4 SceneOverlay::targetActionRectangle(const Application& app, unsigned row){
     const float left =
         std::min(static_cast<float>(app.m_width) - 194,
-                 std::max(app.m_width * 0.5f + 14, app.m_profiler.getEnabled() ? 616.0f : 0.0f));
+                 std::max(app.m_width * 0.5f + 14, app.performanceVisible() ? 616.0f : 0.0f));
     return{left, app.m_height * 0.5f + 48 + row * 34, 180, 28};
 }
 
@@ -118,7 +118,7 @@ void SceneOverlay::click(Application& app, float x, float y){
             return;
         }
     }
-    if (app.m_profiler.getEnabled() && inside(performanceResetRectangle())){
+    if (app.performanceVisible() && inside(performanceResetRectangle())){
         app.execute(Action::ResetAverages);
         return;
     }
@@ -154,7 +154,7 @@ void SceneOverlay::click(Application& app, float x, float y){
         return;
     }
     const float bottom = static_cast<float>(app.m_height - FooterHeight);
-    if (app.m_profiler.getEnabled() && y > HeaderHeight && y < bottom){
+    if (app.performanceVisible() && y > HeaderHeight && y < bottom){
         return;
     }
     if (app.m_shaderMenuOpen && x >= shaderButton.x && x <= shaderButton.x + shaderButton.width){
@@ -166,7 +166,7 @@ void SceneOverlay::click(Application& app, float x, float y){
             }
         }
     }
-    if (app.m_deferredEnabled && app.m_bufferPreviews && !app.m_profiler.getEnabled()){
+    if (app.m_deferredEnabled && app.m_bufferPreviews && !app.performanceVisible()){
         for (unsigned i = 0; i < DeferredRenderer::PreviewCount; ++i){
             const auto rect = app.m_deferred->previewRectangle(i);
             if (x >= rect.x && x < rect.x + rect.z && y >= rect.y - 22 && y < rect.y + rect.w){
@@ -245,7 +245,7 @@ void SceneOverlay::drawHeader(const Application& app){
         const bool available = app.m_deferredEnabled || multiview;
         const bool enabled =
             multiview
-                ? app.m_deferredEnabled && app.m_bufferPreviews && !app.m_profiler.getEnabled()
+                ? app.m_deferredEnabled && app.m_bufferPreviews && !app.performanceVisible()
             : button.action == Action::Bloom            ? app.m_bloomEnabled
             : button.action == Action::AmbientOcclusion ? app.m_ambientOcclusionEnabled
                                                         : app.m_depthOfFieldEnabled;
@@ -353,7 +353,7 @@ void SceneOverlay::drawFooter(const Application& app){
     const auto status = app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
                         ", draws: " + std::to_string(shadowStats.draws);
     m_text.draw(status.substr(0, 160), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});
-    if (app.m_shaderMenuOpen && !app.m_profiler.getEnabled()){
+    if (app.m_shaderMenuOpen && !app.performanceVisible()){
         drawShaderMenu(app, bottom);
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "Node.h"
 #include "NodeVisitor.h"
+#include <optional>
 
 namespace vr{
 class Group : public Node{
@@ -17,6 +18,8 @@ public:
 
     // Reports whether the requested node is part of this subtree.
     bool contains(const Node* node) const override;
+    bool containsLights() const override;
+    void dirtyLightPresence() override;
 
     // Encloses every child bound in the group's coordinate system.
     BoundingBox computeBound() const override;
@@ -31,5 +34,6 @@ public:
 
 private:
     std::vector<std::shared_ptr<Node>> m_children;
+    mutable std::optional<bool> m_containsLights;
 };
 } // namespace vr

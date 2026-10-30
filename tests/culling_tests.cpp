@@ -204,6 +204,20 @@ void exemptions(){
           "Exemption changes propagate through every parent of a shared subtree");
 }
 
+void mixedRooms(){
+    auto root=std::make_shared<vr::Group>();
+    auto wing=std::make_shared<vr::Group>();wing->setRoomId("wing");root->addChild(wing);
+    wing->addChild(vr::GeometryFactory::createBox());
+    auto passage=std::make_shared<vr::Group>();passage->setRoomId("wing-passage");wing->addChild(passage);
+    passage->addChild(vr::GeometryFactory::createBox());
+    vr::CullVisitor culler;
+    culler.collect(*root,glm::mat4(1),{},false);
+    culler.filterRooms([](const std::string& room){return room!="wing";});
+    check(culler.getRenderList().size()==1 && culler.getRenderList().front().room=="wing-passage",
+          "Room rejection at leaves preserves a differently labelled passage under its wing");
+    check(culler.getStats().portalRejected==1,"Semantic leaf rejection contributes to visibility counters");
+}
+
 } // namespace
 
 int main(){
@@ -212,6 +226,7 @@ int main(){
         frustums();
         traversal();
         exemptions();
+        mixedRooms();
         std::cout << checks << " culling checks passed\n";
         return 0;
     } catch (const std::exception& error){

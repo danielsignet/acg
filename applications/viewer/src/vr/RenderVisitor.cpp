@@ -31,23 +31,12 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
         GLState::getIntegerv(GL_VIEWPORT, viewport);
         m_viewport = glm::vec4(viewport[0], viewport[1], viewport[2], viewport[3]);
         m_environmentPrograms.clear();
-        if (m_extensionRoot!=&root){
-            m_extensionRoot=&root;m_extensions.clear();
-            std::set<Node*> visited;
-            const std::function<void(Node&)> discover=[&](Node& node){
-                if (!visited.insert(&node).second) return;
-                if (auto extension=std::dynamic_pointer_cast<SceneRenderExtension>(node.getUpdateCallback()))
-                    m_extensions.push_back(extension);
-                if (auto* group=dynamic_cast<Group*>(&node))
-                    for (const auto& child:group->getChildren()) discover(*child);
-            };
-            discover(root);
-        }
+        discoverExtensions(root);
     }
     for (const auto& weak:m_extensions) if (const auto extension=weak.lock())
         extension->beforeSceneRender({root,camera,m_environment,m_states.front().getProgram(),
                                      m_shadingMode, static_cast<int>(m_viewport.z),
-                                     static_cast<int>(m_viewport.w), m_environmentCapture, m_profiler});
+                                     static_cast<int>(m_viewport.w), m_environmentCapture, m_profiler, m_clipPlane.has_value()});
     collectLights(root);
     collectGeometry(root, camera, frozen ? *frozen : camera.getProjection() * camera.getView(),
                     portals);
@@ -55,6 +44,42 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
         beforeDraw();
     }
     drawRenderList(camera);
+}
+
+void RenderVisitor::discoverExtensions(Node& root){
+    if (m_extensionRoot!=&root){
+        m_extensionRoot=&root;m_extensions.clear();
+        std::set<Node*> visited;
+        const std::function<void(Node&)> discover=[&](Node& node){
+            if (!visited.insert(&node).second) return;
+            if (auto extension=std::dynamic_pointer_cast<SceneRenderExtension>(node.getUpdateCallback()))
+                m_extensions.push_back(extension);
+            if (auto* group=dynamic_cast<Group*>(&node))
+                for (const auto& child:group->getChildren()) discover(*child);
+        };
+        discover(root);
+    }
+}
+
+void RenderVisitor::prepareFrameView(Node& root, const Camera& camera, bool reflection){
+    discoverExtensions(root);
+    for (const auto& weak : m_extensions) if (const auto extension = weak.lock())
+        extension->prepareFrameView({root, camera, m_environment, m_states.front().getProgram(),
+                                     m_shadingMode, 0, 0, !reflection, m_profiler, reflection});
+}
+
+bool RenderVisitor::roomVisible(Node& root, const std::string& room, const Camera& camera){
+    discoverExtensions(root);
+    for (const auto& weak : m_extensions) if (const auto extension = weak.lock())
+        if (!extension->roomVisible(room, camera)) return false;
+    return true;
+}
+
+bool RenderVisitor::dynamicEnvironment(Node& root){
+    discoverExtensions(root);
+    for (const auto& weak : m_extensions) if (const auto extension = weak.lock())
+        if (extension->dynamicEnvironment()) return true;
+    return false;
 }
 
 // Collects lights before culling so off-screen lights still affect visible geometry.
@@ -72,6 +97,21 @@ void RenderVisitor::collectGeometry(Node& root, const Camera& camera,
     FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Culling);
     const auto start = std::chrono::steady_clock::now();
     m_culler.collect(root, viewProjection, camera.getPosition(), m_culling, portals);
+    if (m_culling && viewProjection == camera.getProjection()*camera.getView() && !m_extensions.empty()){
+        std::map<std::string,bool> rooms;
+        const SceneRenderContext context{root,camera,m_environment,m_states.front().getProgram(),
+            m_shadingMode,static_cast<int>(m_viewport.z),static_cast<int>(m_viewport.w),
+            m_environmentCapture,m_profiler,m_clipPlane.has_value()};
+        m_culler.filterRooms([&](const std::string& room){
+            const auto found=rooms.find(room);
+            if(found!=rooms.end()) return found->second;
+            bool visible=true;
+            for(const auto& weak:m_extensions) if(const auto extension=weak.lock())
+                visible=visible && extension->roomVisibleInView(room,context);
+            rooms[room]=visible;
+            return visible;
+        });
+    }
     m_stats.cullCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
     m_stats.visitedNodes = m_culler.getStats().visitedNodes;

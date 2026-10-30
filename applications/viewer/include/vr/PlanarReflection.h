@@ -25,6 +25,7 @@ public:
     // Updates a visible front-facing mirror; its own surface is excluded from the capture.
     void render(Scene& scene, const Camera& camera, EnvironmentMap* environment,
                 ShadingMode shading, bool culling, bool portals);
+    const Camera* plan(Scene& scene, const Camera& camera) const;
     // Returns the reflected scene texture, or no texture when the mirror is not visible.
     std::shared_ptr<Texture> getTexture() const;
 
@@ -43,6 +44,7 @@ public:
 
 private:
     RenderVisitor m_renderer;
+    mutable Camera m_planned;
     std::unique_ptr<ColorTarget> m_target, m_resolved;
     int m_width = 0, m_height = 0, m_samples = 1;
     bool m_rendered = false;

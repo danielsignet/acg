@@ -63,6 +63,45 @@ void run(const std::filesystem::path& root){
     camera->setLookAt({-55,4,0},{-60,5,0});
     update.update(*scene->getRoot(),{2,.5,true});
     check(update.getSkinnedVertices()>0 && ticks==2,"The dragon resumes only in its own room");
+    const auto controller=scene->findTransform("Room visibility controller 001");
+    check(bool(controller),"Missing room controller");
+    const auto owner=std::dynamic_pointer_cast<vr::Group>(controller->getParents().front().lock());
+    std::map<std::string,unsigned> roomTicks;
+    for (const auto& wing:owner->getChildren()){
+        const auto name=wing->getRoomId();
+        if(name!="lapis" && name!="aes" && name!="silva" && name!="astra") continue;
+        const auto group=std::dynamic_pointer_cast<vr::Group>(wing);
+        auto clock=std::make_shared<vr::Transform>("hub-work-test");
+        clock->setUpdateCallback(std::make_shared<vr::FunctionCallback>(
+            [&,name](vr::Node&,const vr::UpdateContext&){++roomTicks[name];}));
+        group->addChild(clock);
+    }
+    camera->setLookAt({0,4,0},{0,4,-60});
+    update.update(*scene->getRoot(),{2.5,.5,true});
+    check(roomTicks["lapis"]==1 && roomTicks["aes"]==0 && roomTicks["silva"]==0 && roomTicks["astra"]==0,
+          "Inside the hall only the room behind the visible doorway should update");
+    check(renderer.roomVisible(*scene->getRoot(),"lapis",*camera) &&
+              !renderer.roomVisible(*scene->getRoot(),"astra",*camera),
+          "Only visible hallway destinations should receive probe updates");
+    renderer.render(*scene->getRoot(),*camera);
+    for(const auto& [room,draws]:renderer.getStats().roomDraws)
+        check(room!="aes" && room!="silva" && room!="astra",
+              "Side-room geometry behind the hall walls must not enter the primary draw list");
+    vr::Camera probe;
+    probe.setPerspective(90,1,.1f,150);
+    probe.setLookAt({-58,4,0},{-70,4,0});
+    renderer.prepareFrameView(*scene->getRoot(),probe);
+    check(roomTicks["astra"]==1,"A planned auxiliary observer must wake its own room before shadows");
+    renderer.prepareFrameView(*scene->getRoot(),probe);
+    check(roomTicks["astra"]==1,"Repeated auxiliary preparation must update a room once per frame");
+    for(const auto& wing:owner->getChildren()) if(wing->getRoomId()=="aes") wing->setCullingEnabled(false);
+    renderer.prepareFrameView(*scene->getRoot(),probe);
+    check(roomTicks["aes"]==1,"Auxiliary preparation must honor inherited culling exemptions");
+    for(const auto& wing:owner->getChildren()) if(wing->getRoomId()=="aes") wing->setCullingEnabled(true);
+    camera->setLookAt({0,4,0},{0,40,-.1f});
+    update.update(*scene->getRoot(),{3,.5,true});
+    check(roomTicks["lapis"]==1 && roomTicks["astra"]==1 && roomTicks["silva"]==0,
+          "Looking into the dome must leave every side-room animation asleep");
     check(glGetError()==GL_NO_ERROR,"Room work gating and portal captures leave valid GL state");
     std::cout << "Room work checks passed: sleeping updates/lights, visible portal animation, once per frame, room reentry\n";
 }

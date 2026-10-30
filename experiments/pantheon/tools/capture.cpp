@@ -83,6 +83,11 @@ int main(int argc, char** argv){
             if (mode=="no-shadows") app.handleKey(GLFW_KEY_O);
             app.handleKey(GLFW_KEY_F3); // lit: Cook-Torrance, AO and FXAA
             if (mode=="msaa") app.handleKey(GLFW_KEY_F3);
+            if (mode=="cubemaps"){
+                // Shader selection changed from the depth/Phong setup to Cook.
+                // Finish that bake before comparing two culling states.
+                for(int frame=0;frame<180;++frame){app.update(poseTime,0);app.render();glfwSwapBuffers(window);}
+            }
             app.handleKey(GLFW_KEY_C);
             capture("-lit-on");
             app.handleKey(GLFW_KEY_C);

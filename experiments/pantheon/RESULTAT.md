@@ -1,4 +1,42 @@
-# Budgeterat renderingsarbete och cache, 2026-10-30
+# Cubemaps vid rumsövergångar, 2026-10-30
+
+Ett nytt test går mellan gången från Pantheon och sfärrummet, korsar tröskeln
+upprepade gånger och gör sedan nya fångster med stillastående scen. Den tidigare
+hanteringen skapade om hela probeuppsättningen vid rumsbyte och tappade de färdiga
+kartorna. Det gav ett synligt byte mellan lokala reflektioner och skyboxens reservbild.
+
+Proberna har nu en beständig atlas med stabila platser. Nya synliga objekt kan
+återanvända en plats vars tidigare ägare inte syns; den tidigare ägarens bindning
+nollställs innan platsen återanvänds. Befintliga synliga objekt behåller sina kartor.
+En påbörjad fångst använder samma centrum för alla sex sidor. Det befintliga
+filterbudgetsättet och publiceringen av kompletta kartor behålls.
+
+En andra orsak var att probevyn ärvde huvudkamerans rumsavgränsning. Samma stillastående
+scen gav därför en annan fångst efter ett rumsbyte. Hjälpvyn får nu sin rumsavgränsning
+från probens position. Scengrafens ursprungliga tillstånd och synlighet återställs
+efter passet, även vid avbruten rendering; nästlade portalvyer behåller sin egen isolering.
+
+I testet behålls de nio färdiga kartorna över åtta extra tröskelpassager.
+Med enbart bevarade kartor ändrade en framtvingad uppdatering fortfarande 3 402 pixlar
+efter inträdet. Efter båda rättningarna är skillnaden noll, liksom skillnaden mellan
+de senare stillastående bildrutorna. Kontrollen körs både med och utan det plana
+spegelpasset. Detta är en riktad kontroll av övergången, inte ett bevis för varje
+möjligt kameraförlopp eller en ny FPS-garanti.
+
+Testet byggs som `reflection_transition_tests` och körs med CTest-namnet
+`reflection_transitions` i experimentbygget. Det sparar bildserier och CSV-filer
+i `output/reflection-transitions`. Materialtestet kontrollerar också återanvändning
+av kalla platser, gemensamma grupper, oförändrade bindningar och atlasens lagergräns.
+
+Sex riktade tester passerar efter ren ombyggnad av renderbiblioteket:
+`material_gallery`, `rendering`, `room_skies`, `room_isolation`, `room_work` och
+`reflection_transitions`. Två korta dolda jämförelser med vanlig HUD och VSync av
+gav 8,29 till 7,78 ms mot sfärrummet och 8,82 till 8,58 ms i spegelvyn. Detta är
+en kontroll mot en större regression, inte en säkerställd generell prestandavinst.
+Sammanställning och binärens kontrollsumma finns i
+[verifieringsunderlaget](reflection-transition-verification.json).
+
+# Tidigare mätning: budgeterat renderingsarbete och cache, 2026-10-30
 
 De fem uppföljande ändringarna är genomförda:
 

@@ -34,10 +34,20 @@ void RenderVisitor::render(Node& root, const Camera& camera, const glm::mat4* fr
         m_environmentPrograms.clear();
         discoverExtensions(root);
     }
-    for (const auto& weak:m_extensions) if (const auto extension=weak.lock())
-        extension->beforeSceneRender({root,camera,m_environment,m_states.front().getProgram(),
-                                     m_shadingMode, static_cast<int>(m_viewport.z),
-                                     static_cast<int>(m_viewport.w), m_environmentCapture, m_profiler, m_clipPlane.has_value()});
+    struct ExtensionScope{
+        SceneRenderContext context;
+        std::vector<std::shared_ptr<SceneRenderExtension>> active;
+        ~ExtensionScope(){
+            for (auto it = active.rbegin(); it != active.rend(); ++it)
+                (*it)->afterSceneRender(context);
+        }
+    } extensions{{root,camera,m_environment,m_states.front().getProgram(),m_shadingMode,
+                  static_cast<int>(m_viewport.z),static_cast<int>(m_viewport.w),
+                  m_environmentCapture,m_profiler,m_clipPlane.has_value()}, {}};
+    for (const auto& weak:m_extensions) if (const auto extension=weak.lock()){
+        extensions.active.push_back(extension);
+        extension->beforeSceneRender(extensions.context);
+    }
     collectLights(root);
     collectGeometry(root, camera, frozen ? *frozen : camera.getProjection() * camera.getView(),
                     portals);

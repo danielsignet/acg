@@ -28,6 +28,8 @@ class SceneRenderExtension{
 public:
     virtual ~SceneRenderExtension()=default;
     virtual void beforeSceneRender(const SceneRenderContext& context)=0;
+    // Restore view-local graph state after a normal or failed auxiliary render.
+    virtual void afterSceneRender(const SceneRenderContext&) noexcept{}
     // Update auxiliary-view dependencies before any light depth maps are rendered.
     virtual void prepareFrameView(const SceneRenderContext&){}
     // Reject reflection targets hidden from the primary observer by room apertures.

@@ -531,18 +531,14 @@ void Application::render(){
             shadowObservers.push_back(reflected);
         }
         if (m_reflectionMode == ReflectionMode::Cubemaps){
-            std::string room;
-            for (const auto& region : m_scene->getEnvironments().getRegions())
-                if (region.contains(camera.getPosition())) {room = region.room; break;}
-            if (!m_reflectionProbes || room != m_reflectionProbeRoom){
+            if (!m_reflectionProbes){
                 m_reflectionProbes = std::make_unique<ReflectionProbes>(*m_scene, *m_environment, m_program);
-                m_reflectionProbeRoom = room;
                 m_reflectionProbes->setStateCaching(m_sceneCaching);
             }
             const bool dynamic = !m_frozenEye.has_value() &&
                 (m_updater.hasDynamicUpdates() || m_renderer->dynamicEnvironment(*m_scene->getRoot()) ||
                  m_flashlight->getEnabled());
-            const auto capture = m_reflectionProbes->plan(camera, m_portalResult, dynamic,
+            const auto capture = m_reflectionProbes->plan(*m_scene, camera, m_portalResult, dynamic,
                 [&](const std::string& id){ return m_renderer->roomVisible(*m_scene->getRoot(), id, camera); });
             if (capture){
                 m_renderer->prepareFrameView(*m_scene->getRoot(), *capture);

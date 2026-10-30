@@ -376,7 +376,7 @@ void localReflections(const std::filesystem::path& root){
     }
     unsigned filterFrames=0;
     while(!probes.getReadyCount() && filterFrames++<24){
-        check(probes.plan(*camera,{},false)==nullptr,
+        check(probes.plan(scene,*camera,{},false)==nullptr,
               "Filtering does not wake a capture camera or its shadow dependencies");
         probes.update(scene,*camera,environment,vr::ShadingMode::CookTorrance,{},false);
         check(probes.getFaces()==0 && probes.getFilterDraws()>0 && probes.getFilterDraws()<=18,
@@ -388,7 +388,9 @@ void localReflections(const std::filesystem::path& root){
         program->use();
         environment.apply(*program);
         glActiveTexture(GL_TEXTURE14);
-        std::vector<float> data(256 * 256 * 6 * 2 * 4);
+        GLint faces = 0;
+        glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_TEXTURE_DEPTH, &faces);
+        std::vector<float> data(256 * 256 * faces * 4);
         glGetTexImage(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_RGBA, GL_FLOAT, data.data());
         const auto center = ((6 + 4) * 256 * 256 + 128 * 256 + 128) * 4;
         return glm::vec3(data[center], data[center + 1], data[center + 2]);
@@ -467,6 +469,33 @@ void localReflections(const std::filesystem::path& root){
     layout.build(std::move(skies), {});
     environment.configureRooms(root, layout);
     checkLayerBudget();
+
+    vr::ReflectionProbes resident(scene, environment, program);
+    for (const auto& child : scene.getRoot()->getChildren())
+        if (std::dynamic_pointer_cast<vr::ModelInstance>(child)) child->setVisible(false);
+    auto incoming = std::make_shared<vr::Group>("newly visible reflection group");
+    auto groupState = std::make_shared<vr::State>();
+    groupState->setUniform("uEnvironmentMaterial", true);
+    groupState->setUniform("uReflectionGroup", 77);
+    incoming->setState(groupState);
+    auto first = vr::ModelInstance::create("incoming first", vr::GeometryFactory::createBox());
+    auto second = vr::ModelInstance::create("incoming second", vr::GeometryFactory::createBox());
+    incoming->addChild(first);
+    incoming->addChild(second);
+    scene.getRoot()->addChild(incoming);
+    camera->setLookAt({0,1,5},{0,0,0});
+    resident.plan(scene,*camera,{},false);
+    const auto layer = std::get<int>(first->getState()->getUniforms().at("uReflectionProbe"));
+    check(layer > 0 && static_cast<unsigned>(layer) <= resident.getProbeCount() &&
+              std::get<int>(second->getState()->getUniforms().at("uReflectionProbe")) == layer,
+          "A newly visible group reuses one cold atlas slot for all of its members");
+    check(std::get<int>(owner->getState()->getUniforms().at("uReflectionProbe")) == 0,
+          "Evicted owners cannot sample a slot reassigned to another room");
+    const auto unchanged = first->getState()->getRevision();
+    resident.plan(scene,*camera,{},false);
+    check(first->getState()->getRevision() == unchanged,
+          "Retained probe bindings do not invalidate material state every frame");
+    check(glGetError() == GL_NO_ERROR, "Probe residency leaves valid OpenGL state");
 }
 } // namespace
 

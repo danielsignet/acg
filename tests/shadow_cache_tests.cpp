@@ -4,6 +4,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <vr/SceneGraph.h>
+#include <vr/GpuSkinning.h>
+#include <vr/SkeletalAnimation.h>
 #include <vr/ShadowRenderer.h>
 
 namespace{
@@ -74,6 +76,8 @@ void run(const std::filesystem::path& root){
     verify();
     check(cached.getStats().cacheHits == 7 && cached.getStats().draws < reference.getStats().draws,
           "Stable light views reuse static casters while still rendering dynamic depth");
+    check(cached.getStats().draws == 0 && cached.getStats().reusedFaces == 7,
+          "A callback alone must not rerender unchanged dynamic caster poses");
     moving->setMatrix(glm::scale(glm::translate(glm::mat4(1),{2, 1, 0}),{1, 2, 1}));
     verify();
     moving->setVisible(false);
@@ -129,6 +133,31 @@ void run(const std::filesystem::path& root){
     verify();
     verify();
     verify();
+    auto pose = std::make_shared<vr::SkinningPose>();
+    pose->matrices = {glm::mat4(1)};
+    pose->normals = {glm::mat3(1)};
+    pose->revision = 1;
+    auto skinned = std::make_shared<vr::Geometry>();
+    std::vector<vr::SkinWeights> weights(3);
+    for (auto& weight : weights) weight.weights[0] = 1;
+    skinned->setData({{-1,0,-1},{1,0,-1},{0,1,1}},{0,1,2},{{0,1,0},{0,1,0},{0,1,0}},
+                     {{0,0},{1,0},{.5f,1}},{{1,0,0,1},{1,0,0,1},{1,0,0,1}},weights);
+    skinned->setSkin(pose);
+    place(graph,skinned,{0,1,0},{2,2,2});
+    auto gpu = std::make_shared<vr::GpuSkinning>(root);
+    const auto deform = [&]{
+        gpu->beginFrame();
+        skinned->prepareDeformation(gpu);
+        gpu->prepare();
+    };
+    deform();verify();verify();gpu->endFrame();
+    check(cached.getStats().reusedFaces > 0,"An unchanged GPU pose must reuse completed depth faces");
+    const auto dataRevision=skinned->getDataRevision();
+    pose->matrices[0]=glm::translate(glm::mat4(1),glm::vec3(2.5f,0,0));
+    ++pose->revision;
+    deform();
+    check(skinned->getDataRevision()==dataRevision,"GPU pose changes retain the source mesh revision");
+    verify();gpu->endFrame();
     check(glGetError() == GL_NO_ERROR, "Shadow depth caching preserves valid OpenGL state");
 }
 } // namespace

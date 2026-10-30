@@ -37,6 +37,10 @@ public:
     void render(Node& root, const Camera& camera, const glm::mat4* cullingViewProjection = nullptr,
                 const PortalResult* portals = nullptr, DeferredRenderer* deferred = nullptr,
                 const std::function<void()>& beforeDraw ={});
+    // Prepare dependencies for a probe (default) or reflected camera without drawing.
+    void prepareFrameView(Node& root, const Camera& camera, bool reflection = false);
+    bool roomVisible(Node& root, const std::string& room, const Camera& camera);
+    bool dynamicEnvironment(Node& root);
 
     // Attaches the optional frame profiler without transferring ownership.
     void setProfiler(FrameProfiler* profiler){
@@ -117,6 +121,7 @@ public:
     }
 
 private:
+    void discoverExtensions(Node& root);
     Node* m_extensionRoot=nullptr;
     std::vector<std::weak_ptr<SceneRenderExtension>> m_extensions;
     FrameProfiler* m_profiler = nullptr;

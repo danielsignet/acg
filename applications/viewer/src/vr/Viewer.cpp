@@ -363,7 +363,12 @@ void Viewer::writeBenchmark() const{
         {"shadow_cache_rebuilds", Counter::ShadowCacheRebuilds},
         {"gpu_skinned_vertices", Counter::GpuSkinnedVertices},
         {"cpu_skinned_vertices", Counter::SkinnedVertices},
-        {"cpu_skin_positions", Counter::CpuSkinPositions}};
+        {"cpu_skin_positions", Counter::CpuSkinPositions},
+        {"color_draws", Counter::ColorDraws},
+        {"probe_draws", Counter::ProbeDraws},
+        {"mirror_draws", Counter::MirrorDraws},
+        {"visited_nodes", Counter::VisitedNodes},
+        {"frustum_rejected", Counter::FrustumRejected}};
     for (const auto& counter : counts){
         output << ',' << counter.first;
     }

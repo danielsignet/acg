@@ -19,6 +19,9 @@ public:
     // Captures at most one visible object's cube face and publishes complete filtered maps.
     void update(Scene& scene, const Camera& camera, EnvironmentMap& environment,
                 ShadingMode shading, const PortalResult& visibility, bool dynamic);
+    // Select one face before shadows; update consumes this exact observer later in the frame.
+    const Camera* plan(const Camera& camera, const PortalResult& visibility, bool dynamic,
+                              const std::function<bool(const std::string&)>& roomVisible = {});
 
     // Restarts partial captures after lighting, material or geometry changes.
     void invalidate(){
@@ -76,5 +79,8 @@ private:
     GLuint m_framebuffer = 0;
     unsigned m_cursor = 0, m_face = 0, m_revision = 1, m_readyMask = 1;
     unsigned m_faces = 0, m_filterDraws = 0;
+    std::unique_ptr<Camera> m_planned;
+    bool m_planValid = false;
+    bool m_hasPlan = false;
 };
 } // namespace vr

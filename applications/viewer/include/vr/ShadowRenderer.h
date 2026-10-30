@@ -84,18 +84,20 @@ private:
         bool dynamic = false;
     };
 
-    struct StaticCaster{
+    struct CasterState{
         Geometry* geometry;
         std::uint64_t geometryRevision, textureRevision;
         glm::mat4 model;
         float cutoff;
         glm::vec2 range;
         bool culling;
+        std::uint64_t poseRevision = 0;
 
-        bool operator==(const StaticCaster& other) const{
+        bool operator==(const CasterState& other) const{
             return geometry == other.geometry && geometryRevision == other.geometryRevision &&
                    textureRevision == other.textureRevision && model == other.model &&
-                   cutoff == other.cutoff && range == other.range && culling == other.culling;
+                   cutoff == other.cutoff && range == other.range && culling == other.culling &&
+                   poseRevision == other.poseRevision;
         }
     };
 
@@ -107,12 +109,14 @@ private:
         bool radial = false;
         std::optional<std::array<glm::vec4, 6>> cone;
         std::uint64_t staticRevision = 0, activeRevision = 0;
-        bool observed = false, ready = false, hadDynamic = true;
+        bool observed = false, ready = false;
+        std::vector<CasterState> dynamicCasters;
     };
     enum class Casters{ All, Static, Dynamic };
     void renderFace(RenderToTexture& target, unsigned layer, FaceCache& cache, bool radial,
                     const glm::vec3& point, float farPlane, const Frustum* cone = nullptr);
-    bool hasDynamicCasters(const Frustum& frustum, const Frustum* cone) const;
+    std::vector<CasterState> dynamicCasters(const Frustum& frustum, const Frustum* cone,
+                                          bool& volatileTexture) const;
 
     // Resolves depth-only batch state and world bounds once for this frame's casters.
     void prepareCasters();
@@ -144,7 +148,7 @@ private:
     bool m_instancing = true;
     bool m_caching = true, m_hasStatic = false;
     std::uint64_t m_staticRevision = 1;
-    std::vector<StaticCaster> m_staticCasters;
+    std::vector<CasterState> m_staticCasters;
     FaceCache m_sunCache;
     std::vector<std::array<FaceCache, 6>> m_pointCaches;
     ShadowCollector m_collector;

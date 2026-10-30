@@ -37,6 +37,8 @@ public:
     // Rebuilds the render list using optional frustum and portal visibility.
     void collect(Node& root, const glm::mat4& viewProjection, const glm::vec3& lodEye,
                  bool enabled = true, const PortalResult* portals = nullptr);
+    // Apply semantic room visibility at leaves, retaining parents with mixed room children.
+    void filterRooms(const std::function<bool(const std::string&)>& visible);
 
     // Rejects the whole group when its bound is outside the active visibility volumes.
     void apply(Group& node) override;

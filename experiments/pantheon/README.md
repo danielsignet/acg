@@ -268,6 +268,17 @@ gångarna i samma bild. `astra-sky` och `city-sky` visar respektive himmel.
 
 ![Båda himlarna samtidigt](skybox-doorway-preview.png)
 
+## Culling från rotundan
+
+Hallens controller väljer nu rumsarbete genom de två dörröppningarna. Gångar
+behålls som egna grenar. Speglar och nästa cubemapvy planeras före skuggorna,
+så att nödvändiga rumsanimationer och GPU-poser uppdateras även utanför huvudbilden.
+Skuggkartor återanvänds när casternas faktiska innehåll är oförändrat.
+
+`benchmark_hub.py` jämför mot fullständigt rumsarbete i dolda processer.
+`verify_hub.py` kontrollerar färg/djup med culling på/av efter färdig cubemapbakning.
+[Senaste mätresultat](RESULTAT.md) · [Rådata](performance-hub.json).
+
 ## Snabbare animationsbuffertar
 
 GPU-animationens benmatriser och deformerade hörnpunkter använder nu byte av

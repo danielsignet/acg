@@ -36,12 +36,27 @@ void PlanarReflection::resize(int width, int height, AntialiasingMode mode){
     m_samples = samples;
 }
 
+const Camera* PlanarReflection::plan(Scene& scene, const Camera& camera) const{
+    const auto mirror = scene.findTransform("materialMirror");
+    if (!m_enabled || !mirror || !mirror->getVisible() || m_width <= 0 || m_height <= 0)
+        return nullptr;
+    if (Frustum(camera.getProjection()*camera.getView()).classify(mirror->getBound()) == Visibility::Outside)
+        return nullptr;
+    const auto model = mirror->getMatrix();
+    const auto normal = glm::normalize(glm::transpose(glm::inverse(glm::mat3(model)))*glm::vec3(0,0,1));
+    const glm::vec4 plane(normal,-glm::dot(normal,glm::vec3(model[3])));
+    if (glm::dot(plane,glm::vec4(camera.getPosition(),1)) <= .01f) return nullptr;
+    m_planned.setProjection(camera.getProjection());
+    m_planned.setView(camera.getView()*reflectionMatrix(plane));
+    return &m_planned;
+}
+
 // Updates a visible front-facing mirror; its own surface is excluded from the capture.
 void PlanarReflection::render(Scene& scene, const Camera& camera, EnvironmentMap* environment,
                               ShadingMode shading, bool culling, bool portals){
     m_rendered = false;
     const auto mirror = scene.findTransform("materialMirror");
-    if (!m_enabled || !mirror || m_width <= 0 || m_height <= 0){
+    if (!m_enabled || !mirror || !mirror->getVisible() || m_width <= 0 || m_height <= 0){
         return;
     }
     const auto model = mirror->getMatrix();

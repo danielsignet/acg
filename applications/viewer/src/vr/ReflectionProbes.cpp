@@ -109,16 +109,18 @@ unsigned ReflectionProbes::getReadyCount() const{
     return count;
 }
 
-// Captures at most one visible object's cube face and publishes complete filtered maps.
-void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap& environment,
-                              ShadingMode shading, const PortalResult& visibility, bool dynamic){
-    idle();
+const Camera* ReflectionProbes::plan(const Camera& camera, const PortalResult& visibility,
+                                                bool dynamic,
+                                                const std::function<bool(const std::string&)>& roomVisible){
+    m_hasPlan = true;
+    m_planValid = false;
     if (m_probes.empty()){
-        return;
+        return nullptr;
     }
     const Frustum frustum(camera.getProjection() * camera.getView());
     const auto eligible = [&](const Probe& probe){
         return probe.instance->getVisible() &&
+               (!roomVisible || roomVisible(probe.room)) &&
                (probe.room.empty() || visibility.visible(probe.room)) &&
                frustum.classify(probe.instance->getBound().transformed(probe.model)) !=
                    Visibility::Outside &&
@@ -131,18 +133,32 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
             m_cursor = (m_cursor + 1) % getProbeCount();
         }
         if (!eligible(m_probes[m_cursor])){
-            return;
+            return nullptr;
         }
     }
-    auto& probe = m_probes[m_cursor];
+    const auto& probe = m_probes[m_cursor];
     const auto center = probe.instance->getBound().transformed(probe.model).getCenter();
     const std::array<glm::vec3, 6> directions{
         {{1, 0, 0},{-1, 0, 0},{0, 1, 0},{0, -1, 0},{0, 0, 1},{0, 0, -1}}};
     const std::array<glm::vec3, 6> up{
         {{0, -1, 0},{0, -1, 0},{0, 0, 1},{0, 0, -1},{0, -1, 0},{0, -1, 0}}};
-    Camera capture;
-    capture.setPerspective(90, 1, 0.1f, 150);
-    capture.setLookAt(center, center + directions[m_face], up[m_face]);
+    if (!m_planned) m_planned = std::make_unique<Camera>();
+    m_planned->setPerspective(90, 1, 0.1f, 150);
+    m_planned->setLookAt(center, center + directions[m_face], up[m_face]);
+    m_planValid = true;
+    return m_planned.get();
+}
+
+// Captures at most one visible object's cube face and publishes complete filtered maps.
+void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap& environment,
+                              ShadingMode shading, const PortalResult& visibility, bool dynamic){
+    idle();
+    if (!m_hasPlan) plan(camera, visibility, dynamic);
+    m_hasPlan = false;
+    if (!m_planValid) return;
+    const auto& capture = *m_planned;
+    m_planValid = false;
+    auto& probe = m_probes[m_cursor];
     FramebufferState saved;
     m_capture->apply(0);
     m_depth->apply(1);
@@ -173,7 +189,7 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
         HideInstance hidden(*(probe.excluded?probe.excluded:probe.instance));
         m_renderer.setShadingMode(shading);
         // The probe originates at the excluded object's center, rather than the observer.
-        auto portals = scene.getPortalGraph().collect(center, nullptr);
+        auto portals = scene.getPortalGraph().collect(capture.getPosition(), nullptr);
         m_renderer.render(*scene.getRoot(), capture, nullptr, &portals);
     }
     m_stats = m_renderer.getStats();

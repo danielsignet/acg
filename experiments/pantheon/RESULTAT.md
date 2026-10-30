@@ -1,3 +1,70 @@
+# Dörrstyrd culling och arbete i rotundan, 2026-10-30
+
+Tidigare höll rumsstyrningen alla fyra rum aktiva när kameran stod i rotundan.
+Frustumculling av huvudbilden stoppade därför inte drakens animation,
+ljusringens rörelse eller deras återkommande skuggpass bakom väggarna.
+
+Controller-noden använder nu både hallens och rummets dörröppningar för att
+välja vilka rumsgrenar som behöver uppdateras. Huvudbildens geometri filtreras
+vid löven, så en gång med eget rums-ID behålls även när dess föräldrars rum
+avvisas. Rum och gångar ligger kvar i scenegrafen.
+
+Speglar och nästa cubemapkamera planeras **före** GPU-deformation och skuggor.
+Dessa kameror behåller den fullständiga fysiska scenen och väcker alla rumsgrenar
+som deras frustum kan träffa, inklusive cullingundantag. Varje rum uppdateras
+högst en gång per bild. Reflektionerna ersätts inte av statiska bilder.
+
+Skuggcachen jämför nu den faktiska uppsättningen dynamiska casters: modellmatris,
+mesh-, textur- och GPU-poserevision samt alpha-/LOD-parametrar. En callback som
+finns men inte ändrar posen tvingar inte längre fram nya skuggdraws. Redan korrekt
+ljusdjup återanvänds innan en separat statisk djupbild behöver byggas.
+
+## Mätning i hallen
+
+Två upprepningar per variant och vy, växlande ordning; samma slutliga binär.
+420 bildrutor per körning, sista 120 sparas. Tabellen visar medianen av
+körningarnas medelvärden. RelWithDebInfo, 1280 × 800, deferred/Cook–Torrance,
+FXAA, AO, skuggor och cubemaps på; VSync av och profileraren aktiv.
+
+| Vy | Alla rum aktiva, ms | Dörrstyrt, ms | FPS före / efter | Skuggdraws före / efter |
+| --- | ---: | ---: | ---: | ---: |
+| Vanlig rotundavy | 15,66 | **11,91** | 64 / **84** | 275 / **50** |
+| Mitt i hallen, norr | 14,67 | **10,72** | 68 / **93** | 274 / **50** |
+| Mitt i hallen, öster | 18,04 | **14,27** | 55 / **70** | 275 / **89** |
+| Mitt i hallen, söder | 15,33 | **14,45** | 65 / **69** | 274 / **265** |
+| Mitt i hallen, väster | 12,30 | **8,49** | 81 / **118** | 277 / **26** |
+| Mitt i hallen, mot kupolen | 11,41 | **6,20** | 88 / **161** | 275 / **0** |
+
+Draken deformeras fortfarande varje bild när man tittar mot dess rum. Mot
+sfärrummet sker deformation bara i de bilder där en hjälvkamera kan behöva
+draken. Den är helt avstängd i kupolvyn. Geometridraws i kupolvyn går från 9
+till 4; i andra vyer var vanlig frustumculling redan effektiv för huvudbilden.
+Den största besparingen kommer från arbete och skuggor utanför den synliga
+rumsgrenen. P95 överskrider fortfarande 16,67 ms i vissa vyer när en hjälvkamera
+behöver animerade ljus/skuggor. Detta är ingen garanti om stabilt 60 FPS.
+
+## Verifiering
+
+- Tio relevanta native-tester passerar, inklusive GPU-poseändringar med oförändrad
+  källmeshrevision, blandade rums-/gånggrenar och hjälpvyer som väcker frusna rum.
+- Fem kameravyer × färg och djup med culling på/av: **10 pixelidentiska jämförelser**.
+  Även drakrummets utblick tillbaka till Pantheon ingår.
+- Cubemaps får konvergera efter byte från djupvisning till Cook innan färgbilderna
+  jämförs; därmed mäts samma färdiga reflektionsdata i båda cullinglägena.
+- Vid trösklar, ovanför dörrhöjd och utanför hallens säkra innervolym används en
+  konservativ fallback som behåller innehåll.
+
+```powershell
+python experiments/pantheon/benchmark_hub.py --repeats 2
+python experiments/pantheon/verify_hub.py
+```
+
+`PANTHEON_HUB_WORK=all` väljer referensens fulla rumsarbete för felsökning.
+Normalstarten använder dörrstyrningen. Råvärden, inställningar och bildkontroller
+finns i [performance-hub.json](performance-hub.json).
+
+---
+
 # Snabbare GPU-animation genom byte av buffertlagring, 2026-10-29
 
 Drakens palett- och resultatbuffertar ersätter nu sin lagring vid varje ny pose.

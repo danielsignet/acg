@@ -5,6 +5,14 @@
 #include <vr/Transform.h>
 
 namespace vr{
+void CullVisitor::filterRooms(const std::function<bool(const std::string&)>& visible){
+    m_renderList.erase(std::remove_if(m_renderList.begin(), m_renderList.end(), [&](const auto& item){
+        if (visible(item.room)) return false;
+        ++m_stats.portalRejected;
+        return true;
+    }), m_renderList.end());
+}
+
 // Rebuilds the render list using optional frustum and portal visibility.
 void CullVisitor::collect(Node& root, const glm::mat4& vp, const glm::vec3& eye, bool enabled,
                           const PortalResult* portals){

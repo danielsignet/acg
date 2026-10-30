@@ -62,6 +62,7 @@ GPU skinning once per pose and static/dynamic shadow depth reuse are described i
 | F2 or renderer button | Switch between deferred and forward; AO, post effects and G-buffer views use deferred |
 | O or AO | Toggle screen-space ambient occlusion; Z then A shows AO alone |
 | F1 | Show/hide performance: CPU/GPU time and percentage breakdown; Reset averages clears measurements after changing settings |
+| F7 or VSync | Toggle synchronization to the display refresh; resets performance averages. Start uncapped with `--no-vsync` |
 | F | Freeze/resume the culling camera, model animations and moving lights; show/hide the camera's debug volumes |
 | Space | Reset the camera |
 | F4 or Subdivide | Aim at a highlighted model and toggle one cached subdivision level for that instance; generated in memory on first use; No target when nothing is selected |

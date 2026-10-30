@@ -4,6 +4,7 @@ param(
     [ValidateSet('off', 'environment', 'cubemaps')]
     [string]$Reflections = 'environment',
     [switch]$Benchmark,
+    [switch]$NoVsync,
     [switch]$Portals,
     [switch]$Debug
 )
@@ -23,6 +24,7 @@ if ($Portals) {
     $scenePath = Join-Path $PSScriptRoot 'portal-scene.xml'
 }
 $viewerArgs = @('--root', $repoPath, '--scene', $scenePath, '--shading', 'cook', '--aa', 'fxaa', '--reflections', $Reflections)
+if ($NoVsync) { $viewerArgs += '--no-vsync' }
 if ($Benchmark) {
     $outputPath = Join-Path $PSScriptRoot 'output'
     New-Item -ItemType Directory -Force -Path $outputPath | Out-Null

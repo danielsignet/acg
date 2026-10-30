@@ -4,6 +4,7 @@ out vec4 fragmentColor;
 uniform sampler2D uPosition, uNormal;
 uniform mat4 uView, uProjection;
 uniform vec3 uSamples[64];
+uniform int uSampleCount = 64;
 
 // Samples a normal-oriented hemisphere in view space using world-space surface buffers.
 void main(){
@@ -26,7 +27,9 @@ void main(){
     const float radius = 1.5, bias = 0.025;
     float blocked = 0.0;
     for (int i = 0; i < 64; ++i){
-        vec3 samplePosition = position + basis * uSamples[i] * radius;
+        if(i>=uSampleCount) break;
+        // Keep the complete radius/elevation distribution with fewer samples.
+        vec3 samplePosition = position + basis * uSamples[i*64/uSampleCount] * radius;
         vec4 clip = uProjection * vec4(samplePosition, 1.0);
         if (clip.w <= 0.0){
             continue;
@@ -49,5 +52,5 @@ void main(){
         float range = 1.0 - smoothstep(radius * 0.5, radius, separation);
         blocked += depth >= samplePosition.z + bias ? range : 0.0;
     }
-    fragmentColor = vec4(vec3(clamp(1.0 - blocked / 64.0, 0.0, 1.0)), 1.0);
+    fragmentColor = vec4(vec3(clamp(1.0 - blocked / float(uSampleCount), 0.0, 1.0)), 1.0);
 }

@@ -14,6 +14,7 @@
 #include <vr/Light.h>
 #include <vr/PlanarReflection.h>
 #include <vr/RenderVisitor.h>
+#include <vr/ShadowRenderer.h>
 
 namespace vr{
 // Collects lights and geometry, invokes the optional preparation hook, then draws the scene.
@@ -80,6 +81,27 @@ bool RenderVisitor::dynamicEnvironment(Node& root){
     for (const auto& weak : m_extensions) if (const auto extension = weak.lock())
         if (extension->dynamicEnvironment()) return true;
     return false;
+}
+
+void RenderVisitor::appendShadowReceivers(Node& root, const Camera& camera,
+    std::vector<ShadowReceiver>& receivers, bool auxiliary, const PortalResult* portals,
+    const glm::mat4* frozen){
+    discoverExtensions(root);
+    m_receiverCuller.collect(root,frozen?*frozen:camera.getProjection()*camera.getView(),
+        camera.getPosition(),m_culling,portals);
+    const SceneRenderContext context{root,camera,m_environment,m_states.front().getProgram(),
+        m_shadingMode,0,0,auxiliary,m_profiler,false};
+    for(const auto& item:m_receiverCuller.getRenderList()){
+        if(!item.state.getLighting() || !item.state.getReceiveShadows()) continue;
+        bool visible=true;
+        if(m_culling && !frozen && !auxiliary)
+            for(const auto& weak:m_extensions) if(const auto extension=weak.lock())
+                visible=visible && extension->roomVisibleInView(item.room,context);
+        if(!visible) continue;
+        unsigned mask=0;
+        for(unsigned i=0;i<State::MaxLights;++i) if(item.state.getLightEnabled(i)) mask|=1u<<i;
+        receivers.push_back({item.geometry->getWorldBound(item.model),mask});
+    }
 }
 
 // Collects lights before culling so off-screen lights still affect visible geometry.
@@ -199,9 +221,12 @@ void RenderVisitor::drawOpaque(const std::vector<const RenderNode*>& items,
         sorted.push_back({item, item->state.renderKey()});
     }
     const auto key = [](const Candidate& entry){
-        return std::tuple<std::uintptr_t, std::uintptr_t, std::size_t, const std::string&>{
-            reinterpret_cast<std::uintptr_t>(entry.item->state.getProgram().get()),
-            reinterpret_cast<std::uintptr_t>(entry.item->geometry), entry.state, entry.item->room};
+        const auto program=entry.item->state.getProgram();
+        // Allocation addresses vary between runs and cache paths. Stable keys
+        // also keep coincident contact edges from changing their draw order.
+        return std::tuple<GLuint, std::uint64_t, std::size_t, const std::string&>{
+            program?program->getId():0,entry.item->geometry->getDataRevision(),
+            entry.state, entry.item->room};
     };
     std::stable_sort(sorted.begin(), sorted.end(),
                      [&](const auto& a, const auto& b){ return key(a) < key(b); });

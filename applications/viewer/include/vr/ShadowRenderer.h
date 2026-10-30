@@ -14,6 +14,12 @@ struct ShadowStats{
     std::size_t triangles = 0;
     double cpuMs = 0;
     unsigned cacheHits = 0, reusedFaces = 0, staticRebuilds = 0;
+    unsigned collectionCacheHits = 0, casterRebuilds = 0, lightsSkipped = 0;
+};
+
+struct ShadowReceiver{
+    BoundingBox bounds;
+    unsigned lightMask = (1u << State::MaxLights)-1;
 };
 
 class ShadowRenderer{
@@ -26,7 +32,8 @@ public:
     void attach(Scene& scene) const;
 
     // Updates light depth images independently of observer frustum and portal culling.
-    void render(Scene& scene, const glm::vec3& lodEye, bool enabled, bool filtered);
+    void render(Scene& scene, const glm::vec3& lodEye, bool enabled, bool filtered,
+                const std::vector<ShadowReceiver>* receivers = nullptr);
 
     // Returns light-pass counts and CPU submission time from the latest frame.
     const ShadowStats& getStats() const{
@@ -71,10 +78,24 @@ public:
 
     // Returns the independently collected geometry instances that can cast shadows.
     const std::vector<RenderNode>& getCasters() const{
-        return m_casters;
+        return *m_casters;
     }
 
 private:
+    bool needed(const PositionedLight& light, unsigned index,
+                const std::vector<ShadowReceiver>& receivers) const;
+    struct PreparedCaster{
+        Geometry* geometry;
+        glm::mat4 model;
+        std::uint64_t state, data, pose, texture;
+        bool culling, dynamic;
+        bool operator==(const PreparedCaster& b) const{
+            return geometry==b.geometry && model==b.model && state==b.state && data==b.data &&
+                pose==b.pose && texture==b.texture && culling==b.culling && dynamic==b.dynamic;
+        }
+    };
+    std::vector<PreparedCaster> m_prepared;
+    bool m_preparedValid = false;
     struct Batch{
         Geometry* geometry;
         std::shared_ptr<Texture> albedo;
@@ -108,7 +129,7 @@ private:
         float farPlane = 0;
         bool radial = false;
         std::optional<std::array<glm::vec4, 6>> cone;
-        std::uint64_t staticRevision = 0, activeRevision = 0;
+        std::uint64_t staticRevision = 0, activeRevision = 0, casterRevision = 0;
         bool observed = false, ready = false;
         std::vector<CasterState> dynamicCasters;
     };
@@ -141,12 +162,15 @@ private:
     std::shared_ptr<Camera> m_sunCamera;
     int m_pointResolution;
     std::shared_ptr<Program> m_depthProgram;
-    std::vector<RenderNode> m_casters;
+    std::shared_ptr<const std::vector<RenderNode>> m_casters =
+        std::make_shared<const std::vector<RenderNode>>();
     std::vector<BoundingBox> m_worldBounds;
     std::vector<Batch> m_batches;
     std::vector<glm::mat4> m_visibleModels;
     bool m_instancing = true;
     bool m_caching = true, m_hasStatic = false;
+    bool m_volatileCasterTexture = false;
+    std::uint64_t m_casterRevision = 1;
     std::uint64_t m_staticRevision = 1;
     std::vector<CasterState> m_staticCasters;
     FaceCache m_sunCache;

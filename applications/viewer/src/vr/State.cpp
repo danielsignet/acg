@@ -69,6 +69,17 @@ State State::mergedShadow(const State& local) const{
             result.setUniform(name, uniform->second);
         }
     }
+    result.m_shadowRevision=nextRevision();
+    result.changed();
+    return result;
+}
+
+State State::mergedReceiver(const State& local) const{
+    State result=*this;
+    if(local.m_lightingEnabled) result.m_lightingEnabled=local.m_lightingEnabled;
+    if(local.m_receiveShadows) result.m_receiveShadows=local.m_receiveShadows;
+    for(unsigned i=0;i<MaxLights;++i)
+        if(local.m_lightEnabled[i]) result.m_lightEnabled[i]=local.m_lightEnabled[i];
     result.changed();
     return result;
 }
@@ -122,6 +133,7 @@ State State::merged(const State& local) const{
     for (const auto& entry : *local.m_uniforms){
         result.setUniform(entry.first, entry.second);
     }
+    result.m_shadowRevision=nextRevision();
     result.changed();
     return result;
 }
@@ -145,7 +157,7 @@ std::size_t State::renderKey() const{
         key ^= value + 0x9e3779b9 + (key << 6) + (key >> 2);
     };
     const auto scalar = [&](float value){ add(std::hash<float>{}(value)); };
-    add(std::hash<const void*>{}(m_program.get()));
+    add(m_program ? m_program->getId() : 0);
     if (m_material){
         for (const auto& color :
              {m_material->getAmbient(), m_material->getDiffuse(), m_material->getSpecular()}){
@@ -159,10 +171,11 @@ std::size_t State::renderKey() const{
     }
     for (const auto& entry : m_textures){
         add(entry.first);
-        add(std::hash<const void*>{}(entry.second.get()));
+        add(entry.second ? entry.second->getRevision() : 0);
     }
-    add(std::hash<const void*>{}(getNormalMap().get()));
-    add(std::hash<const void*>{}(getHeightMap().get()));
+    const auto normal=getNormalMap(),height=getHeightMap();
+    add(normal ? normal->getRevision() : 0);
+    add(height ? height->getRevision() : 0);
     // Keep ordering stable when lights allocate auxiliary targets or pass uniforms change.
     // Exact compatibility (including every uniform and shadow texture) is checked separately.
     return key;
@@ -198,6 +211,7 @@ void State::setTexture(unsigned layer, std::shared_ptr<Texture> texture){
         return;
     }
     m_textures[layer] = std::move(texture);
+    if(layer==0) m_shadowRevision=nextRevision();
     changed();
 }
 

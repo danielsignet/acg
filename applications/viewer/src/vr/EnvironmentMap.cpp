@@ -247,11 +247,22 @@ void EnvironmentMap::initializeLocalReflections(const std::shared_ptr<Texture>& 
 // Prefilters a complete scene capture into one local reflection layer.
 void EnvironmentMap::prefilterLocal(const std::shared_ptr<Texture>& source,
                                     const std::shared_ptr<Texture>& maps, unsigned layer){
+    prefilterLocalRange(source,maps,layer,0,54);
+}
+
+void EnvironmentMap::publishLocal(const std::shared_ptr<Texture>& filtered,
+    const std::shared_ptr<Texture>& maps,unsigned layer){
+    copyCube(filtered,maps,0,layer,9);
+}
+
+void EnvironmentMap::prefilterLocalRange(const std::shared_ptr<Texture>& source,
+    const std::shared_ptr<Texture>& maps,unsigned layer,unsigned first,unsigned count){
+    if(first>54 || count>54-first) throw std::invalid_argument("Invalid local reflection bake range");
     FramebufferState saved;
     Antialiasing::screenPass();
     maps->apply(0);
     source->apply(1);
-    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    if(first==0) glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
     auto& bake = *m_bakeProgram;
     bake.use();
     bake.set("uPass", 1);
@@ -261,16 +272,15 @@ void EnvironmentMap::prefilterLocal(const std::shared_ptr<Texture>& source,
     glGenFramebuffers(1, &framebuffer);
     GLState::bindFramebuffer(GL_FRAMEBUFFER, framebuffer);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    for (unsigned level = 0; level < 9; ++level){
+    for (unsigned draw=first;draw<first+count;++draw){
+        const unsigned level=draw/6,face=draw%6;
         const int size = std::max(1, 256 >> level);
         GLState::viewport(0, 0, size, size);
         bake.set("uRoughness", static_cast<float>(level) / 8);
-        for (unsigned face = 0; face < 6; ++face){
-            glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, maps->getId(), level,
-                                      layer * 6 + face);
-            bake.set("uFace", static_cast<int>(face));
-            m_quad.draw();
-        }
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, maps->getId(), level,
+                                  layer * 6 + face);
+        bake.set("uFace", static_cast<int>(face));
+        m_quad.draw();
     }
     GLState::deleteFramebuffers(1, &framebuffer);
 }

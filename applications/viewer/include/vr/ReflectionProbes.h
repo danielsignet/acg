@@ -27,6 +27,8 @@ public:
     void invalidate(){
         ++m_revision;
         m_face = 0;
+        m_filterCursor = 54;
+        m_hasPlan = m_planValid = false;
     }
 
     // Clears per-frame counters while a different reflection source is active.
@@ -75,10 +77,11 @@ private:
     std::vector<Probe> m_probes;
     RenderVisitor m_renderer;
     RenderStats m_stats;
-    std::shared_ptr<Texture> m_capture, m_depth, m_maps;
+    std::shared_ptr<Texture> m_capture, m_depth, m_maps, m_filtered;
     GLuint m_framebuffer = 0;
     unsigned m_cursor = 0, m_face = 0, m_revision = 1, m_readyMask = 1;
     unsigned m_faces = 0, m_filterDraws = 0;
+    unsigned m_filterCursor = 54;
     std::unique_ptr<Camera> m_planned;
     bool m_planValid = false;
     bool m_hasPlan = false;

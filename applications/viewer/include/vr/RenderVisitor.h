@@ -14,6 +14,7 @@ namespace vr{
 class DeferredRenderer;
 class EnvironmentMap;
 class PlanarReflection;
+struct ShadowReceiver;
 
 struct RenderStats{
     unsigned instances = 0, instancedDraws = 0;
@@ -30,7 +31,8 @@ class RenderVisitor : public PathVisitor{
 public:
     // Initializes rendering with the supplied default shader program.
     explicit RenderVisitor(const std::shared_ptr<Program>& program)
-        : PathVisitor(State::defaults(program)), m_culler(State::defaults(program)){
+        : PathVisitor(State::defaults(program)), m_culler(State::defaults(program)),
+          m_receiverCuller(State{},true){
     }
 
     // Collects lights and geometry, invokes the optional preparation hook, then draws the scene.
@@ -41,6 +43,10 @@ public:
     void prepareFrameView(Node& root, const Camera& camera, bool reflection = false);
     bool roomVisible(Node& root, const std::string& room, const Camera& camera);
     bool dynamicEnvironment(Node& root);
+    // Collect receiver bounds for main and auxiliary observers without removing physical casters.
+    void appendShadowReceivers(Node& root, const Camera& camera,
+        std::vector<ShadowReceiver>& receivers, bool auxiliary = false,
+        const PortalResult* portals = nullptr, const glm::mat4* frozen = nullptr);
 
     // Attaches the optional frame profiler without transferring ownership.
     void setProfiler(FrameProfiler* profiler){
@@ -68,6 +74,7 @@ public:
     void setStateCaching(bool enabled){
         PathVisitor::setStateCaching(enabled);
         m_culler.setStateCaching(enabled);
+        m_receiverCuller.setStateCaching(enabled);
     }
 
     std::size_t getResolvedStateCacheHits() const{
@@ -162,6 +169,7 @@ private:
     const Camera* m_camera = nullptr;
     RenderStats m_stats;
     CullVisitor m_culler;
+    CullVisitor m_receiverCuller;
     bool m_culling = true;
     bool m_instancing = true;
     ShadingMode m_shadingMode = ShadingMode::Phong;

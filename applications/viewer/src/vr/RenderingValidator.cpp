@@ -385,13 +385,20 @@ void RenderingValidator::validateReflections(){
     app.handleClick(460, 76);
     require(app.m_reflectionMode == ReflectionMode::Cubemaps,
             "The reflection button advances Environment to Cubemaps");
-    for (unsigned frame = 0; frame < 90; ++frame){
+    app.render();
+    // Allow a complete round of captures plus bounded incremental GGX filtering.
+    // The old 90-frame limit assumed all 54 filter draws happened in one frame.
+    const auto reflectionWarmup=16u*app.m_reflectionProbes->getProbeCount();
+    for (unsigned frame = 0; frame < reflectionWarmup; ++frame){
         app.render();
         require(app.m_reflectionProbes && app.m_reflectionProbes->getFaces() <= 1,
                 "Local reflections respect the one-cube-face-per-frame capture budget");
     }
+    const auto reflectionChanges=captureScene().countChangedPixels(original);
+    std::cout << "Local probes: " << app.m_reflectionProbes->getReadyCount() << '/'
+              << app.m_reflectionProbes->getProbeCount() << ", changed pixels: " << reflectionChanges << '\n';
     require(app.m_reflectionProbes->getReadyCount() > 0 &&
-                captureScene().countChangedPixels(original) > 1000 &&
+                reflectionChanges > 1000 &&
                 app.m_deferred->getGBuffer().read(GBuffer::Albedo) == albedo,
             "Local cubemaps change reflected radiance without changing material albedo");
     app.execute(Controls::Action::Renderer);

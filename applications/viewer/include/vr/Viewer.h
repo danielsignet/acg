@@ -38,6 +38,7 @@ private:
     bool m_hidden = false;
     bool m_validate = false;
     bool m_performance = false;
+    bool m_benchmarkHud = false;
     bool m_noMenus = false;
     bool m_forward = false, m_noAO = false;
     bool m_noBump = false;

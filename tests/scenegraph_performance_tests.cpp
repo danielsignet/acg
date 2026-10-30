@@ -98,6 +98,17 @@ void trackedState(){
 
 void lights(){
     auto root = std::make_shared<vr::Group>();
+    auto emptyBranch=std::make_shared<vr::Group>();
+    root->addChild(emptyBranch);
+    check(!root->containsLights(),"A geometry-only graph has no light traversal paths");
+    auto lateLight=std::make_shared<vr::Light>();
+    emptyBranch->addChild(lateLight);
+    check(root->containsLights(),"Adding a light invalidates presence caches through every ancestor");
+    lateLight->setVisible(false);
+    const auto hidden=vr::collectLights(*root,{0,0,0});
+    check(hidden.size()==1 && !hidden[0].active,
+          "Hidden lights retain their stable indices when geometry paths are pruned");
+    root=std::make_shared<vr::Group>();
     auto light = std::make_shared<vr::Light>();
     for (float x :{-3.0f, 4.0f}){
         auto transform = std::make_shared<vr::Transform>();

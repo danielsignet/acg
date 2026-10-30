@@ -21,6 +21,8 @@ public:
     std::uint64_t getMaterialRevision() const{
         return m_material ? m_material->getRevision() : 0;
     }
+    // Depth collection depends only on caster eligibility, albedo and alpha/LOD overrides.
+    std::uint64_t getShadowRevision() const{ return m_shadowRevision; }
 
     static constexpr unsigned MaxTextures = 4;
     static constexpr unsigned MaterialTextureUnits = MaxTextures + 1;
@@ -37,6 +39,8 @@ public:
     State merged(const State& local) const;
     // Depth passes inherit only caster eligibility, alpha cutouts and LOD coverage.
     State mergedShadow(const State& local) const;
+    // Receiver collection needs lighting/masks, without resolving shared color materials.
+    State mergedReceiver(const State& local) const;
     // Resolved-state compatibility for opaque instancing; uniforms include LOD and light masks.
     bool sameRenderState(const State& other) const;
     std::size_t renderKey() const;
@@ -85,6 +89,7 @@ public:
             return;
         }
         m_castShadows = enabled;
+        m_shadowRevision=nextRevision();
         changed();
     }
 
@@ -160,6 +165,7 @@ public:
             m_uniforms = std::make_shared<Uniforms>(*m_uniforms);
         }
         (*m_uniforms)[name] = std::move(value);
+        if(name=="uAlphaCutoff" || name=="uLodRange") m_shadowRevision=nextRevision();
         changed();
     }
 
@@ -209,6 +215,7 @@ private:
     }
 
     std::uint64_t m_revision = nextRevision();
+    std::uint64_t m_shadowRevision = nextRevision();
     std::optional<bool> m_lightingEnabled, m_cullFace, m_blend;
     std::optional<bool> m_castShadows, m_receiveShadows;
     std::array<std::shared_ptr<Texture>, MaxShadowMaps> m_shadowMaps;

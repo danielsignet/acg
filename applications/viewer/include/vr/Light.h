@@ -6,6 +6,7 @@ namespace vr{
 class Light : public Node{
 public:
     using Node::Node;
+    bool containsLights() const override{ return true; }
 
     // Dispatches this concrete node type to the visitor.
     void accept(NodeVisitor& visitor) override{

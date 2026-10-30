@@ -10,6 +10,7 @@
 #include <vr/Application.h>
 #include <vr/DotVisitor.h>
 #include <vr/GLState.h>
+#include <vr/FrameWork.h>
 #include <vr/GpuSkinning.h>
 #include <vr/OpenGL.h>
 #include <vr/RenderingValidator.h>
@@ -78,6 +79,7 @@ void Application::reload(){
     m_shadowRenderer = std::move(shadows);
     m_flashlight = std::move(flashlight);
     m_target.reset();
+    m_picker.invalidate();
     m_debugLines = std::move(debugLines);
     m_renderer = std::move(renderer);
     m_deferred = std::move(deferred);
@@ -513,12 +515,15 @@ void Application::render(){
     }
     // Plan auxiliary observers before shadow maps, so their animations and
     // deformations use the same pose in every pass of this frame.
+    std::vector<const Camera*> shadowObservers;
     {
         FrameProfiler::Scope preparation(&m_profiler, FrameProfiler::Stage::Submission);
         m_reflection->setEnabled(m_reflectionMode != ReflectionMode::Off);
         m_reflection->resize(m_width, m_height, m_antialiasingMode);
-        if (const auto reflected = m_reflection->plan(*m_scene, camera))
+        if (const auto reflected = m_reflection->plan(*m_scene, camera)){
             m_renderer->prepareFrameView(*m_scene->getRoot(), *reflected, true);
+            shadowObservers.push_back(reflected);
+        }
         if (m_reflectionMode == ReflectionMode::Cubemaps){
             std::string room;
             for (const auto& region : m_scene->getEnvironments().getRegions())
@@ -533,16 +538,27 @@ void Application::render(){
                  m_flashlight->getEnabled());
             const auto capture = m_reflectionProbes->plan(camera, m_portalResult, dynamic,
                 [&](const std::string& id){ return m_renderer->roomVisible(*m_scene->getRoot(), id, camera); });
-            if (capture) m_renderer->prepareFrameView(*m_scene->getRoot(), *capture);
+            if (capture){
+                m_renderer->prepareFrameView(*m_scene->getRoot(), *capture);
+                shadowObservers.push_back(capture);
+            }
         }
     }
     if (m_gpuSkinning) m_gpuSkinning->prepare();
+    static const bool receiverCulling=frameWorkOptimized() && !std::getenv("ACG_FULL_SHADOWS");
     {
         FrameProfiler::Scope shadows(&m_profiler, FrameProfiler::Stage::Shadows);
-        m_shadowRenderer->render(*m_scene, camera.getPosition(), m_shadowsEnabled, true);
+        std::vector<ShadowReceiver> receivers;
+        if(m_shadowsEnabled && frameWorkOptimized()){
+            m_renderer->appendShadowReceivers(*m_scene->getRoot(),camera,receivers,false,&m_portalResult,frozen);
+            for(const auto* observer:shadowObservers)
+                m_renderer->appendShadowReceivers(*m_scene->getRoot(),*observer,receivers,true);
+        }
+        m_shadowRenderer->render(*m_scene, camera.getPosition(), m_shadowsEnabled, true,
+            receiverCulling?&receivers:nullptr);
     }
     m_deferred->setPreviews(m_deferredEnabled && m_showHud && m_showMenus && m_bufferPreviews &&
-                            !m_profiler.getEnabled());
+                            !performanceVisible());
     {
         FrameProfiler::Scope pass(&m_profiler, FrameProfiler::Stage::Cubemaps);
         if (m_reflectionMode == ReflectionMode::Cubemaps){
@@ -566,7 +582,7 @@ void Application::render(){
                 FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
                 float surfaceDistance=0;
                 m_target =
-                    pickModel(m_renderer->getRenderList(), camera.getPosition(),
+                    m_picker.pick(m_renderer->getRenderList(), camera.getPosition(),
                               glm::normalize(glm::vec3(glm::inverse(camera.getView())[2]) * -1.0f),&surfaceDistance);
                 const auto& projection=camera.getProjection();
                 const float farPlane=std::abs(projection[3][2]/(projection[2][2]+1));
@@ -586,7 +602,7 @@ void Application::render(){
     }
     {
         FrameProfiler::Scope debug(&m_profiler, FrameProfiler::Stage::Debug);
-        if (m_target && m_showHud && !m_profiler.getEnabled()){
+        if (m_target && m_showHud && !performanceVisible()){
             m_debugLines->box(m_target->instance->getBound().transformed(m_target->model), vp,
                               {1, 0.75f, 0.18f, 1});
         }

@@ -71,6 +71,8 @@ bool Viewer::parseOptions(int argc, char** argv){
         } else if (option == "--benchmark"){
             m_benchmark = next();
             m_performance = true;
+        } else if (option == "--benchmark-hud"){
+            m_benchmarkHud = true;
         } else if (option == "--no-vsync"){
             m_noVsync = true;
         } else if (option == "--no-menus"){
@@ -284,6 +286,7 @@ int Viewer::run(int argc, char** argv){
     if (m_forward){
         m_application->execute(Controls::Action::Renderer);
     }
+    m_application->m_benchmarkHud=m_benchmarkHud;
     if (m_performance){
         m_application->execute(Controls::Action::Performance);
     }
@@ -389,6 +392,22 @@ void Viewer::writeBenchmark() const{
         output << ',' << summary.counters[static_cast<std::size_t>(counter.second)];
     }
     output << '\n';
+    // Keep individual frames so a faster mean cannot hide periodic capture/filter stalls.
+    auto tracePath=m_benchmark;
+    tracePath.replace_extension("frames.csv");
+    std::ofstream trace(tracePath);
+    trace << "sequence,frame_ms";
+    for(const auto& stage:FrameProfiler::descriptions())
+        trace << ",\"cpu_" << stage.name << "_ms\",\"gpu_" << stage.name << "_ms\"";
+    trace << ",probe_faces,probe_draws,shadow_draws,skinned_vertices\n";
+    for(const auto& frame:profiler.getHistory()){
+        trace << frame.sequence << ',' << frame.intervalMs;
+        for(std::size_t i=0;i<FrameProfiler::StageCount;++i)
+            trace << ',' << frame.cpuExclusive[i] << ',' << frame.gpuExclusive[i];
+        const auto counter=[&](Counter id){return frame.counters[static_cast<std::size_t>(id)];};
+        trace << ',' << counter(Counter::ProbeFaces) << ',' << counter(Counter::ProbeDraws)
+              << ',' << counter(Counter::ShadowDraws) << ',' << counter(Counter::GpuSkinnedVertices) << '\n';
+    }
     std::cout << "Frame benchmark: " << summary.frameMs << " ms / " << 1000 / summary.frameMs
               << " FPS, P95 " << summary.p95Ms << " ms\n";
 }

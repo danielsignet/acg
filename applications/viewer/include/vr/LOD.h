@@ -28,6 +28,7 @@ public:
 
     // Sets the world-space transition width; zero retains discrete detail selection.
     void setFadeWidth(float width);
+    float getFadeWidth() const{ return m_fadeWidth; }
 
     // Returns the exclusive upper distance boundaries of the detail levels.
     const std::vector<float>& getRanges() const{

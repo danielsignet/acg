@@ -4,6 +4,7 @@
 #include <vr/Group.h>
 #include <vr/LightCollector.h>
 #include <vr/Transform.h>
+#include <vr/FrameWork.h>
 
 namespace vr{
 namespace{
@@ -24,7 +25,11 @@ private:
 
     void apply(Group& node) override{
         m_visible.push_back(m_visible.back() && node.getVisible());
-        try{ traverse(node); }
+        try{
+            if(!frameWorkOptimized()) traverse(node);
+            else for(const auto& child:node.getChildren())
+                if(child->containsLights()) child->accept(*this);
+        }
         catch (...){ m_visible.pop_back(); throw; }
         m_visible.pop_back();
     }

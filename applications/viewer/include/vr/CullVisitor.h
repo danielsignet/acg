@@ -30,7 +30,8 @@ struct CullStats{
 class CullVisitor : public PathVisitor{
 public:
     // Initializes collection with the inherited rendering defaults.
-    explicit CullVisitor(State initial ={}) : PathVisitor(std::move(initial)){
+    explicit CullVisitor(State initial ={}, bool receivers = false)
+        : PathVisitor(std::move(initial)), m_receivers(receivers){
         setLodFading(true);
     }
 
@@ -63,6 +64,10 @@ public:
     }
 
 private:
+    State mergeState(const State& parent,const State& local) const override{
+        return m_receivers?parent.mergedReceiver(local):parent.merged(local);
+    }
+    bool m_receivers = false;
     // Restores inherited room and fully-inside state after traversing this node.
     void within(Node& node, const std::function<void()>& action);
 

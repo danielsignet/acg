@@ -17,7 +17,21 @@ void Group::addChild(const std::shared_ptr<Node>& child){
     auto self = shared_from_this();
     m_children.push_back(child);
     child->m_parents.push_back(self);
+    dirtyLightPresence();
     dirtyBound();
+}
+
+bool Group::containsLights() const{
+    if(!m_containsLights){
+        m_containsLights=std::any_of(m_children.begin(),m_children.end(),
+            [](const auto& child){return child->containsLights();});
+    }
+    return *m_containsLights;
+}
+
+void Group::dirtyLightPresence(){
+    m_containsLights.reset();
+    for(const auto& weak:getParents()) if(const auto parent=weak.lock()) parent->dirtyLightPresence();
 }
 
 // Encloses every child bound in the group's coordinate system.

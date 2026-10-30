@@ -32,8 +32,11 @@ void main(){
             vec3 neighborNormal = normalize(texture(uNormal, uv).xyz);
             vec2 offset = center + vec2(x, y) - texCoord * size;
             float separation = abs(dot(neighbor.xyz - position.xyz, normal));
-            float weight = exp(-0.5 * dot(offset, offset) - separation / 0.08) *
-                           pow(max(dot(normal, neighborNormal), 0.0), 8.0);
+            float alignment = max(dot(normal, neighborNormal), 0.0);
+            alignment *= alignment;
+            alignment *= alignment;
+            float weight = exp2((-0.5 * dot(offset, offset) - separation / 0.08) * 1.44269504) *
+                           alignment * alignment;
             total += texture(uRawAO, uv).r * weight;
             weightSum += weight;
         }
@@ -41,5 +44,5 @@ void main(){
     float visibility = weightSum > 0.0001 ? total / weightSum : 1.0;
     // Shape the filtered visibility to keep contact shadows clear at the scene's scale.
     visibility = clamp(visibility, 0.0, 1.0);
-    fragmentColor = resolve ? vec4(ambient, pow(visibility, 2.5)) : vec4(vec3(visibility), 1.0);
+    fragmentColor = resolve ? vec4(ambient, visibility * visibility * sqrt(visibility)) : vec4(vec3(visibility), 1.0);
 }

@@ -298,7 +298,7 @@ void SceneOverlay::drawFocus(const Application& app){
                   << " m";
             m_text.draw(focus.str(), x + 14, y + 30, 11,{1, 0.82f, 0.35f, 1});
         }
-    } else{
+    } else if (app.m_showHud && app.m_showMenus){
         m_text.draw("No target", x + 14, y + 12, 12,{0.75f, 0.8f, 0.84f, 0.9f});
     }
     if (app.m_target){

@@ -46,6 +46,13 @@ materialrummet. Alla vyer laddar hela scenen och går att navigera vidare från.
 
 Normalstarten använder **RelWithDebInfo** utan debugger.
 
+Motorn återanvänder nu oförändrade skugglistor, hoppar över grenar utan ljus
+och väljer skuggljus efter huvudbildens och hjälpvyernas mottagande ytor. Lokala
+cubemaps filtreras stegvis och publiceras som kompletta resultat; detta ger
+längre uppdateringslatens. AO använder 32 sampel, och picking återanvänder
+oförändrade träffar. Se [mätning med vanlig HUD och VSync](RESULTAT.md) och
+[råvärden](performance-frame-work.json).
+
 Den vanliga starten visar HUD och menyer. Endast den dolda benchmarkkörningen
 använder `--no-menus`. Tab döljer eller visar menyerna.
 

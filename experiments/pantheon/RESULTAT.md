@@ -1,3 +1,97 @@
+# Budgeterat renderingsarbete och cache, 2026-10-30
+
+De fem uppföljande ändringarna är genomförda:
+
+- Skugginsamlingen cachar lösta delträd per DAG-placering och behåller själva
+  casterlistan utan kopiering när rotgrenen är oförändrad. Separata djuprevisioner
+  undviker ombyggnad när bara ljusets render targets eller färgmaterial ändras.
+  Bounds och batcher återanvänds tills modell, mesh, pose, alpha-textur eller LOD ändras.
+- Scenegrafen cachar vilka grenar som innehåller ljus. Ljusinsamlingen hoppar över
+  geometri utan ljus, men bevarar dolda ljusplatser, DAG-transformer och LOD-val.
+- Huvudkameran, spegelkameran och den planerade cubemapkameran bidrar med
+  mottagande ytor. Endast ljus vars räckvidd/spotkon och mask kan påverka dessa
+  behöver skuggpass. Fysiska skuggkastare utanför kameran behålls.
+- Cubemapfiltret arbetar i en separat scratch-textur med högst 18 ritningar och
+  cirka en miljon nominella textursampel per bild. Alla 54 GGX-ritningar, nio
+  mipnivåer och 32 filtersampel behålls. Ett helt resultat publiceras först när
+  samtliga nivåer är klara. Fångst sker under sex bilder och filtrering under sju;
+  det ger längre reflektionslatens än tidigare, särskilt med flera synliga prober.
+- AO använder 32 sampel över samma radie och en billigare kantbevarande resolve.
+  Picking grovsorterar ray-träffade objekt i avståndsordning och återanvänder
+  träff/fokusavstånd när kamera och relevanta ytor är oförändrade. Animerade
+  träffytor testas fortfarande exakt varje bild.
+
+## Vanlig HUD, utan VSync
+
+Samma slutliga RelWithDebInfo-binär, 1280 × 800, Cook–Torrance, FXAA, AO,
+skuggor och cubemaps. Vanlig HUD, menyer och buffertvyer är på.
+En slutlig körning per variant och vy; 480 bilder per körning, sista 120
+mäts. Referensen väljs med `ACG_FRAME_WORK_REFERENCE=1` och behåller det tidigare
+arbetssättet inklusive 64 AO-sampel. Tabellen visar körningarnas medelvärden och P95.
+
+| Riktning från mitten | Bildtid före / efter, ms | P95 före / efter, ms | Bilder över 16,67 ms före / efter |
+| --- | ---: | ---: | ---: |
+| Norr, sfärrummet | 10,84 / **6,59** | 19,34 / **17,20** | 18,3 % / **5,8 %** |
+| Öster, staden | 14,57 / **10,59** | 20,40 / **19,69** | 32,5 % / **15,0 %** |
+| Söder, galleriet | 14,23 / **10,89** | 20,50 / **18,46** | 16,7 % / **7,5 %** |
+| Väster, draken | 8,51 / **6,56** | 9,23 / **7,18** | 0,0 % / **0,0 %** |
+| Upp mot kupolen | 6,26 / **4,04** | 7,06 / **4,31** | 0,0 % / **0,0 %** |
+
+Skuggornas CPU-arbete mot kupolen går från 3,83 till 1,27 ms. AO går från
+cirka 2,1–2,3 till 1,35–1,49 ms GPU. Picking mot staden går från 0,44 till
+0,26 ms CPU; mot den animerade draken förbättras det inte, eftersom träffytan
+måste uppdateras. CPU- och GPU-tider kan överlappa och ska inte summeras.
+
+## Synligt fönster med VSync
+
+Dolda fönster ignorerar VSync på denna drivrutin. Därför kördes även vanliga,
+synliga testfönster med samma HUD, upplösning och inställningar. Två körningar
+per variant och vy i växlande ordning; tabellen visar medianen av körningarnas
+medelvärden. FPS beräknas från bildtiden. Varje test stängs efter 480 bilder.
+
+| Vy | FPS före / efter | Bildtid före / efter | Bilder över 25 ms före / efter |
+| --- | ---: | ---: | ---: |
+| Norr | 43,6 / **54,5** | 22,92 / **18,33 ms** | 35,0 % / **9,6 %** |
+| Söder | 46,9 / 44,6 | 21,31 / 22,40 ms | 22,1 % / 33,8 % |
+
+Norr får färre långa bilder. Galleriets VSync-kontroll visar däremot ingen
+förbättring: referenskörningarna varierar mellan 18,04 och 24,58 ms, medan
+den optimerade varianten ligger på 22,18–22,61 ms. Detta resultat ska inte
+presenteras som en säker VSync-vinst för galleriet. Stabilt 60 FPS är inte säkrat.
+De största kvarvarande spikarna sammanfaller med cubemapfångster som ser många
+objekt och behöver de rörliga galleriljusens skuggor. P95 mot staden ligger fortfarande
+över 16,67 ms trots lägre medelvärde. VSync-mätningen är en kort kontroll,
+inte ett långt stresstest av alla kameralägen.
+
+## Verifiering och återupprepning
+
+Skuggcachetestet kontrollerar både djupbilder och att en oförändrad casterlista
+behåller sin identitet. Övriga tester täcker byte av pose, synlighet, alpha,
+LOD, ljusgrenar, picking och komplett cubemappublicering. Den vanliga viewerns
+renderingsvalidering kontrollerar även HUD, kontroller, omladdning och den gamla
+scenen. Cubemapkontrollen väntar nu en hel budgeterad uppdateringsrunda i stället
+för att anta att alla filterpass sker direkt.
+
+Femton native-tester passerar. Fyra fasta vyer jämför färg och djup med full
+referens vid lika AO-sampling: alla åtta jämförelser är pixelidentiska. Batchernas
+ritordning använder nu stabila nycklar i stället för minnesadresser, så
+kontaktkanter behåller samma ordning mellan körningar.
+32-samplingsvarianten jämförs separat mot 64 sampel; se de uppmätta skillnaderna
+samt mätinställningar i [performance-frame-work.json](performance-frame-work.json).
+
+```powershell
+python experiments/pantheon/benchmark_frame_work.py --repeats 1
+python experiments/pantheon/benchmark_frame_work.py --vsync --visible --repeats 2 --views north south
+python experiments/pantheon/verify_frame_work.py
+```
+
+`--benchmark-hud` samlar mätdata med vanlig HUD i stället för prestandapanelen.
+Benchmarken sparar också varje bildruta i en separat `.frames.csv`, så periodiska
+spikar kan granskas. `ACG_AO_SAMPLES=64` återställer den tätare AO-samplingen;
+`ACG_FULL_SHADOWS=1` behåller alla ljuspass som separat felsökningskontroll.
+
+---
+
 # Dörrstyrd culling och arbete i rotundan, 2026-10-30
 
 Tidigare höll rumsstyrningen alla fyra rum aktiva när kameran stod i rotundan.

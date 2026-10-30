@@ -32,6 +32,8 @@ public:
         m_prepareDestination=std::move(callback);
     }
 
+    bool isCapturing() const{ return m_capturing; }
+
     void render(const vr::SceneRenderContext& context,const std::string& active,
                 const glm::vec3& sourceMin,const glm::vec3& sourceMax){
         if (m_capturing) return; // one level, no feedback or recursive capture

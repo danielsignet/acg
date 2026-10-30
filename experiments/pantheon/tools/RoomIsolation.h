@@ -117,6 +117,35 @@ public:
     const std::string& activeRoom() const{ return m_active; }
 
     void beforeSceneRender(const vr::SceneRenderContext& context) override{
+        m_viewScopes.emplace_back();
+        // Probe visibility belongs to the probe's physical origin, independently
+        // of the primary camera's current room. Nested portal captures retain
+        // their explicitly isolated destination instead.
+        if (context.environmentCapture && (!m_portals || !m_portals->isCapturing())){
+            const auto owner = m_owner.lock();
+            const Zone* source = nullptr;
+            for (const auto& zone : m_zones)
+                if (zone.contains(context.camera.getPosition())) { source = &zone; break; }
+            if (owner) for (const auto& child : owner->getChildren()){
+                m_viewScopes.back().push_back({child,child->getVisible(),child->getState()});
+                bool visible = child->getVisible();
+                for (const auto& saved : m_hidden)
+                    if (saved.first.lock() == child) { visible = saved.second; break; }
+                if (source && !child->getRoomId().empty() && child->getRoomId() != source->room &&
+                    child->getRoomId() != "rotunda") visible = false;
+                child->setVisible(visible);
+                if (child->getRoomId() == "rotunda" || child->getName().compare(0,11,"roomPortal_") == 0){
+                    auto state = child->getState() ? std::make_shared<vr::State>(*child->getState())
+                                                   : std::make_shared<vr::State>();
+                    state->setUniform("uRoomWindowEnabled", source != nullptr);
+                    if (source){
+                        state->setUniform("uRoomWindowMin",source->openingMin);
+                        state->setUniform("uRoomWindowMax",source->openingMax);
+                    }
+                    child->setState(std::move(state));
+                }
+            }
+        }
         if (!m_portals) return;
         auto measured=context;
         measured.profiler=m_context.profiler;
@@ -124,6 +153,15 @@ public:
         for(const auto& zone:m_zones) if(zone.room==m_active){
             m_portals->render(measured,m_active,zone.openingMin,zone.openingMax);break;
         }
+    }
+
+    void afterSceneRender(const vr::SceneRenderContext&) noexcept override{
+        if (m_viewScopes.empty()) return;
+        for (const auto& saved : m_viewScopes.back()){
+            saved.node->setState(saved.state);
+            saved.node->setVisible(saved.visible);
+        }
+        m_viewScopes.pop_back();
     }
 
     bool roomVisible(const std::string& room, const vr::Camera&) const override{
@@ -163,6 +201,12 @@ public:
     }
 
 private:
+    struct ViewState{
+        std::shared_ptr<vr::Node> node;
+        bool visible;
+        std::shared_ptr<vr::State> state;
+    };
+    std::vector<std::vector<ViewState>> m_viewScopes;
     struct Rect{glm::vec2 low{-1},high{1};bool valid=true;};
     static Rect projected(const glm::mat4& vp, const glm::vec3& low, const glm::vec3& high){
         // Include the curved floor lip and a conservative guard at doorway edges.

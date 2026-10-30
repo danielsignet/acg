@@ -33,39 +33,52 @@ private:
 // Assigns local reflection layers to selectable environment-mapped model instances.
 ReflectionProbes::ReflectionProbes(Scene& scene, EnvironmentMap& environment,
                                    const std::shared_ptr<Program>& program)
-    : m_renderer(program){
+    : m_environment(environment), m_renderer(program){
     CullVisitor collector;
     collector.collect(*scene.getRoot(), glm::mat4(1), scene.getCamera()->getPosition(), false);
-    const auto probeLimit = std::min(maxProbes,
+    m_capacity = std::min(maxProbes,
         Texture::MaxCubeArrayLayers - environment.getSkyCount());
     std::set<ModelInstance*> assigned;
-    // A room switch replaces the probe array. Clear previous layer IDs before
-    // assigning the visible instances, including candidates beyond the limit.
+    // Clear stale bindings once for this scene, rather than at every doorway.
     for(const auto& item:collector.getRenderList()){
         if(item.instance && item.instance->getSelectable() && assigned.insert(item.instance).second){
             if(!item.instance->getState()) item.instance->setState(std::make_shared<State>());
             item.instance->getState()->setUniform("uReflectionProbe",0);
         }
     }
-    assigned.clear();
+    m_probes = discover(collector.getRenderList());
+    if (m_probes.size() > m_capacity) m_probes.resize(m_capacity);
+    for (unsigned i = 0; i < m_probes.size(); ++i) bind(m_probes[i], i + 1);
+    // Reserve the bounded pool once. Newly visible rooms reuse free/cold slots
+    // without reallocating the array or losing maps for models still in view.
+    m_maps = Texture::colorCubeArray(256, 9, m_capacity + environment.getSkyCount());
+    environment.initializeLocalReflections(m_maps);
+    environment.setLocalReflections(m_maps, m_readyMask);
+    m_capture = Texture::colorCube(captureSize, 8);
+    m_filtered = Texture::colorCubeArray(256,9,1);
+    m_depth = Texture::depth(captureSize, captureSize);
+    m_renderer.setEnvironment(&environment);
+    m_renderer.setEnvironmentCapture();
+    m_renderer.setCulling(true);
+}
+
+std::vector<ReflectionProbes::Probe> ReflectionProbes::discover(const std::vector<RenderNode>& items){
+    std::vector<Probe> probes;
+    std::set<ModelInstance*> assigned;
     std::map<int,unsigned> groups;
-    for (const auto& item : collector.getRenderList()){
+    for (const auto& item : items){
         const auto found = item.state.getUniforms().find("uEnvironmentMaterial");
         if (!item.instance || !item.instance->getSelectable() ||
             found == item.state.getUniforms().end() || !std::get<bool>(found->second) ||
             !assigned.insert(item.instance).second){
             continue;
         }
-        if (!item.instance->getState()){
-            item.instance->setState(std::make_shared<State>());
-        }
         const auto tagged=item.state.getUniforms().find("uReflectionGroup");
         const int group=tagged==item.state.getUniforms().end()?0:std::get<int>(tagged->second);
         if(group && groups.count(group)){
-            item.instance->getState()->setUniform("uReflectionProbe",static_cast<int>(groups[group]));
+            probes[groups.at(group)].members.push_back(item.instance);
             continue;
         }
-        if(m_probes.size()==probeLimit) continue;
         Node* excluded=item.instance;
         if(group){
             std::shared_ptr<Node> ancestor=item.instance->shared_from_this();
@@ -79,20 +92,78 @@ ReflectionProbes::ReflectionProbes(Scene& scene, EnvironmentMap& environment,
                 ancestor=ancestor->getParents().front().lock();
             }
         }
-        m_probes.push_back({item.instance, item.instanceModel, item.room,0,excluded});
-        if(group) groups[group]=static_cast<unsigned>(m_probes.size());
-        item.instance->getState()->setUniform("uReflectionProbe",
-                                              static_cast<int>(m_probes.size()));
+        if(group) groups[group]=static_cast<unsigned>(probes.size());
+        probes.push_back({item.instance, item.instanceModel, item.room, 0, excluded,
+                          group, {item.instance}});
     }
-    m_maps = Texture::colorCubeArray(256, 9, getProbeCount() + environment.getSkyCount());
-    environment.initializeLocalReflections(m_maps);
-    environment.setLocalReflections(m_maps, m_readyMask);
-    m_capture = Texture::colorCube(captureSize, 8);
-    m_filtered = Texture::colorCubeArray(256,9,1);
-    m_depth = Texture::depth(captureSize, captureSize);
-    m_renderer.setEnvironment(&environment);
-    m_renderer.setEnvironmentCapture();
-    m_renderer.setCulling(true);
+    return probes;
+}
+
+void ReflectionProbes::bind(Probe& probe, unsigned layer){
+    for (auto* instance : probe.members){
+        if (!instance->getState()) instance->setState(std::make_shared<State>());
+        auto& state = *instance->getState();
+        const auto value = state.getUniforms().find("uReflectionProbe");
+        if (value == state.getUniforms().end() || std::get<int>(value->second) != static_cast<int>(layer))
+            state.setUniform("uReflectionProbe", static_cast<int>(layer));
+    }
+}
+
+void ReflectionProbes::synchronize(Scene& scene, const Camera& camera, const PortalResult& visibility,
+    const std::function<bool(const std::string&)>& roomVisible){
+    ++m_frame;
+    m_selector.collect(*scene.getRoot(), camera.getProjection()*camera.getView(),
+                       camera.getPosition(), true, &visibility);
+    if (roomVisible) m_selector.filterRooms(roomVisible);
+    auto candidates = discover(m_selector.getRenderList());
+    for (auto& probe : m_probes) probe.visible = false;
+    // Mark retained slots first, so discovering a new model cannot evict a
+    // different model that is also needed by this frame's observer.
+    std::vector<Probe> missing;
+    for (auto& candidate : candidates){
+        const auto found = std::find_if(m_probes.begin(), m_probes.end(), [&](const Probe& probe){
+            return candidate.group ? candidate.group == probe.group
+                                   : !probe.group && candidate.instance == probe.instance;
+        });
+        if (found == m_probes.end()){
+            missing.push_back(std::move(candidate));
+            continue;
+        }
+        found->visible = true;
+        found->lastVisible = m_frame;
+        if (found->instance == candidate.instance && found->model != candidate.model){
+            found->model = candidate.model;
+            found->revision = 0;
+        }
+        for (auto* member : candidate.members)
+            if (std::find(found->members.begin(), found->members.end(), member) == found->members.end())
+                found->members.push_back(member);
+        bind(*found, static_cast<unsigned>(found - m_probes.begin()) + 1);
+    }
+    for (auto& candidate : missing){
+        unsigned slot = getProbeCount();
+        if (slot == m_capacity){
+            auto cold = m_probes.end();
+            for (auto it = m_probes.begin(); it != m_probes.end(); ++it)
+                if (!it->visible && (cold == m_probes.end() || it->lastVisible < cold->lastVisible)) cold = it;
+            if (cold == m_probes.end()){
+                bind(candidate, 0);
+                continue;
+            }
+            slot = static_cast<unsigned>(cold - m_probes.begin());
+            bind(*cold, 0);
+            if (slot == m_cursor){ m_face = 0; m_filterCursor = 54; }
+            *cold = std::move(candidate);
+        } else{
+            m_probes.push_back(std::move(candidate));
+        }
+        auto& probe = m_probes[slot];
+        probe.visible = true;
+        probe.lastVisible = m_frame;
+        m_readyMask &= ~(1u << (slot + 1));
+        bind(probe, slot + 1);
+    }
+    m_environment.setLocalReflections(m_maps, m_readyMask);
 }
 
 // Releases the capture framebuffer while the OpenGL context is still current.
@@ -111,21 +182,17 @@ unsigned ReflectionProbes::getReadyCount() const{
     return count;
 }
 
-const Camera* ReflectionProbes::plan(const Camera& camera, const PortalResult& visibility,
+const Camera* ReflectionProbes::plan(Scene& scene, const Camera& camera, const PortalResult& visibility,
                                                 bool dynamic,
                                                 const std::function<bool(const std::string&)>& roomVisible){
     m_hasPlan = true;
     m_planValid = false;
+    synchronize(scene, camera, visibility, roomVisible);
     if (m_probes.empty() || m_filterCursor<54){
         return nullptr;
     }
-    const Frustum frustum(camera.getProjection() * camera.getView());
     const auto eligible = [&](const Probe& probe){
-        return probe.instance->getVisible() &&
-               (!roomVisible || roomVisible(probe.room)) &&
-               (probe.room.empty() || visibility.visible(probe.room)) &&
-               frustum.classify(probe.instance->getBound().transformed(probe.model)) !=
-                   Visibility::Outside &&
+        return probe.visible &&
                (dynamic || probe.revision != m_revision);
     };
     if (!eligible(m_probes[m_cursor])){
@@ -139,14 +206,17 @@ const Camera* ReflectionProbes::plan(const Camera& camera, const PortalResult& v
         }
     }
     const auto& probe = m_probes[m_cursor];
-    const auto center = probe.instance->getBound().transformed(probe.model).getCenter();
+    if (m_face == 0){
+        m_captureCenter = probe.instance->getBound().transformed(probe.model).getCenter();
+        m_captureModel = probe.model;
+    }
     const std::array<glm::vec3, 6> directions{
         {{1, 0, 0},{-1, 0, 0},{0, 1, 0},{0, -1, 0},{0, 0, 1},{0, 0, -1}}};
     const std::array<glm::vec3, 6> up{
         {{0, -1, 0},{0, -1, 0},{0, 0, 1},{0, 0, -1},{0, -1, 0},{0, -1, 0}}};
     if (!m_planned) m_planned = std::make_unique<Camera>();
     m_planned->setPerspective(90, 1, 0.1f, 150);
-    m_planned->setLookAt(center, center + directions[m_face], up[m_face]);
+    m_planned->setLookAt(m_captureCenter, m_captureCenter + directions[m_face], up[m_face]);
     m_planValid = true;
     return m_planned.get();
 }
@@ -173,17 +243,19 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
             environment.publishLocal(m_filtered,m_maps,m_cursor+environment.getSkyCount());
             m_readyMask|=1u<<(m_cursor+1);
             environment.setLocalReflections(m_maps,m_readyMask);
-            m_probes[m_cursor].revision=m_revision;
+            auto& probe = m_probes[m_cursor];
+            probe.revision = probe.model == m_captureModel ? m_revision : 0;
             m_cursor=(m_cursor+1)%getProbeCount();
         }
         return;
     }
-    if (!m_hasPlan) plan(camera, visibility, dynamic);
+    if (!m_hasPlan) plan(scene, camera, visibility, dynamic);
     m_hasPlan = false;
     if (!m_planValid) return;
     const auto& capture = *m_planned;
     m_planValid = false;
     auto& probe = m_probes[m_cursor];
+    environment.setLocalReflections(m_maps, m_readyMask);
     FramebufferState saved;
     m_capture->apply(0);
     m_depth->apply(1);
@@ -225,7 +297,8 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
             environment.prefilterLocal(m_capture,m_maps,m_cursor+environment.getSkyCount());
             m_filterDraws=54;m_readyMask|=1u<<(m_cursor+1);
             environment.setLocalReflections(m_maps,m_readyMask);
-            probe.revision=m_revision;m_cursor=(m_cursor+1)%getProbeCount();
+            probe.revision = probe.model == m_captureModel ? m_revision : 0;
+            m_cursor=(m_cursor+1)%getProbeCount();
         }
         m_face = 0;
     }

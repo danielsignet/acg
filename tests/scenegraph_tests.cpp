@@ -650,7 +650,7 @@ private:
         check(points, "Keys 1-5 identify the four colored lights and daylight");
         check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
               "L toggles the flashlight independently of F's culling inspection");
-        check(vr::Controls::getBindings().size() == 25 &&
+        check(vr::Controls::getBindings().size() == 26 &&
                   vr::Controls::find(GLFW_KEY_T)->action == Action::PointOrbit &&
                   vr::Controls::find(GLFW_KEY_F1)->action == Action::Performance &&
                   !vr::Controls::find(GLFW_KEY_P) &&
@@ -659,6 +659,7 @@ private:
                   vr::Controls::find(GLFW_KEY_F4)->action == Action::Subdivision &&
                   vr::Controls::find(GLFW_KEY_F5)->action == Action::Reflections &&
                   vr::Controls::find(GLFW_KEY_F6)->action == Action::BumpMapping &&
+                  vr::Controls::find(GLFW_KEY_F7)->action == Action::Vsync &&
                   vr::Controls::find(GLFW_KEY_TAB)->action == Action::Hud,
               "The compact shortcuts include profiling, renderer selection and AO");
         check(vr::Controls::find(GLFW_KEY_F2)->action == Action::Renderer &&

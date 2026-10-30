@@ -1423,11 +1423,17 @@ void RenderingValidator::validateControls(){
     app.handleKey(GLFW_KEY_ESCAPE);
     require(!app.m_shaderMenuOpen && !glfwWindowShouldClose(app.m_window),
             "Escape closes a menu before closing the viewer");
+    const bool vsync = app.m_vsync;
+    app.handleClick(746, toolbarY);
+    require(app.m_vsync != vsync, "The VSync button changes the presentation setting");
+    app.handleKey(GLFW_KEY_F7);
+    require(app.m_vsync == vsync, "F7 uses the same VSync action as the toolbar");
     app.execute(Action::ToonShader);
     app.execute(Action::Shadows);
     app.execute(Action::ReloadScene);
-    require(!app.m_shadowsEnabled && app.m_scene->getRenderTargets().size() == 2,
-            "Reload preserves disabled shadows and recreates scene depth attachments");
+    require(!app.m_shadowsEnabled && app.m_scene->getRenderTargets().size() == 2 &&
+                app.m_vsync == vsync,
+            "Reload preserves shadow and VSync settings and recreates scene depth attachments");
     app.execute(Action::Shadows);
     require(app.m_renderer->getShadingMode() == ShadingMode::Toon,
             "Reload preserves the selected shading mode");

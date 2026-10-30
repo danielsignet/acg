@@ -26,6 +26,7 @@ Från repots rot:
 ```powershell
 .\experiments\pantheon\build.ps1
 .\experiments\pantheon\run.ps1
+.\experiments\pantheon\run.ps1 -NoVsync
 .\experiments\pantheon\run.ps1 -View materials
 .\experiments\pantheon\run.ps1 -View mirror
 .\experiments\pantheon\run.ps1 -View city
@@ -45,6 +46,13 @@ De tidigare vynamnen `lapis`, `aes`, `silva` och `astra` fungerar också.
 materialrummet. Alla vyer laddar hela scenen och går att navigera vidare från.
 
 Normalstarten använder **RelWithDebInfo** utan debugger.
+
+**VSync** i den nedre menyraden eller **F7** växlar synkronisering med skärmens
+uppdatering utan omstart. `-NoVsync` startar med den avstängd. Mätmedelvärdena
+återställs vid byte. Profilens **Swap / VSync wait** mäter väntan i bufferbytet,
+inklusive presentations- och drivrutinsväntan. En hög andel kan vara ledig tid
+fram till nästa skärmuppdatering. Med VSync av kan sådan väntan minska, men
+GPU-beroenden och fönstersystemets presentation kan fortfarande ge väntetid.
 
 Motorn återanvänder nu oförändrade skugglistor, hoppar över grenar utan ljus
 och väljer skuggljus efter huvudbildens och hjälpvyernas mottagande ytor. Lokala

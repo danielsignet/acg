@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <sstream>
 #include <vr/Application.h>
+#include <vr/GLState.h>
 #include <vr/SceneOverlay.h>
 #include <vr/SkeletalAnimation.h>
 
@@ -56,6 +57,7 @@ const char* shaderName(ShadingMode mode){
 
 // Draws the complete HUD without modifying the scene.
 void SceneOverlay::draw(const Application& application){
+    GLState::viewport(0, 0, application.m_width, application.m_height);
     m_text.begin(application.m_width, application.m_height);
     const bool menus = application.m_showHud && application.m_showMenus;
     if (menus){

@@ -15,6 +15,8 @@ public:
     void run();
 
 private:
+    // Checks the HUD center after resizing and a stale auxiliary viewport.
+    void validateOverlayResize();
     // Checks material-gallery controls, reflected geometry and persistent BRDF selection.
     void validateMaterialGallery();
     // Checks the repaired dragon's textures, targeting, placement and cached subdivision.

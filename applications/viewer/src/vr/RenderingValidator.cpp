@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <vr/Application.h>
+#include <vr/GLState.h>
 #include <vr/LightCollector.h>
 #include <vr/OpenGL.h>
 #include <vr/RenderingValidator.h>
@@ -36,6 +37,7 @@ void RenderingValidator::clickTargetAction(unsigned row){
 void RenderingValidator::run(){
     const bool previews = m_application.m_bufferPreviews;
     m_application.m_bufferPreviews = false;
+    validateOverlayResize();
     validateNormalMapping();
     validateBumpMapping();
     validateMaterialGallery();
@@ -63,6 +65,42 @@ void RenderingValidator::run(){
     OpenGL::check("Validation complete");
     std::cout << "GPU validation passed: scene pixels for lighting/lights/multitexture/toon/alpha, "
                  "animation/pause, all LOD levels, reload, reset, frustum culling, OpenGL errors\n";
+}
+
+// Checks the HUD center after resizing and a stale auxiliary viewport.
+void RenderingValidator::validateOverlayResize(){
+    auto& app = m_application;
+    const int width = app.m_width, height = app.m_height;
+    const bool hud = app.m_showHud, menus = app.m_showMenus;
+    const auto target = app.m_target;
+    app.m_showHud = true;
+    app.m_showMenus = false;
+    app.m_target.reset();
+    GLState::bindFramebuffer(GL_FRAMEBUFFER, 0);
+    GLState::disable(GL_SCISSOR_TEST);
+    glClearColor(0, 0, 0, 1);
+    for (const auto size : {glm::ivec2(960, 600), glm::ivec2(1007, 641)}){
+        app.resize(size.x, size.y);
+        const int x = size.x / 2 - 12, y = size.y / 2 - 12;
+        GLState::viewport(0, 0, size.x, size.y);
+        glClear(GL_COLOR_BUFFER_BIT);
+        const auto blank = FramebufferImage::capture(x, y, 24, 24);
+        app.overlay();
+        const auto reference = FramebufferImage::capture(x, y, 24, 24);
+        require(reference.countChangedPixels(blank) > 20,
+                "The crosshair is visible at the resized framebuffer center");
+        glClear(GL_COLOR_BUFFER_BIT);
+        GLState::viewport(17, 23, size.x / 2, size.y / 2);
+        app.overlay();
+        require(FramebufferImage::capture(x, y, 24, 24).hash() == reference.hash(),
+                "A stale auxiliary viewport cannot move the resized crosshair");
+    }
+    app.m_target = target;
+    app.m_showHud = hud;
+    app.m_showMenus = menus;
+    app.resize(width, height);
+    OpenGL::check("Overlay resize");
+    std::cout << "Overlay resize passed: centered crosshair at even and odd framebuffer sizes\n";
 }
 
 // Checks normal-map comparison, shared menu controls and reload persistence.

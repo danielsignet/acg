@@ -96,7 +96,9 @@ void Geometry::refitRayTree() const{
 // Preserves world-space distance by not renormalizing the transformed ray direction.
 std::optional<float>
 Geometry::intersectRay(const glm::vec3& origin, const glm::vec3& direction, float maximum,
-                       const std::function<bool(const glm::vec2&)>& accepts) const{
+                       const std::function<bool(const glm::vec2&)>& accepts,
+                       const std::function<glm::vec3(const glm::vec3&)>& deform,
+                       const std::function<BoundingBox(const BoundingBox&)>& bounds) const{
     if (m_indices.empty() || !intersects(getBound(), origin, direction, maximum)){
         return{};
     }
@@ -110,7 +112,7 @@ Geometry::intersectRay(const glm::vec3& origin, const glm::vec3& direction, floa
     while (!stack.empty()){
         const auto& node = m_rayNodes[stack.back()];
         stack.pop_back();
-        if (!intersects(node.bounds, origin, direction, maximum)){
+        if (!intersects(bounds?bounds(node.bounds):node.bounds, origin, direction, maximum)){
             continue;
         }
         if (!node.count){
@@ -120,9 +122,10 @@ Geometry::intersectRay(const glm::vec3& origin, const glm::vec3& direction, floa
         }
         for (unsigned i = node.first; i < node.first + node.count; ++i){
             const auto triangle = m_rayTriangles[i] * 3;
-            const auto a = m_vertices[m_indices[triangle]].position;
-            const auto edge1 = m_vertices[m_indices[triangle + 1]].position - a,
-                       edge2 = m_vertices[m_indices[triangle + 2]].position - a;
+            const auto vertex=[&](unsigned index){const auto& p=m_vertices[index].position;return deform?deform(p):p;};
+            const auto a = vertex(m_indices[triangle]);
+            const auto edge1 = vertex(m_indices[triangle + 1]) - a,
+                       edge2 = vertex(m_indices[triangle + 2]) - a;
             const auto p = glm::cross(direction, edge2);
             const float determinant = glm::dot(edge1, p);
             if (std::abs(determinant) <= 1e-7f * glm::length(edge1) * glm::length(p)){

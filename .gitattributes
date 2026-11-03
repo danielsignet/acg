@@ -1,0 +1,9 @@
+# Preserve binary assets exactly across Windows and Unix checkouts.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.hdr binary
+*.bin binary
+*.glb binary

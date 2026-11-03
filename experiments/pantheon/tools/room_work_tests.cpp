@@ -5,6 +5,8 @@
 #include <vr/OrbitCallback.h>
 #include <vr/LodDemoCallback.h>
 #include <vr/UpdateVisitor.h>
+#include <vr/BounceAnimation.h>
+#include <vr/ModelInstance.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 
@@ -31,12 +33,16 @@ void run(const std::filesystem::path& root){
     ring->addChild(counter);
     vr::UpdateVisitor update;
     const auto camera=scene->getCamera();
+    const auto ball=scene->findTransform("Vertex shader bouncing ball");
+    check(bool(ball),"Missing vertex-shader bouncing ball");
+    const auto bounce=std::dynamic_pointer_cast<vr::BounceAnimation>(ball->getChildren().front()->getUpdateCallback());
+    check(bool(bounce),"Bouncing ball must have a per-instance animation clock");
     camera->setUpdateCallback(std::make_shared<vr::LodDemoCallback>(camera,glm::vec3(0)));
     camera->setPerspective(60,1,0.1f,150);
     camera->setLookAt({0,4,-50},{0,4,60});
     update.update(*scene->getRoot(),{.5,.5,true});
-    check(ticks==0 && update.getSkinnedVertices()==0 && !update.hasDynamicUpdates(),
-          "Sphere room must not update the hidden light ring, gyroscopes or dragon");
+    check(ticks==0 && update.getSkinnedVertices()==0 && update.hasDynamicUpdates() && bounce->getTime()==.5,
+          "Sphere room updates its bouncing ball while the hidden light ring, gyroscopes and dragon sleep");
     const auto lights=vr::collectLights(*scene->getRoot(),camera->getPosition());
     for(unsigned i=0;i<lights.size();++i)
         check(lights[i].active==(i==4),"Only global sunlight is active in the sphere room");
@@ -57,8 +63,9 @@ void run(const std::filesystem::path& root){
     check(ticks==1 && update.getSkinnedVertices()==0,
           "Looking away from the portal must leave its hidden destination asleep");
     camera->setLookAt({0,4,55},{0,4,71});
+    const auto heldBounce=bounce->getTime();
     update.update(*scene->getRoot(),{1.5,.5,true});
-    check(ticks==2 && update.hasDynamicUpdates() && update.getSkinnedVertices()==0,
+    check(ticks==2 && update.hasDynamicUpdates() && update.getSkinnedVertices()==0 && bounce->getTime()==heldBounce,
           "Entering legacy resumes its animations without updating the hidden dragon");
     camera->setLookAt({-55,4,0},{-60,5,0});
     update.update(*scene->getRoot(),{2,.5,true});
@@ -102,6 +109,28 @@ void run(const std::filesystem::path& root){
     update.update(*scene->getRoot(),{3,.5,true});
     check(roomTicks["lapis"]==1 && roomTicks["astra"]==1 && roomTicks["silva"]==0,
           "Looking into the dome must leave every side-room animation asleep");
+    camera->setLookAt({40,4,0},{90,4,0});
+    update.update(*scene->getRoot(),{4,.5,true});
+    vr::CullVisitor trees;
+    trees.collect(*scene->getRoot(),camera->getProjection()*camera->getView(),camera->getPosition(),false);
+    std::map<vr::ModelInstance*,glm::mat4> placements;
+    std::map<vr::Geometry*,unsigned> sharedMeshes;
+    for(const auto& item:trees.getRenderList())
+        if(item.instance && item.instance->getName().find("Street oak ")==0){
+            placements.emplace(item.instance,item.instanceModel);
+            ++sharedMeshes[item.geometry];
+        }
+    check(placements.size()==6 && sharedMeshes.size()==7,"Six street oaks must share the same seven mesh parts");
+    for(const auto& [mesh,count]:sharedMeshes) check(count==6,"Every tree placement reuses each oak mesh");
+    auto avenue=std::make_shared<vr::Group>();
+    for(const auto& [instance,matrix]:placements){
+        auto placed=std::make_shared<vr::Transform>(); placed->setMatrix(matrix);
+        placed->addChild(instance->shared_from_this()); avenue->addChild(placed);
+    }
+    vr::RenderVisitor treeRenderer(program); treeRenderer.setCulling(false);
+    treeRenderer.render(*avenue,*camera);
+    check(treeRenderer.getStats().instances==42 && treeRenderer.getStats().instancedDraws==7 &&
+          treeRenderer.getStats().draws==7,"Six oaks render as seven instanced draws without duplicate vertex buffers");
     check(glGetError()==GL_NO_ERROR,"Room work gating and portal captures leave valid GL state");
     std::cout << "Room work checks passed: sleeping updates/lights, visible portal animation, once per frame, room reentry\n";
 }

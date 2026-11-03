@@ -18,6 +18,7 @@ public:
 
     // Applies local state while traversing the group's children.
     void apply(Group& node) override;
+    void apply(ModelInstance& node) override;
 
     // Accumulates the local matrix and restores it after visiting descendants.
     void apply(Transform& node) override;

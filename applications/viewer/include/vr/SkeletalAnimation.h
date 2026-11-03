@@ -17,6 +17,7 @@ struct SkinningPose{
 
 class SkeletalAnimation final : public UpdateCallback{
 public:
+    void accept(CallbackVisitor& visitor) override{visitor.apply(*this);}
     struct Joint{
         int parent = -1;
         glm::vec3 position{0}, scale{1};
@@ -101,6 +102,7 @@ private:
 // Synchronizes an imported transform with one joint of its instance's current pose.
 class JointAnimationCallback final : public UpdateCallback{
 public:
+    void accept(CallbackVisitor& visitor) override{visitor.apply(*this);}
     JointAnimationCallback(std::weak_ptr<SkeletalAnimation> animation, unsigned joint)
         : m_animation(std::move(animation)), m_joint(joint){
     }

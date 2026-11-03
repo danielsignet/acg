@@ -82,8 +82,15 @@ void SkeletalAnimation::update(Node& node, const UpdateContext& context){
         m_time = duration > 0 ? std::fmod(m_time + context.delta, duration) : 0;
         evaluate(context.profiler);
     }
-    if (auto transform = dynamic_cast<Transform*>(&node); transform && !m_local.empty()){
-        transform->setMatrix(m_local[0]);
+    if(!m_local.empty()){
+        class RootTransform final:public NodeVisitor{
+        public:
+            explicit RootTransform(const glm::mat4& value):matrix(value){}
+            void apply(Group&) override{}
+            void apply(Transform& transform) override{transform.setMatrix(matrix);}
+        private:const glm::mat4& matrix;
+        } visitor(m_local[0]);
+        node.accept(visitor);
     }
 }
 

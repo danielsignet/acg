@@ -1,0 +1,32 @@
+{
+  "generator": "basketball_material.py",
+  "dimensions": [
+    2048,
+    1024
+  ],
+  "albedo_space": "linear",
+  "normal_convention": "OpenGL tangent space, +V toward north pole",
+  "uv_chart": "u=atan2(z,x)/(2*pi), v=acos(-y)/pi; image top is v=1",
+  "parallax_depth_m": 0.004,
+  "display_radius_m": 1.15,
+  "geometry": "Unchanged UV sphere, 3968 triangles",
+  "panels": "Eight; two orthogonal great circles plus a symmetric closed spherical seam",
+  "seam_equation": "In pattern coordinates: x=0, z=0, y^3=(3*sqrt(3)/2)*(z^2-x^2)",
+  "seam_symmetry": "Reflection in pattern planes x=0 and z=0; no triple seam junctions",
+  "reference": "https://www.wilson.com/en-us/products/evolution-game-basketball-wz10012",
+  "source": "Original procedural bake; no downloaded product imagery or logos",
+  "files": {
+    "albedo": {
+      "file": "textures/basketball-albedo.png",
+      "sha256": "149971f379be28a4c26574bc281d4917a175cdad5500dadb160aff8c2514eb86"
+    },
+    "normal": {
+      "file": "textures/basketball-normal.png",
+      "sha256": "8f81eea3db0d692756d8394136e8be2c9903409ba2f07a5c4dd2ee56d6bcb4c7"
+    },
+    "height": {
+      "file": "textures/basketball-height.png",
+      "sha256": "dc84b4a438c7eeb9df8c0bbc5510db1da7bc0a5ff43fb6a89d9c3877d210c99d"
+    }
+  }
+}

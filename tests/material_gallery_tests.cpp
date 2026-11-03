@@ -419,6 +419,27 @@ void localReflections(const std::filesystem::path& root){
     const auto blue = sample();
     check(blue.b > 0.9f && blue.r < 0.1f,
           "Invalidating a local probe publishes changed scene materials");
+    for(unsigned pose=0;pose<3;++pose){
+        const glm::vec3 expected=pose%2?glm::vec3(0,0,1):glm::vec3(1,0,0);
+        wallMaterial->setDiffuse(expected);
+        check(probes.plan(scene,*camera,{},true)!=nullptr && probes.getPlannedViews().size()==6,
+              "A moving scene plans every cube observer before shadow dependencies");
+        probes.update(scene,*camera,environment,vr::ShadingMode::CookTorrance,{},true);
+        check(probes.getFaces()==6 && probes.getFilterDraws()==54 && glm::distance(sample(),expected)<.01f,
+              "Live cubemaps capture and publish the current pose in one frame without stale filtering");
+    }
+    wallMaterial->setDiffuse({0,1,0});
+    bool settled=false;
+    for(unsigned frame=0;frame<32 && !settled;++frame){
+        probes.update(scene,*camera,environment,vr::ShadingMode::CookTorrance,{},false);
+        const auto value=sample();
+        settled=value.g>.9f && value.r<.1f;
+        check(probes.getFaces()<=1 && probes.getFilterDraws()<=18,
+              "Stopping motion restores the static capture and filter budgets");
+        check(settled || value.r>.9f,
+              "The last live cube remains complete until the final static pose is published");
+    }
+    check(settled,"Stopping motion refreshes cached reflections to the final pose");
     probes.invalidate();
     camera->setLookAt({0, 1, 5},{0, 1, 10});
     probes.update(scene, *camera, environment, vr::ShadingMode::CookTorrance,{}, true);

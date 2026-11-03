@@ -15,18 +15,28 @@ out vec3 worldPosition;
 out vec3 worldNormal;
 out vec4 worldTangent;
 out vec2 texCoord;
+#include "bounce.glsl"
+#include "fur-vertex.glsl"
+#include "tree-deformation.glsl"
 
 // Transforms local positions and normals into world and clip space.
 void main(){
     mat4 model = uInstanced ? instanceModel : uModel;
     mat3 normalMatrix = uInstanced ? instanceNormal : uNormal;
     float tangentSign = uInstanced ? instanceTangentSign : uTangentSign;
-    vec4 p = model * vec4(vertexPosition, 1.0);
+    vec3 deformationScale;
+    float deformationOffset;
+    bouncePose(deformationScale,deformationOffset);
+    vec3 treePoint=vertexPosition+furOffset(normalize(vertexNormal)),treeNormal=vertexNormal,treeTangent=vertexTangent.xyz;
+    deformTree(treePoint,treeNormal,treeTangent);
+    vec3 localPosition=treePoint*deformationScale+
+        vec3(0,deformationOffset,0);
+    vec4 p = model * vec4(localPosition, 1.0);
     worldPosition = p.xyz;
-    worldNormal = normalize(normalMatrix * vertexNormal);
+    worldNormal = normalize(normalMatrix * (treeNormal/deformationScale));
     worldTangent = vec4(0);
     if (uNormalMapping && uHasNormalMap){
-        vec3 tangent = mat3(model) * vertexTangent.xyz;
+        vec3 tangent = mat3(model) * (treeTangent*deformationScale);
         tangent -= worldNormal * dot(worldNormal, tangent);
         float tangentLength = length(tangent);
         if (tangentLength > 1e-12){

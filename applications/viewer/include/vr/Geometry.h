@@ -44,6 +44,11 @@ public:
     };
 
     using Node::Node;
+    // Immutable height field. CPU triangles mirror the geometry shader for bounds/picking.
+    void setHeightField(std::shared_ptr<Texture> height, const glm::vec3& dimensions,
+                        unsigned columns, unsigned rows);
+    bool hasHeightField() const { return bool(m_heightField); }
+    void applyHeightField(const Program& program) const;
 
     // Releases the OpenGL buffers owned by this mesh.
     ~Geometry() override;
@@ -113,6 +118,8 @@ public:
 
     // Uploads changed mesh data and draws its indexed triangles.
     void draw() const;
+    // Reuses one mesh for shader-generated layers, without streaming model matrices.
+    void drawRepeated(unsigned count) const;
 
     // Streams model matrices and draws this mesh once for all supplied instances.
     void drawInstanced(const std::vector<glm::mat4>& models, bool surface = false) const;
@@ -121,12 +128,30 @@ public:
     // Finds the closest BVH hit whose interpolated UV passes the optional surface filter.
     std::optional<float>
     intersectRay(const glm::vec3& origin, const glm::vec3& direction, float maximum,
-                 const std::function<bool(const glm::vec2&)>& accepts ={}) const;
+                 const std::function<bool(const glm::vec2&)>& accepts ={},
+                 const std::function<glm::vec3(const glm::vec3&)>& deform ={},
+                 const std::function<BoundingBox(const BoundingBox&)>& bounds ={}) const;
 
     // Computes the local bound from the stored vertex positions.
     BoundingBox computeBound() const override;
+    // Conservative local envelope for shader deformation; leaves vertex data intact.
+    void setMotionPadding(const glm::vec3& padding){
+        if (m_motionPadding==padding) return;
+        m_motionPadding=padding;
+        dirtyBound();
+    }
+    const glm::vec3& getMotionPadding() const{return m_motionPadding;}
+    const glm::vec3& getFurPadding() const{ return m_furPadding; }
+    void setFurPadding(const glm::vec3& padding){
+        if(m_furPadding==padding) return;
+        m_furPadding=padding; dirtyBound();
+    }
 
 private:
+    std::shared_ptr<Texture> m_heightField;
+    glm::vec3 m_heightDimensions{1};
+    glm::vec3 m_furPadding{0};
+    glm::vec3 m_motionPadding{0};
     friend class GpuSkinning;
     void ensureSkinPositions() const;
     // Generates UV tangents, splitting shared vertices where mirrored charts meet.

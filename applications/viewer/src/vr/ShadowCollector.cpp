@@ -5,6 +5,7 @@
 #include <vr/LOD.h>
 #include <vr/ShadowCollector.h>
 #include <vr/Transform.h>
+#include <vr/Billboard.h>
 
 namespace vr{
 // Collects all physical casters without applying observer visibility restrictions.
@@ -31,9 +32,19 @@ std::shared_ptr<const std::vector<RenderNode>> ShadowCollector::collectShared(No
 std::uint64_t ShadowCollector::refresh(Node& node){
     auto& old=m_stamps[&node];
     const auto* state=node.getState().get();
-    const auto* transform=dynamic_cast<Transform*>(&node);
-    const auto* geometry=dynamic_cast<Geometry*>(&node);
-    const auto* lod=dynamic_cast<LOD*>(&node);
+    class Describe final:public NodeVisitor{
+    public:
+        const Transform* transform=nullptr;const Geometry* geometry=nullptr;
+        const LOD* lod=nullptr;const Group* group=nullptr;bool billboard=false;
+        void apply(Group& node) override{group=&node;}
+        void apply(Transform& node) override{transform=&node;group=&node;}
+        void apply(Geometry& node) override{geometry=&node;}
+        void apply(LOD& node) override{lod=&node;group=&node;}
+        void apply(Billboard& node) override{apply(static_cast<Transform&>(node));billboard=true;}
+    } description;
+    node.accept(description);
+    const auto* transform=description.transform;const auto* geometry=description.geometry;
+    const auto* lod=description.lod;
     const auto stateRevision=state?state->getShadowRevision():0;
     const auto matrixRevision=transform?transform->getMatrixRevision():0;
     const bool dynamic=bool(node.getUpdateCallback()), skinned=geometry && bool(geometry->getSkin());
@@ -41,10 +52,10 @@ std::uint64_t ShadowCollector::refresh(Node& node){
         old.matrixRevision!=matrixRevision || old.visible!=node.getVisible() ||
         old.culling!=node.getCullingEnabled() || old.dynamic!=dynamic || old.skinned!=skinned ||
         old.room!=node.getRoomId();
-    bool hasLod=lod!=nullptr;
+    bool viewDependent=lod!=nullptr || description.billboard;
     if (lod) changed=changed || old.lodCenter!=lod->getCenter() ||
         old.lodFade!=lod->getFadeWidth() || old.lodRanges!=lod->getRanges();
-    if (auto* group=dynamic_cast<Group*>(&node)){
+    if (const auto* group=description.group){
         const auto& children=group->getChildren();
         if (old.children.size()!=children.size()){old.children.resize(children.size());changed=true;}
         for (std::size_t i=0;i<children.size();++i){
@@ -52,13 +63,13 @@ std::uint64_t ShadowCollector::refresh(Node& node){
             const auto entry=std::make_pair(children[i].get(),revision);
             changed=changed || old.children[i]!=entry;
             old.children[i]=entry;
-            hasLod=hasLod || m_stamps.at(children[i].get()).hasLod;
+            viewDependent=viewDependent || m_stamps.at(children[i].get()).viewDependent;
         }
     }
     if (changed){
         old.state=state;old.stateRevision=stateRevision;old.matrixRevision=matrixRevision;
         old.visible=node.getVisible();old.culling=node.getCullingEnabled();old.dynamic=dynamic;
-        old.skinned=skinned;old.room=node.getRoomId();old.hasLod=hasLod;
+        old.skinned=skinned;old.room=node.getRoomId();old.viewDependent=viewDependent;
         if(lod){old.lodCenter=lod->getCenter();old.lodFade=lod->getFadeWidth();old.lodRanges=lod->getRanges();}
         old.revision=nextRevision();
     }
@@ -79,17 +90,17 @@ void ShadowCollector::apply(LOD& node){
 }
 
 void ShadowCollector::apply(Geometry& node){
-    within(node, [&]{ PathVisitor::apply(node); });
+    within(node, [&]{ PathVisitor::apply(node); },false);
 }
 
 // Restores the inherited room label after visiting a visible subtree.
-void ShadowCollector::within(Node& node, const std::function<void()>& action){
+void ShadowCollector::within(Node& node, const std::function<void()>& action,bool branch){
     if (!node.getVisible()){
         return;
     }
-    const bool cache=m_caching && frameWorkOptimized() && dynamic_cast<Group*>(&node);
+    const bool cache=m_caching && frameWorkOptimized() && branch;
     const auto stamp=cache?m_stamps.at(&node).revision:0;
-    const auto eye=cache && m_stamps.at(&node).hasLod?m_eye:glm::vec3(0);
+    const auto eye=cache && m_stamps.at(&node).viewDependent?m_eye:glm::vec3(0);
     if(cache){
         for(const auto& branch:m_branches[&node])
             if(branch.revision==stamp && branch.stateRevision==m_states.back().getRevision() &&

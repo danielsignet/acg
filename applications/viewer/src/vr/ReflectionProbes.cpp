@@ -6,6 +6,7 @@
 #include <vr/GLState.h>
 #include <vr/ModelInstance.h>
 #include <vr/ReflectionProbes.h>
+#include <vr/BounceAnimation.h>
 
 namespace vr{
 namespace{
@@ -185,8 +186,18 @@ unsigned ReflectionProbes::getReadyCount() const{
 const Camera* ReflectionProbes::plan(Scene& scene, const Camera& camera, const PortalResult& visibility,
                                                 bool dynamic,
                                                 const std::function<bool(const std::string&)>& roomVisible){
+    // Once motion stops, every cached probe must eventually represent that final pose.
+    if(m_liveCapture && !dynamic) invalidate();
     m_hasPlan = true;
     m_planValid = false;
+    m_plannedViews.clear();
+    m_liveCapture=dynamic;
+    if(dynamic){
+        // A moving scene must never stitch six different moments into one cube.
+        // Keep the last published atlas while abandoning incomplete staged work.
+        m_face=0;
+        m_filterCursor=54;
+    }
     synchronize(scene, camera, visibility, roomVisible);
     if (m_probes.empty() || m_filterCursor<54){
         return nullptr;
@@ -208,23 +219,33 @@ const Camera* ReflectionProbes::plan(Scene& scene, const Camera& camera, const P
     const auto& probe = m_probes[m_cursor];
     if (m_face == 0){
         m_captureCenter = probe.instance->getBound().transformed(probe.model).getCenter();
+        if(probe.instance->getState()){
+            const auto bounce=bounceParameters(*probe.instance->getState());
+            if(bounce.x>0) m_captureCenter=glm::vec3(probe.model*bounceMatrix(bounce.x,bounce.y)*
+                glm::vec4(probe.instance->getBound().getCenter(),1));
+        }
         m_captureModel = probe.model;
     }
     const std::array<glm::vec3, 6> directions{
         {{1, 0, 0},{-1, 0, 0},{0, 1, 0},{0, -1, 0},{0, 0, 1},{0, 0, -1}}};
     const std::array<glm::vec3, 6> up{
         {{0, -1, 0},{0, -1, 0},{0, 0, 1},{0, 0, -1},{0, -1, 0},{0, -1, 0}}};
-    if (!m_planned) m_planned = std::make_unique<Camera>();
-    m_planned->setPerspective(90, 1, 0.1f, 150);
-    m_planned->setLookAt(m_captureCenter, m_captureCenter + directions[m_face], up[m_face]);
+    for(unsigned i=0;i<(m_liveCapture?6u:1u);++i){
+        const unsigned face=m_liveCapture?i:m_face;
+        if(!m_cameras[face]) m_cameras[face]=std::make_unique<Camera>();
+        m_cameras[face]->setPerspective(90,1,.1f,150);
+        m_cameras[face]->setLookAt(m_captureCenter,m_captureCenter+directions[face],up[face]);
+        m_plannedViews.push_back(m_cameras[face].get());
+    }
     m_planValid = true;
-    return m_planned.get();
+    return m_plannedViews.front();
 }
 
-// Captures at most one visible object's cube face and publishes complete filtered maps.
+// Publishes a coherent live cube, or amortizes static faces and filtering over frames.
 void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap& environment,
                               ShadingMode shading, const PortalResult& visibility, bool dynamic){
     idle();
+    if(dynamic && !m_hasPlan) plan(scene,camera,visibility,true);
     if(m_filterCursor<54){
         m_hasPlan=m_planValid=false;
         // Budget texture samples as well as submissions. Sharp level zero is
@@ -252,7 +273,6 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
     if (!m_hasPlan) plan(scene, camera, visibility, dynamic);
     m_hasPlan = false;
     if (!m_planValid) return;
-    const auto& capture = *m_planned;
     m_planValid = false;
     auto& probe = m_probes[m_cursor];
     environment.setLocalReflections(m_maps, m_readyMask);
@@ -263,13 +283,8 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
         glGenFramebuffers(1, &m_framebuffer);
     }
     GLState::bindFramebuffer(GL_FRAMEBUFFER, m_framebuffer);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_CUBE_MAP_POSITIVE_X + m_face, m_capture->getId(), 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_depth->getId(), 0);
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
-        throw std::runtime_error("Incomplete local reflection framebuffer");
-    }
     GLState::viewport(0, 0, captureSize, captureSize);
     GLState::disable(GL_SCISSOR_TEST);
     GLState::disable(GL_BLEND);
@@ -281,15 +296,40 @@ void ReflectionProbes::update(Scene& scene, const Camera& camera, EnvironmentMap
     GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     GLState::frontFace(GL_CCW);
     GLState::clearDepth(1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     {
         HideInstance hidden(*(probe.excluded?probe.excluded:probe.instance));
         m_renderer.setShadingMode(shading);
-        // The probe originates at the excluded object's center, rather than the observer.
-        auto portals = scene.getPortalGraph().collect(capture.getPosition(), nullptr);
-        m_renderer.render(*scene.getRoot(), capture, nullptr, &portals);
+        for(unsigned i=0;i<m_plannedViews.size();++i){
+            const unsigned face=m_liveCapture?i:m_face;
+            glFramebufferTexture2D(GL_FRAMEBUFFER,GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X+face,m_capture->getId(),0);
+            if(glCheckFramebufferStatus(GL_FRAMEBUFFER)!=GL_FRAMEBUFFER_COMPLETE)
+                throw std::runtime_error("Incomplete local reflection framebuffer");
+            glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+            const auto& capture=*m_plannedViews[i];
+            auto portals=scene.getPortalGraph().collect(capture.getPosition(),nullptr);
+            m_renderer.render(*scene.getRoot(),capture,nullptr,&portals);
+            const auto& part=m_renderer.getStats();
+            m_stats.draws+=part.draws; m_stats.triangles+=part.triangles;
+            m_stats.instances+=part.instances; m_stats.instancedDraws+=part.instancedDraws;
+            m_stats.visitedNodes+=part.visitedNodes; m_stats.boundsTested+=part.boundsTested;
+            m_stats.subtreesRejected+=part.subtreesRejected; m_stats.transparentDraws+=part.transparentDraws;
+            m_stats.lights+=part.lights; m_stats.portalRejected+=part.portalRejected;
+            m_stats.screenDraws+=part.screenDraws; m_stats.screenCopies+=part.screenCopies;
+            m_stats.cullCpuMs+=part.cullCpuMs; m_stats.submitCpuMs+=part.submitCpuMs;
+            for(const auto& [room,count]:part.roomDraws) m_stats.roomDraws[room]+=count;
+        }
     }
-    m_stats = m_renderer.getStats();
+    if(m_liveCapture){
+        m_faces=6;
+        environment.prefilterLocal(m_capture,m_maps,m_cursor+environment.getSkyCount());
+        m_filterDraws=54; m_readyMask|=1u<<(m_cursor+1);
+        environment.setLocalReflections(m_maps,m_readyMask);
+        probe.revision=probe.model==m_captureModel?m_revision:0;
+        m_cursor=(m_cursor+1)%getProbeCount();
+        m_face=0;
+        return;
+    }
     m_faces = 1;
     if (++m_face == 6){
         if(frameWorkOptimized()) m_filterCursor=0;

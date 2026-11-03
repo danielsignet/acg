@@ -209,7 +209,7 @@ void DeferredRenderer::render(const Camera& camera, const State& state,
     present(camera, static_cast<GLuint>(framebuffer), viewport);
 }
 
-// Binds surface attachments and evaluates lights once per visible pixel.
+// Binds surfaces and evaluates only each pixel's tile/object light list.
 void DeferredRenderer::light(const Camera& camera, const State& state,
                              const std::vector<PositionedLight>& lights){
     const bool multisample = m_multisampleBuffer != nullptr;
@@ -233,6 +233,13 @@ void DeferredRenderer::light(const Camera& camera, const State& state,
     for (unsigned i = 0; i < lights.size(); ++i){
         lights[i].node->apply(*program, i, lights[i].model, lights[i].active);
     }
+    m_lightGrid.build(camera, lights, m_lightCulling);
+    const auto& masks = m_lightGrid.getMasks();
+    for (unsigned i = 0; i < masks.size(); ++i){
+        program->set("uLightTiles[" + std::to_string(i) + "]", masks[i]);
+    }
+    program->set("uLightGridScale", glm::vec2(LightGrid::Columns / static_cast<float>(m_width),
+                                             LightGrid::Rows / static_cast<float>(m_height)));
     drawQuad();
 }
 

@@ -1,0 +1,29 @@
+newmtl coat
+Kd 0.198 0.089 0.037
+Ka .2 .2 .2
+Ks .04 .04 .04
+Ns 25
+
+newmtl legs
+Kd 0.198 0.089 0.037
+Ka .2 .2 .2
+Ks .04 .04 .04
+Ns 25
+
+newmtl face
+Kd 0.198 0.089 0.037
+Ka .2 .2 .2
+Ks .04 .04 .04
+Ns 25
+
+newmtl muzzle
+Kd 0.552 0.332 0.15
+Ka .2 .2 .2
+Ks .04 .04 .04
+Ns 25
+
+newmtl bare
+Kd 0.017 0.014 0.024
+Ka .2 .2 .2
+Ks .04 .04 .04
+Ns 25

@@ -88,6 +88,9 @@ BoundingBox Geometry::computeBound() const{
     for (const auto& vertex : m_vertices){
         bound.expandBy(vertex.position);
     }
+    if (bound.valid())
+        return BoundingBox(bound.getMinimum()-m_motionPadding-m_furPadding,
+                           bound.getMaximum()+m_motionPadding+m_furPadding);
     return bound;
 }
 
@@ -166,11 +169,19 @@ void Geometry::bind() const{
 
 // Uploads changed mesh data and draws its indexed triangles.
 void Geometry::draw() const{
-    if (m_indices.empty()){
+    drawRepeated(1);
+}
+
+void Geometry::drawRepeated(unsigned count) const{
+    if (m_indices.empty() || !count){
         return;
     }
+    if(count>static_cast<unsigned>(std::numeric_limits<GLsizei>::max()))
+        throw std::length_error("Too many repeated mesh layers");
     bind();
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(m_indices.size()), GL_UNSIGNED_INT, nullptr);
+    if(count==1) glDrawElements(GL_TRIANGLES,static_cast<GLsizei>(m_indices.size()),GL_UNSIGNED_INT,nullptr);
+    else glDrawElementsInstanced(GL_TRIANGLES,static_cast<GLsizei>(m_indices.size()),GL_UNSIGNED_INT,nullptr,
+                                static_cast<GLsizei>(count));
     if (m_skin && !m_gpuSkinning){
         m_vertexStream.seal();
     }

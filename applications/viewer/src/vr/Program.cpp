@@ -68,7 +68,8 @@ GLuint Program::compileShader(const std::filesystem::path& path, GLenum type){
 
 // Compiles shader stages and links them into one owned OpenGL program.
 Program::Program(const std::filesystem::path& vertex, const std::filesystem::path& fragment,
-                 const std::filesystem::path& geometry, const std::vector<std::string>& feedback){
+                 const std::filesystem::path& geometry, const std::vector<std::string>& feedback)
+    : m_fragment(fragment){
     std::vector<GLuint> shaders;
     try{
         shaders.push_back(compileShader(vertex, GL_VERTEX_SHADER));
@@ -110,6 +111,13 @@ Program::Program(const std::filesystem::path& vertex, const std::filesystem::pat
         }
         throw;
     }
+}
+
+std::shared_ptr<Program> Program::heightFieldVariant(bool depth) const{
+    auto& variant=depth?m_heightDepth:m_heightColor;
+    if(!variant) variant=std::make_shared<Program>(m_fragment.parent_path()/"terrain.vs",m_fragment,
+        m_fragment.parent_path()/(depth?"terrain-depth.gs":"terrain.gs"));
+    return variant;
 }
 
 // Releases the linked OpenGL shader program.

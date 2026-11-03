@@ -25,6 +25,49 @@ Texture::Texture(int width, int height, std::vector<unsigned char> rgba, bool re
     }
 }
 
+std::shared_ptr<Texture> Texture::withNormal(const std::shared_ptr<Texture>& normal) const{
+    if (m_rgba.empty() || (normal && normal->m_rgba.empty())){
+        throw std::invalid_argument("Parallax materials require decoded 2D height/normal images");
+    }
+    const auto key = normal ? normal->getRevision() : 0;
+    if (const auto cached = m_reliefMaps.find(key); cached != m_reliefMaps.end()){
+        return cached->second;
+    }
+    const int width = normal ? std::max(m_width, normal->m_width) : m_width;
+    const int height = normal ? std::max(m_height, normal->m_height) : m_height;
+    std::vector<unsigned char> pixels(static_cast<std::size_t>(width) * height * 4);
+    const auto sample = [](const Texture& source, int channel, float u, float v){
+        const float x = u * source.m_width - 0.5f, y = v * source.m_height - 0.5f;
+        const int left = static_cast<int>(std::floor(x)), bottom = static_cast<int>(std::floor(y));
+        const auto texel = [&](int column, int row){
+            column = source.m_repeat ? (column % source.m_width + source.m_width) % source.m_width
+                                     : std::clamp(column, 0, source.m_width - 1);
+            row = source.m_repeat ? (row % source.m_height + source.m_height) % source.m_height
+                                  : std::clamp(row, 0, source.m_height - 1);
+            return static_cast<float>(source.m_rgba[(static_cast<std::size_t>(row) *
+                                                      source.m_width + column) * 4 + channel]);
+        };
+        const float tx = x - left, ty = y - bottom;
+        return static_cast<unsigned char>(std::lround(
+            (texel(left, bottom) * (1 - tx) + texel(left + 1, bottom) * tx) * (1 - ty) +
+            (texel(left, bottom + 1) * (1 - tx) + texel(left + 1, bottom + 1) * tx) * ty));
+    };
+    for (int y = 0; y < height; ++y){
+        for (int x = 0; x < width; ++x){
+            const auto index = (static_cast<std::size_t>(y) * width + x) * 4;
+            const float u = (x + 0.5f) / width, v = (y + 0.5f) / height;
+            for (int channel = 0; channel < 3; ++channel){
+                pixels[index + channel] = normal ? sample(*normal, channel, u, v)
+                                                  : channel == 2 ? 255 : 128;
+            }
+            pixels[index + 3] = sample(*this, 0, u, v);
+        }
+    }
+    auto packed = std::make_shared<Texture>(width, height, std::move(pixels), m_repeat);
+    m_reliefMaps.emplace(key, packed);
+    return packed;
+}
+
 // Samples stored alpha with bilinear filtering and the texture's wrap mode, without GL calls.
 float Texture::sampleAlpha(const glm::vec2& coordinates) const{
     if (m_rgba.empty() || !std::isfinite(coordinates.x) || !std::isfinite(coordinates.y)){

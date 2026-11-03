@@ -48,6 +48,7 @@ public:
         Submission,
         Profiler,
         SkinningDraw,
+        Particles,
         Count
     };
     static constexpr std::size_t StageCount = static_cast<std::size_t>(Stage::Count);
@@ -125,7 +126,7 @@ public:
         double cpuPercent = 0, gpuPercent = 0;
     };
 
-    static constexpr std::size_t SliceCount = 26;
+    static constexpr std::size_t SliceCount = 27;
 
     class Scope final{
     public:

@@ -439,6 +439,168 @@
     "freeze_scene": "F",
     "orbit_degrees_per_second": 38
   },
+  "fur": {
+    "material": "fur-material.json",
+    "view": "fur",
+    "room": "silva",
+    "toggle": "F11",
+    "layers": 14,
+    "source": "Frakassets/Pixor, Bear, CC0-1.0"
+  },
+  "parallax": {
+    "materials": "relief-materials.json",
+    "geometry": "relief-geometry.json",
+    "bark_depth_m": 0.018,
+    "brick_depth_m": 0.035,
+    "toggle": "F9",
+    "views": [
+      "parallax",
+      "bark",
+      "brick",
+      "trees",
+      "bounce"
+    ],
+    "brick_location": "Tower 007 ground-floor walls",
+    "brick_height_m": 3.6
+  },
+  "city_trees": {
+    "instances": 6,
+    "shared_asset": "relief-oak",
+    "placements": [
+      [
+        -7,
+        39,
+        [
+          0.65,
+          1.28,
+          0.82
+        ],
+        [
+          0,
+          31,
+          0
+        ]
+      ],
+      [
+        -7,
+        70,
+        [
+          1.18,
+          0.78,
+          1.25
+        ],
+        [
+          0,
+          112,
+          0
+        ]
+      ],
+      [
+        -7,
+        104,
+        [
+          0.9,
+          1.07,
+          0.75
+        ],
+        [
+          0,
+          204,
+          0
+        ]
+      ],
+      [
+        7,
+        39,
+        [
+          1.03,
+          0.95,
+          1.1
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      [
+        7,
+        70,
+        [
+          0.72,
+          1.32,
+          0.8
+        ],
+        [
+          0,
+          73,
+          0
+        ]
+      ],
+      [
+        7,
+        104,
+        [
+          1.12,
+          0.84,
+          0.92
+        ],
+        [
+          0,
+          161,
+          0
+        ]
+      ]
+    ],
+    "vertex_warps": [
+      [
+        -1.35,
+        0.35,
+        0.85,
+        -0.18
+      ],
+      [
+        0.6,
+        -0.9,
+        -0.6,
+        0.4
+      ],
+      [
+        1.8,
+        0.75,
+        1.15,
+        -0.1
+      ],
+      [
+        -0.7,
+        -0.5,
+        -0.95,
+        0.2
+      ],
+      [
+        0.35,
+        1.45,
+        0.55,
+        -0.28
+      ],
+      [
+        -1.65,
+        0.2,
+        1.35,
+        0.32
+      ]
+    ],
+    "deformation_height": 8
+  },
+  "vertex_bounce": {
+    "instance": "Bouncing ball",
+    "room": "lapis",
+    "view": "bounce",
+    "pause": "Aim, then click Pause or press P",
+    "shader": "shaders/bounce.glsl",
+    "material": "basketball-material.json",
+    "parallax_depth_m": 0.004
+  },
   "pantheon_surfaces": {
     "plaster": {
       "diffuse": "1 1 1",
@@ -510,5 +672,109 @@
       0.66
     ],
     "bump_toggle": "F6 switches height mapping; OpenGL normal maps remain as fallback"
+  },
+  "billboards": {
+    "technique": "crossed camera-oriented grass cards, constrained to local Y; planes at +/-45 degrees to view",
+    "source": "Original procedural geometry and RGBA grass texture; no external asset",
+    "seed": 180207,
+    "triangles_per_clump": 4,
+    "texture_size": [
+      1024,
+      1024
+    ],
+    "clumps_per_planter": 18,
+    "planters": 6,
+    "clumps": 108,
+    "alpha_cutoff": 0.35,
+    "views": [
+      "billboards",
+      "billboards-side"
+    ]
+  },
+  "star_particles": {
+    "seed": 180209,
+    "particles": 131072,
+    "stride_bytes": 32,
+    "gpu_buffer_bytes": 4194304,
+    "formations": [
+      {
+        "type": "field stars: blue, white, yellow and red",
+        "count": 16384,
+        "angular_speed_rad_s": 0.0
+      },
+      {
+        "type": "Milky Way star clouds, central bulge and dust lanes",
+        "count": 65344,
+        "angular_speed_rad_s": 0.0
+      },
+      {
+        "type": "two-arm spiral galaxy",
+        "count": 10240,
+        "angular_speed_rad_s": 0.007669903939428206
+      },
+      {
+        "type": "elliptical galaxy",
+        "count": 10240,
+        "angular_speed_rad_s": 0.0
+      },
+      {
+        "type": "edge-on disc galaxy",
+        "count": 10240,
+        "angular_speed_rad_s": 0.0046019423636569235
+      },
+      {
+        "type": "barred spiral galaxy",
+        "count": 10240,
+        "angular_speed_rad_s": -0.0046019423636569235
+      },
+      {
+        "type": "globular star cluster",
+        "count": 8192,
+        "angular_speed_rad_s": 0.0015339807878856412
+      },
+      {
+        "type": "eight moving meteor trails, 24 particles each",
+        "count": 192,
+        "angular_speed_rad_s": 0.0
+      }
+    ],
+    "source": "Original procedural particle catalog, starfield_demo.py",
+    "snapshot": "astra-stars.hdr: static mean IBL only; displayed sky uses live GL_POINTS",
+    "toggle": "F12",
+    "views": [
+      "particles",
+      "galaxies",
+      "milky-way"
+    ],
+    "max_point_size_reference_px": 4.5,
+    "meteor_streams": 8,
+    "meteor_trail_particles": 192,
+    "ibl_excludes_transient_meteors": true
+  },
+  "terrain": {
+    "technique": "OpenGL 4.1 geometry shader; height lookup and triangle emission in color and depth passes",
+    "heightmap": "textures/dragon-terrain-height.png",
+    "heightmap_size": [
+      513,
+      513
+    ],
+    "grid_cells": [
+      128,
+      128
+    ],
+    "triangles": 25816,
+    "maximum_grid_triangles": 32768,
+    "clip_zero": true,
+    "dimensions_m": [
+      26,
+      3.8,
+      22
+    ],
+    "height_range_m": [
+      0.0,
+      3.352941176470588
+    ],
+    "cpu": "Immutable matching triangles for conservative bounds and exact ray picking",
+    "source": "Own deterministic procedural height map and rock texture; terrain_demo.py"
   }
 }

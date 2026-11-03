@@ -120,6 +120,11 @@ void SceneOverlay::click(Application& app, float x, float y){
             app.execute(Action::ModelAnimation);
             return;
         }
+        const unsigned pauseRow=app.carTargeted() || app.m_target->instance->getAnimation()?2:1;
+        if (app.targetAnimationPlaying().has_value() && inside(targetActionRectangle(app,pauseRow))){
+            app.execute(Action::PauseAnimation);
+            return;
+        }
     }
     if (app.performanceVisible() && inside(performanceResetRectangle())){
         app.execute(Action::ResetAverages);
@@ -324,6 +329,13 @@ void SceneOverlay::drawFocus(const Application& app){
             m_text.draw("Animation: " + animation->getClips()[animation->getClip()].name + " >",
                         rectangle.x + 10, rectangle.y + 6, 12,{0.7f, 0.9f, 0.84f, 1});
         }
+        if (const auto playing=app.targetAnimationPlaying()){
+            const unsigned row=app.carTargeted() || app.m_target->instance->getAnimation()?2:1;
+            const auto rectangle=targetActionRectangle(app,row);
+            m_text.rectangle(rectangle.x,rectangle.y,rectangle.z,rectangle.w,{0.04f,0.09f,0.13f,0.9f});
+            m_text.draw(*playing?"Pause [P]":"Resume [P]",
+                rectangle.x+10,rectangle.y+6,12,{0.7f,0.9f,0.84f,1});
+        }
     }
 }
 
@@ -353,7 +365,9 @@ void SceneOverlay::drawFooter(const Application& app){
         "G: buffers   F1: performance   Tab: menus   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
     const auto& shadowStats = app.m_shadowRenderer->getStats();
-    const auto status = app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
+    const auto status = std::string("Parallax [F9]: ") + (app.m_parallaxMappingEnabled ? "ON" : "OFF") +
+                        " | Fur [F11]: " + (app.m_furEnabled ? "ON" : "OFF") +
+                        " | " + app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
                         ", draws: " + std::to_string(shadowStats.draws);
     m_text.draw(status.substr(0, 160), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});
     if (app.m_shaderMenuOpen && !app.performanceVisible()){

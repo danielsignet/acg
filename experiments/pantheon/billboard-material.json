@@ -1,0 +1,18 @@
+{
+  "technique": "crossed camera-oriented grass cards, constrained to local Y; planes at +/-45 degrees to view",
+  "source": "Original procedural geometry and RGBA grass texture; no external asset",
+  "seed": 180207,
+  "triangles_per_clump": 4,
+  "texture_size": [
+    1024,
+    1024
+  ],
+  "clumps_per_planter": 18,
+  "planters": 6,
+  "clumps": 108,
+  "alpha_cutoff": 0.35,
+  "views": [
+    "billboards",
+    "billboards-side"
+  ]
+}

@@ -36,6 +36,8 @@ std::shared_ptr<Geometry> Geometry::instantiateSkin(std::shared_ptr<SkinningPose
     result->m_indices = m_indices;
     result->m_skin = std::move(pose);
     result->m_skinInfluences = m_skinInfluences;
+    result->m_furPadding=m_furPadding;
+    result->m_motionPadding=m_motionPadding;
     result->updateSkin();
     return result;
 }

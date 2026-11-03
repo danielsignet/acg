@@ -37,7 +37,7 @@ private:
     struct Stamp{
         const State* state = nullptr;
         std::uint64_t stateRevision = 0, matrixRevision = 0, revision = 0;
-        bool visible = false, culling = false, dynamic = false, skinned = false, hasLod = false;
+        bool visible = false, culling = false, dynamic = false, skinned = false, viewDependent = false;
         std::string room;
         glm::vec3 lodCenter{0};
         float lodFade = 0;
@@ -64,7 +64,7 @@ private:
     }
 
     // Restores the inherited room label after visiting a visible subtree.
-    void within(Node& node, const std::function<void()>& action);
+    void within(Node& node, const std::function<void()>& action,bool branch=true);
 
     // Records an instance without OpenGL calls or camera-frustum rejection.
     void geometry(Geometry& node, const glm::mat4& model, const State& state) override;

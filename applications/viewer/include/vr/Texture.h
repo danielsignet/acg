@@ -4,6 +4,7 @@
 #include <glad/glad.h>
 #include <glm/vec2.hpp>
 #include <memory>
+#include <map>
 #include <vector>
 
 namespace vr{
@@ -79,6 +80,10 @@ public:
     // Samples stored alpha with bilinear filtering and the texture's wrap mode, without GL calls.
     float sampleAlpha(const glm::vec2& coordinates) const;
 
+    // Shares a cached RGB-normal/alpha-height image without using another sampler.
+    // This height texture owns the combined pixels; no GPU readback is performed.
+    std::shared_ptr<Texture> withNormal(const std::shared_ptr<Texture>& normal) const;
+
     // Returns the image width in pixels.
     int getWidth() const{
         return m_width;
@@ -109,6 +114,7 @@ private:
     unsigned m_levels = 1;
     unsigned m_cubeLayers = 0;
     std::vector<unsigned char> m_rgba;
+    mutable std::map<std::uint64_t, std::shared_ptr<Texture>> m_reliefMaps;
     mutable GLuint m_id = 0;
     std::uint64_t m_revision = nextRevision();
 };

@@ -1,0 +1,5 @@
+newmtl grass
+Kd 1 1 1
+Ka .22 .25 .15
+Ks .015 .02 .005
+Ns 8

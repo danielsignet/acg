@@ -6,6 +6,8 @@
 #include <vr/FramebufferState.h>
 #include <vr/GLState.h>
 #include <vr/Geometry.h>
+#include <vr/BounceAnimation.h>
+#include <vr/TreeDeformation.h>
 #include <vr/FrameWork.h>
 #include <vr/Light.h>
 #include <vr/LightCollector.h>
@@ -157,7 +159,7 @@ void ShadowRenderer::prepareCasters(){
     m_volatileCasterTexture=false;
     ++m_stats.casterRebuilds;
     m_batches.clear();m_worldBounds.clear();
-    std::map<std::tuple<Geometry*,Texture*,float,float,float,bool>,std::size_t> batches;
+    std::map<std::tuple<Geometry*,Texture*,float,float,float,bool,float,float,std::uint64_t>,std::size_t> batches;
     std::vector<CasterState> staticCasters;
     m_worldBounds.reserve(m_casters->size());
     for (std::size_t index = 0; index < m_casters->size(); ++index){
@@ -174,19 +176,22 @@ void ShadowRenderer::prepareCasters(){
         const auto range = coverage == node.state.getUniforms().end()
                                ? glm::vec2(0, 1)
                                : std::get<glm::vec2>(coverage->second);
-        const bool dynamic = node.dynamic || (albedo && albedo->isRenderTarget());
+        const auto bounce=bounceParameters(node.state);
+        const auto tree=treeShape(node.state);
+        const auto treeRevision=tree.height>0?node.state.getShadowRevision():0;
+        const bool dynamic = node.dynamic || bounce.x>0 || (albedo && albedo->isRenderTarget());
         m_volatileCasterTexture=m_volatileCasterTexture || (albedo && albedo->isRenderTarget());
         if (!dynamic){
             staticCasters.push_back({node.geometry, node.geometry->getDataRevision(),
                                      albedo ? albedo->getRevision() : 0, node.model, cutoff, range,
-                                     node.cullingEnabled});
+                                     node.cullingEnabled,treeRevision});
         }
-        const auto key=std::make_tuple(node.geometry,albedo.get(),cutoff,range.x,range.y,dynamic);
+        const auto key=std::make_tuple(node.geometry,albedo.get(),cutoff,range.x,range.y,dynamic,bounce.x,bounce.y,treeRevision);
         const auto found=batches.find(key);
         if (found == batches.end()){
             batches.emplace(key,m_batches.size());
             m_batches.push_back(
-                {node.geometry, std::move(albedo), cutoff, range,{index}, dynamic});
+                {node.geometry, std::move(albedo), cutoff, range,{index}, dynamic,bounce,tree.height,tree.warp});
         } else{
             m_batches[found->second].casters.push_back(index);
         }
@@ -224,7 +229,7 @@ std::vector<ShadowRenderer::CasterState> ShadowRenderer::dynamicCasters(
                 states.push_back({node.geometry, node.geometry->getDataRevision(),
                     batch.albedo ? batch.albedo->getRevision() : 0, node.model, batch.alphaCutoff,
                     batch.lodRange, node.cullingEnabled,
-                    node.geometry->getSkin() ? node.geometry->getSkin()->revision : 0});
+                    node.geometry->getSkin() ? node.geometry->getSkin()->revision : 0,batch.bounce});
             }
         }
     }
@@ -302,12 +307,6 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
                                    float farPlane, const Frustum* cone, Casters selection){
     const auto vp = camera.getProjection() * camera.getView();
     const Frustum frustum(vp);
-    m_depthProgram->use();
-    m_depthProgram->set("uLightVP", vp);
-    m_depthProgram->set("uPointPass", radial);
-    m_depthProgram->set("uShadowLightPosition", point);
-    m_depthProgram->set("uShadowFarPlane", farPlane);
-    m_depthProgram->set("uAlbedo", 0);
     if (!radial){
         GLState::enable(GL_POLYGON_OFFSET_FILL);
         GLState::polygonOffset(1.1f, 2);
@@ -335,23 +334,36 @@ void ShadowRenderer::drawDepthPass(const Camera& camera, bool radial, const glm:
         if (m_visibleModels.empty()){
             continue;
         }
-        m_depthProgram->set("uAlphaCutoff", batch.alphaCutoff);
-        m_depthProgram->set("uLodRange", batch.lodRange);
-        m_depthProgram->set("uHasAlbedo", static_cast<bool>(batch.albedo));
+        const auto selected=batch.geometry->hasHeightField()?m_depthProgram->heightFieldVariant(true):m_depthProgram;
+        const auto& depthProgram=*selected;
+        depthProgram.use();
+        depthProgram.set("uLightVP", vp);
+        depthProgram.set("uPointPass", radial);
+        depthProgram.set("uShadowLightPosition", point);
+        depthProgram.set("uShadowFarPlane", farPlane);
+        depthProgram.set("uAlbedo", 0);
+        batch.geometry->applyHeightField(depthProgram);
+        depthProgram.set("uAlphaCutoff", batch.alphaCutoff);
+        depthProgram.set("uBounceRadius",batch.bounce.x);
+        depthProgram.set("uBounceTime",batch.bounce.y);
+        depthProgram.set("uTreeHeight",batch.treeHeight);
+        depthProgram.set("uTreeWarp",batch.treeWarp);
+        depthProgram.set("uLodRange", batch.lodRange);
+        depthProgram.set("uHasAlbedo", static_cast<bool>(batch.albedo));
         if (batch.albedo){
             batch.albedo->apply(0);
         } else{
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
-        const bool instanced = m_instancing && m_visibleModels.size() > 1;
-        m_depthProgram->set("uInstanced", instanced);
+        const bool instanced = m_instancing && !batch.geometry->hasHeightField() && m_visibleModels.size() > 1;
+        depthProgram.set("uInstanced", instanced);
         if (instanced){
             batch.geometry->drawInstanced(m_visibleModels);
             ++m_stats.draws;
         } else{
             for (const auto& model : m_visibleModels){
-                m_depthProgram->set("uModel", model);
+                depthProgram.set("uModel", model);
                 batch.geometry->draw();
                 ++m_stats.draws;
             }

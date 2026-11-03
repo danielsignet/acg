@@ -13,6 +13,7 @@ public:
 
     // Executes this group's callback once, then visits its children.
     void apply(Group& node) override;
+    void apply(ModelInstance& node) override;
 
     // Updates this transform and its descendants once per update.
     void apply(Transform& node) override;

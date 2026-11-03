@@ -1,0 +1,19 @@
+newmtl ground
+Ka 0 0 0
+Kd 0.64 0.64 0.64
+Ks 1 1 1
+Ke 0 0 0
+Ns 9.60784
+
+newmtl hotel_glas
+Ka 0 0 0
+Kd 0.64 0.64 0.64
+Ks 0 0 0
+Ke 0.344 0.344 0.344
+Ns 9.60784
+
+newmtl brick
+Ka .2 .2 .2
+Kd 1 1 1
+Ks .035 .035 .035
+Ns 12

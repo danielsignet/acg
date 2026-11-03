@@ -1,0 +1,15 @@
+{
+  "source_triangles": 12660,
+  "vertices": 39402,
+  "triangles": 13134,
+  "brick_triangles": 889,
+  "window_triangles": 1428,
+  "ground_floor_height_m": 3.6,
+  "texture_repeat_m": 1.37,
+  "bounds_preserved": true,
+  "surface_area_relative_error": 3.59035144e-10,
+  "source": "models/ResidentialBuildings/ResidentialBuildings007.fbx",
+  "source_sha256": "7b93663a27c9f8deee697e0bcadd9ef11d49789c0310a09a49f77ff8d8debeba",
+  "mesh_sha256": "9e16eedde202d76b004acae5330114f9ea19cbbf7306d82cb12803e21be25f1a",
+  "material_sha256": "8539f2e2854d3ae461be1b3cde3c41cf71004995107b6e554f67071f1a268b31"
+}

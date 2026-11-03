@@ -4,7 +4,7 @@
 #include <set>
 #include <stdexcept>
 #include <tuple>
-#include <vr/Group.h>
+#include <vr/GraphCloneVisitor.h>
 #include <vr/SkeletalAnimation.h>
 #include <vr/Subdivision.h>
 #include <vr/Transform.h>
@@ -42,51 +42,23 @@ SkinWeights blendSkin(const std::vector<std::pair<SkinWeights, float>>& sources)
 
 // Builds a separate model hierarchy with one Loop subdivision level per shared mesh.
 std::shared_ptr<Node> Subdivision::create(const std::shared_ptr<Node>& asset){
-    std::map<const Node*, std::shared_ptr<Node>> copies;
-    const std::function<std::shared_ptr<Node>(const std::shared_ptr<Node>&)> clone =
-        [&](const auto& node){
-            if (const auto found = copies.find(node.get()); found != copies.end()){
-                return found->second;
-            }
-            std::shared_ptr<Node> copy;
-            if (auto geometry = std::dynamic_pointer_cast<Geometry>(node)){
-                auto mesh = std::make_shared<Geometry>(node->getName());
-                apply(*mesh, refine({geometry->getRestVertices(), geometry->getIndices()}));
-                mesh->setSkin(geometry->getSkin());
-                copy = mesh;
-            } else if (auto group = std::dynamic_pointer_cast<Group>(node)){
-                std::shared_ptr<Group> branch;
-                if (auto transform = std::dynamic_pointer_cast<Transform>(node)){
-                    auto transformed = std::make_shared<Transform>(node->getName());
-                    transformed->setMatrix(transform->getMatrix());
-                    branch = transformed;
-                } else{
-                    branch = std::make_shared<Group>(node->getName());
-                }
-                copies.emplace(node.get(), branch);
-                for (const auto& child : group->getChildren()){
-                    branch->addChild(clone(child));
-                }
-                copy = branch;
-            } else{
-                throw std::runtime_error(
-                    "Subdivision requires a model containing meshes and transforms");
-            }
-            copy->setState(node->getState());
-            copy->setVisible(node->getVisible());
-            copy->setRoomId(node->getRoomId());
-            copy->setCullingEnabled(node->getCullingEnabled());
-            if (!std::dynamic_pointer_cast<SkeletalAnimation>(node->getUpdateCallback())){
-                copy->setUpdateCallback(node->getUpdateCallback());
-            }
-            copies[node.get()] = copy;
-            return copy;
-        };
-    auto refined = clone(asset);
+    GraphCloneVisitor cloner;
+    cloner.setGeometryHandler([](Geometry& geometry)->std::shared_ptr<Node>{
+        if(geometry.hasHeightField())return geometry.shared_from_this();
+        auto mesh=std::make_shared<Geometry>(geometry.getName());
+        apply(*mesh,refine({geometry.getRestVertices(),geometry.getIndices()}));
+        mesh->setSkin(geometry.getSkin());mesh->setFurPadding(geometry.getFurPadding());
+        mesh->setMotionPadding(geometry.getMotionPadding());return mesh;
+    });
+    cloner.setCallbackHandler([](Node& node,bool){
+        auto callback=node.getUpdateCallback();
+        return callbackAs<SkeletalAnimation>(callback)?nullptr:callback;
+    });
+    auto refined=cloner.clone(asset);
     auto anchored = std::make_shared<Transform>("subdivision support");
     glm::mat4 placement(1);
-    if (!std::dynamic_pointer_cast<SkeletalAnimation>(asset->getUpdateCallback()) &&
-        !std::dynamic_pointer_cast<JointAnimationCallback>(asset->getUpdateCallback()) &&
+    if (!callbackAs<SkeletalAnimation>(asset->getUpdateCallback()) &&
+        !callbackAs<JointAnimationCallback>(asset->getUpdateCallback()) &&
         asset->getBound().valid() && refined->getBound().valid()){
         placement[3].y = asset->getBound().getMinimum().y - refined->getBound().getMinimum().y;
     }

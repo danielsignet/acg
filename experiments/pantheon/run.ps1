@@ -1,5 +1,5 @@
 param(
-    [ValidateSet('rotunda', 'dome', 'lapis', 'mirror', 'aes', 'silva', 'astra', 'materials', 'city', 'gallery', 'dragon', 'gyroscopes', 'euler', 'axis-angle', 'quaternion', 'astra-exit', 'astra-sky', 'city-sky', 'astra-floor', 'astra-floor-gate', 'metal-close', 'city-gate-high')]
+    [ValidateSet('rotunda', 'dome', 'lapis', 'mirror', 'aes', 'silva', 'astra', 'materials', 'city', 'gallery', 'dragon', 'gyroscopes', 'euler', 'axis-angle', 'quaternion', 'astra-exit', 'astra-sky', 'city-sky', 'astra-floor', 'astra-floor-gate', 'metal-close', 'city-gate-high', 'parallax', 'bark', 'brick', 'trees', 'bounce', 'fur', 'billboards', 'billboards-side', 'particles', 'galaxies', 'milky-way', 'terrain')]
     [string]$View = 'rotunda',
     [ValidateSet('off', 'environment', 'cubemaps')]
     [string]$Reflections = 'environment',
@@ -24,6 +24,7 @@ if ($Portals) {
     $scenePath = Join-Path $PSScriptRoot 'portal-scene.xml'
 }
 $viewerArgs = @('--root', $repoPath, '--scene', $scenePath, '--shading', 'cook', '--aa', 'fxaa', '--reflections', $Reflections)
+if ($View -eq 'bounce') { $viewerArgs += @('--shading','phong') }
 if ($NoVsync) { $viewerArgs += '--no-vsync' }
 if ($Benchmark) {
     $outputPath = Join-Path $PSScriptRoot 'output'

@@ -7,6 +7,7 @@
 #include <vr/EnvironmentMap.h>
 #include <vr/FramebufferState.h>
 #include <vr/GLState.h>
+#include <vr/Frustum.h>
 
 namespace vr{
 namespace{
@@ -196,13 +197,19 @@ void EnvironmentMap::configureRooms(const std::filesystem::path& root,const Scen
         copyCube(room.m_skies,skies,0,i+1,skyLevels);
         copyCube(room.m_prefiltered,filtered,0,i+1,9);
         irradiances.push_back(room.m_irradiance);
+        if(!sky.particles.empty()) m_particles[i+1]=std::make_unique<SkyParticles>(root/sky.particles);
     }
     m_skies=std::move(skies);m_prefiltered=std::move(filtered);
     m_irradiances=std::move(irradiances);m_layout=layout;
     m_localMaps.reset();m_readyMask=1;
+    if(std::any_of(m_particles.begin(),m_particles.end(),[](const auto& p){return bool(p);})){
+        m_particleProgram=std::make_shared<Program>(root/"shaders/sky-particles.vs",root/"shaders/sky-particles.fs");
+        m_particlePresent=std::make_shared<Program>(root/"shaders/screen-quad.vs",root/"shaders/sky-particles-present.fs");
+    }
 }
 
 void EnvironmentMap::applyRegions(const Program& program) const{
+    for(unsigned i=0;i<4;++i)program.set("uParticleSky["+std::to_string(i)+"]",bool(m_particles[i]));
     program.set("uEnvironmentCount",static_cast<int>(getSkyCount()));
     const auto& regions=m_layout.getRegions();
     program.set("uSkyRegionCount",static_cast<int>(regions.size()));
@@ -287,6 +294,25 @@ void EnvironmentMap::prefilterLocalRange(const std::shared_ptr<Texture>& source,
 
 // Draws an HDR or display-encoded sky before forward scene geometry.
 void EnvironmentMap::drawSky(const Camera& camera, bool linearOutput){
+    m_particleDraws=m_particleCount=0;m_skyScreenDraws=1;
+    bool visible=false;
+    for(unsigned i=0;i<m_particles.size();++i) visible=visible || particlesVisible(i,camera);
+    if(!linearOutput && visible){
+        GLint viewport[4];GLState::getIntegerv(GL_VIEWPORT,viewport);
+        if(!m_particleTarget || m_particleTarget->getTexture()->getWidth()!=viewport[2] ||
+           m_particleTarget->getTexture()->getHeight()!=viewport[3])
+            m_particleTarget=std::make_unique<ColorTarget>(viewport[2],viewport[3]);
+        {
+            FramebufferState saved;m_particleTarget->bind();
+            drawSkyBase(camera,true);drawParticles(camera,false);
+        }
+        FramebufferState saved;Antialiasing::screenPass();
+        m_particlePresent->use();m_particleTarget->getTexture()->apply(0);
+        m_particlePresent->set("uParticleImage",0);m_quad.draw();m_skyScreenDraws=2;
+    }else{drawSkyBase(camera,linearOutput);drawParticles(camera,false);}
+}
+
+void EnvironmentMap::drawSkyBase(const Camera& camera, bool linearOutput){
     FramebufferState saved;
     Antialiasing::screenPass();
     m_skyProgram->use();
@@ -300,9 +326,45 @@ void EnvironmentMap::drawSky(const Camera& camera, bool linearOutput){
     m_quad.draw();
 }
 
+void EnvironmentMap::advanceParticles(double delta,bool animate){
+    if(animate && std::isfinite(delta) && delta>0)
+        m_particleTime=static_cast<float>(std::fmod(m_particleTime+delta,4096.0));
+}
+std::size_t EnvironmentMap::getParticleBytes() const{
+    std::size_t bytes=0;for(const auto& field:m_particles)if(field)bytes+=field->bytes();return bytes;
+}
+bool EnvironmentMap::particlesVisible(unsigned layer,const Camera& camera) const{
+    if(!m_particlesEnabled || !m_particles[layer])return false;
+    const Frustum frustum(camera.getProjection()*camera.getView());
+    for(const auto& region:m_layout.getRegions())if(region.sky==layer){
+        if(region.contains(camera.getPosition()) || frustum.classify(region.opening)!=Visibility::Outside)return true;
+    }
+    return false;
+}
+void EnvironmentMap::drawParticles(const Camera& camera,bool depth){
+    for(unsigned i=0;i<m_particles.size();++i){
+        if(!particlesVisible(i,camera))continue;
+        FrameProfiler::Scope timing(m_profiler,FrameProfiler::Stage::Particles);
+        FramebufferState saved;GLState::disable(GL_CULL_FACE);GLState::disable(GL_SCISSOR_TEST);
+        if(depth){GLState::enable(GL_DEPTH_TEST);GLState::depthFunc(GL_LEQUAL);}else GLState::disable(GL_DEPTH_TEST);
+        GLState::depthMask(GL_FALSE);GLState::enable(GL_BLEND);
+        GLState::blendEquation(GL_FUNC_ADD);GLState::blendFuncSeparate(GL_ONE,GL_ONE,GL_ZERO,GL_ONE);
+        GLState::colorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_FALSE);
+        GLint viewport[4];GLState::getIntegerv(GL_VIEWPORT,viewport);
+        auto& program=*m_particleProgram;program.use();applyRegions(program);
+        program.set("uEye",camera.getPosition());program.set("uInverseProjection",glm::inverse(camera.getProjection()));
+        program.set("uInverseView",glm::inverse(camera.getView()));
+        program.set("uParticleViewport",glm::vec4(viewport[0],viewport[1],viewport[2],viewport[3]));
+        program.set("uParticleLayer",static_cast<int>(i));
+        m_particles[i]->draw(program,camera,m_particleTime,static_cast<float>(viewport[3]));
+        ++m_particleDraws;m_particleCount+=m_particles[i]->count();
+    }
+}
+
 // Adds the sky and surface IBL to the currently bound deferred lighting target.
 void EnvironmentMap::drawDeferred(const Camera& camera, const GBuffer& buffer,
                                   const std::shared_ptr<Texture>& ambient, int brdfMode){
+    m_particleDraws=m_particleCount=0;m_skyScreenDraws=1;
     FramebufferState saved;
     Antialiasing::screenPass();
     const auto& program =
@@ -331,5 +393,7 @@ void EnvironmentMap::drawDeferred(const Camera& camera, const GBuffer& buffer,
     GLState::blendEquation(GL_FUNC_ADD);
     GLState::colorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
     m_quad.draw();
+    if(buffer.getDepth()->getSamples()>1)GLState::enable(GL_MULTISAMPLE);
+    drawParticles(camera,true);
 }
 } // namespace vr

@@ -1,4 +1,7 @@
 add_library(vrlib STATIC
+    src/vr/SkyParticles.cpp
+    src/vr/Billboard.cpp
+    src/vr/BounceAnimation.cpp
     src/glad.c
     src/vr/SpinCallback.cpp
     src/vr/SkeletalAnimation.cpp
@@ -13,6 +16,7 @@ add_library(vrlib STATIC
     src/vr/ColorTarget.cpp
     src/vr/ScreenQuad.cpp
     src/vr/DeferredRenderer.cpp
+    src/vr/LightGrid.cpp
     src/vr/DepthOfField.cpp
     src/vr/AmbientOcclusion.cpp
     src/vr/Antialiasing.cpp
@@ -30,6 +34,9 @@ add_library(vrlib STATIC
     src/vr/GLState.cpp
     src/vr/FramebufferImage.cpp
     src/vr/Geometry.cpp
+    src/vr/GeometryTerrain.cpp
+    src/vr/GraphVisitor.cpp
+    src/vr/CallbackVisitor.cpp
     src/vr/StreamBuffer.cpp
     src/vr/GpuSkinning.cpp
     src/vr/GeometrySkin.cpp
@@ -136,6 +143,18 @@ set(VIEWER_RESOURCES
     shaders/display.glsl
     shaders/surface.glsl
     shaders/bump-mapping.glsl
+    shaders/parallax-mapping.glsl
+    shaders/bounce.glsl
+    shaders/tree-deformation.glsl
+    shaders/terrain.vs
+    shaders/terrain.gs
+    shaders/terrain-depth.gs
+    shaders/terrain.glsl
+    shaders/sky-particles.vs
+    shaders/sky-particles.fs
+    shaders/sky-particles-present.fs
+    shaders/fur-vertex.glsl
+    shaders/fur-fragment.glsl
     shaders/lod-fade.glsl
     shaders/gbuffer.fs
     shaders/screen-quad.vs

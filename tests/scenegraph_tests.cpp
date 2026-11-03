@@ -650,16 +650,21 @@ private:
         check(points, "Keys 1-5 identify the four colored lights and daylight");
         check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
               "L toggles the flashlight independently of F's culling inspection");
-        check(vr::Controls::getBindings().size() == 26 &&
+        check(vr::Controls::getBindings().size() == 31 &&
+                  vr::Controls::find(GLFW_KEY_F12)->action == Action::SkyParticles &&
+                  vr::Controls::find(GLFW_KEY_F11)->action == Action::FurRendering &&
                   vr::Controls::find(GLFW_KEY_T)->action == Action::PointOrbit &&
                   vr::Controls::find(GLFW_KEY_F1)->action == Action::Performance &&
-                  !vr::Controls::find(GLFW_KEY_P) &&
+                  vr::Controls::find(GLFW_KEY_P)->action == Action::PauseAnimation &&
+                  !vr::Controls::find(GLFW_KEY_F10) &&
                   vr::Controls::find(GLFW_KEY_V)->action == Action::DepthOfField &&
                   vr::Controls::find(GLFW_KEY_F3)->action == Action::Antialiasing &&
                   vr::Controls::find(GLFW_KEY_F4)->action == Action::Subdivision &&
                   vr::Controls::find(GLFW_KEY_F5)->action == Action::Reflections &&
                   vr::Controls::find(GLFW_KEY_F6)->action == Action::BumpMapping &&
                   vr::Controls::find(GLFW_KEY_F7)->action == Action::Vsync &&
+                  vr::Controls::find(GLFW_KEY_F8)->action == Action::LightCulling &&
+                  vr::Controls::find(GLFW_KEY_F9)->action == Action::ParallaxMapping &&
                   vr::Controls::find(GLFW_KEY_TAB)->action == Action::Hud,
               "The compact shortcuts include profiling, renderer selection and AO");
         check(vr::Controls::find(GLFW_KEY_F2)->action == Action::Renderer &&
@@ -667,6 +672,9 @@ private:
                   vr::Controls::findShader(GLFW_KEY_A)->view == vr::BufferView::Occlusion,
               "Renderer, AO and the AO view have distinct controls");
         check(!vr::Controls::find(GLFW_KEY_UNKNOWN), "Unbound keys must not trigger an action");
+        check(!vr::Controls::findShader(GLFW_KEY_P) &&
+                  vr::Controls::findShader(GLFW_KEY_K)->action==Action::CookTorranceShader,
+              "P remains available for pause while K selects Cook-Torrance in the shader menu");
     }
 };
 

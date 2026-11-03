@@ -1,6 +1,8 @@
 #include <vr/ModelPicker.h>
 #include <vr/FrameWork.h>
 #include <vr/Geometry.h>
+#include <vr/BounceAnimation.h>
+#include <vr/TreeDeformation.h>
 #include <vr/ModelInstance.h>
 #include <vr/SkeletalAnimation.h>
 #include <algorithm>
@@ -41,11 +43,13 @@ std::optional<ModelHit> ModelPicker::pick(const std::vector<RenderNode>& items,c
     for(const auto& item:items){
         const auto glass=item.state.getUniforms().find("uGlass");
         if(item.state.getBlend() && !(glass!=item.state.getUniforms().end() && std::get<bool>(glass->second))) continue;
-        const auto entry=frameWorkOptimized()?entryDistance(item.geometry->getWorldBound(item.model),eye,direction):std::optional<float>(0.0f);
+        const auto bounce=bounceParameters(item.state);
+        const auto posedModel=item.model*bounceMatrix(bounce.x,bounce.y);
+        const auto entry=frameWorkOptimized()?entryDistance(item.geometry->getWorldBound(posedModel),eye,direction):std::optional<float>(0.0f);
         if(!entry) continue;
         candidates.push_back({&item,*entry});
         const auto texture=item.state.getTexture(0);
-        signatures.push_back({item.geometry,item.instance,item.model,item.instanceModel,
+        signatures.push_back({item.geometry,item.instance,posedModel,item.instanceModel,
             item.geometry->getDataRevision(),item.geometry->getSkin()?item.geometry->getSkin()->revision:0,
             item.state.getRevision(),texture?texture->getRevision():0,
             item.instance && item.instance->getSelectable()});
@@ -68,7 +72,8 @@ std::optional<ModelHit> ModelPicker::pick(const std::vector<RenderNode>& items,c
         if (item.state.getBlend() && !refractive){
             continue;
         }
-        const auto inverse = glm::inverse(item.model);
+        const auto bounce=bounceParameters(item.state);
+        const auto inverse = glm::inverse(item.model*bounceMatrix(bounce.x,bounce.y));
         const auto origin = glm::vec3(inverse * glm::vec4(eye, 1));
         const auto ray = glm::mat3(inverse) * direction;
         const auto alpha = item.state.getUniforms().find("uAlphaCutoff");
@@ -81,7 +86,12 @@ std::optional<ModelHit> ModelPicker::pick(const std::vector<RenderNode>& items,c
                 return texture->sampleAlpha(coordinates) >= cutoff;
             };
         }
-        if (const auto distance = item.geometry->intersectRay(origin, ray, nearest, accepts)){
+        const auto shape=treeShape(item.state);
+        std::function<glm::vec3(const glm::vec3&)> deform;
+        std::function<BoundingBox(const BoundingBox&)> bounds;
+        if(shape.height>0){deform=[shape](const auto& p){return treePoint(p,shape);};
+            bounds=[shape](const auto& box){return treeBound(box,shape);};}
+        if (const auto distance = item.geometry->intersectRay(origin, ray, nearest, accepts,deform,bounds)){
             nearest = *distance;
             hit = item.instance && item.instance->getSelectable()
                       ? std::optional<ModelHit>{{item.instance, item.instanceModel, *distance}}

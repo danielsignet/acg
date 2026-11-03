@@ -6,6 +6,7 @@
 #include "ColorTarget.h"
 #include "GBuffer.h"
 #include "LightCollector.h"
+#include "LightGrid.h"
 #include "ScreenQuad.h"
 #include "RenderMode.h"
 #include <functional>
@@ -112,6 +113,11 @@ public:
         return m_screenDraws;
     }
 
+    // Toggles spatial light lists against the full-list reference path.
+    void setLightCulling(bool enabled){ m_lightCulling = enabled; }
+    bool getLightCulling() const{ return m_lightCulling; }
+    const LightGrid& getLightGrid() const{ return m_lightGrid; }
+
     // Returns a thumbnail rectangle in top-left framebuffer coordinates.
     glm::ivec4 previewRectangle(unsigned index) const;
     // Returns the latest geometry buffers for numerical diagnostics.
@@ -130,7 +136,7 @@ private:
     static void screenPass();
     // Resolves one coherent nearest surface for AO, post effects and diagnostic views.
     void resolveGeometry();
-    // Binds surface attachments and evaluates lights once per visible pixel.
+    // Binds surfaces and evaluates only each pixel's tile/object light list.
     void light(const Camera& camera, const State& state,
                const std::vector<PositionedLight>& lights);
     // Extracts and filters intermediate images before composing the final color target.
@@ -148,6 +154,8 @@ private:
     std::unique_ptr<AmbientOcclusion> m_occlusion;
     std::unique_ptr<DepthOfField> m_dof;
     bool m_ambientOcclusion = false;
+    bool m_lightCulling = true;
+    LightGrid m_lightGrid;
     std::unique_ptr<GBuffer> m_gbuffer;
     std::unique_ptr<GBuffer> m_multisampleBuffer;
     std::unique_ptr<ColorTarget> m_multisampleColor;

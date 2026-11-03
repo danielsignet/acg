@@ -19,7 +19,8 @@ void main(){
     if (position.w == 0.0){
         vec4 view = uInverseProjection * vec4(texCoord * 2.0 - 1.0, 1, 1);
         vec3 direction=mat3(uInverseView)*view.xyz;
-        fragmentColor = vec4(texture(uSky, vec4(direction,float(skyLayerForRay(uEye,direction)))).rgb, 0);
+        int layer=skyLayerForRay(uEye,direction);
+        fragmentColor = vec4(uParticleSky[layer] ? vec3(.00002,.00003,.00008) : texture(uSky,vec4(direction,float(layer))).rgb,0);
         return;
     }
     int flags = int(round(surfaceValue(uEmissive).a));

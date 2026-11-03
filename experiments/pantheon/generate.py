@@ -11,6 +11,11 @@ import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw, ImageFont
 from types import SimpleNamespace
 from wings import add_wings, ROOMS, START
+from relief_demo import add_demonstration, build_meshes as build_relief_meshes, CAMERAS as RELIEF_CAMERAS, TREE_PLACEMENTS, TREE_WARPS
+from fur_demo import add_demonstration as add_fur_demonstration, bake as bake_fur, CAMERAS as FUR_CAMERAS
+from billboard_demo import add_demonstration as add_billboards, bake as bake_billboards, CAMERAS as BILLBOARD_CAMERAS
+from starfield_demo import add_demonstration as add_starfield, bake as bake_starfield, CAMERAS as STAR_CAMERAS
+from terrain_demo import add_demonstration as add_terrain, bake as bake_terrain, CAMERAS as TERRAIN_CAMERAS
 
 HERE = Path(__file__).resolve().parent
 PREFIX = "experiments/pantheon/"
@@ -39,6 +44,11 @@ CAMERAS = {
     "city-sky": ((55, 3, 0), (85, 35, 0)),
     "city-gate-high": ((62,22,0),(25,6,0)),
 }
+CAMERAS.update(RELIEF_CAMERAS)
+CAMERAS.update(FUR_CAMERAS)
+CAMERAS.update(BILLBOARD_CAMERAS)
+CAMERAS.update(STAR_CAMERAS)
+CAMERAS.update(TERRAIN_CAMERAS)
 COUNTS = {}
 TRANSFORMS = {}
 
@@ -330,7 +340,14 @@ def asset(parent,name,mesh,mats):
 
 
 def main():
+    COUNTS['billboard-grass'] = bake_billboards()
+    fur_geometry=bake_fur()
+    COUNTS['fur-bear']={'triangles':fur_geometry['triangles'],'vertices':fur_geometry['vertices']}
     build_meshes()
+    relief_geometry=build_relief_meshes()
+    for name,key in (("relief-oak","oak"),("city-007-masonry","city_masonry"),("bounce-ball","ball")):
+        item=relief_geometry[key]
+        COUNTS[name]={"vertices_before_import":item["vertices"],"triangles":item["triangles"]}
     def texture(name,**extra):
         return dict(diffuse="1 1 1",ambient="0.32 0.28 0.23",specular="0.05 0.05 0.05",roughness="0.62",metallic="0",
                     environment=False,texture0=PREFIX+f"textures/{name}-albedo.jpg",normalMap=PREFIX+f"textures/{name}-normal.jpg",normalScale="0.85",**extra)
@@ -457,6 +474,23 @@ def main():
     wing_manifest=add_wings(scene,root,assets,colors,SimpleNamespace(
         here=HERE,prefix=PREFIX,Mesh=Mesh,transform=transform,group=group,state=state,
         asset=asset,vec=vec,annulus=annulus,door=DOOR,half=HALF,radius=R))
+    add_demonstration(scene)
+    add_fur_demonstration(scene)
+    add_billboards(scene)
+    wing_manifest['star_particles']=bake_starfield()
+    add_starfield(scene)
+    wing_manifest['terrain']=bake_terrain(HERE)
+    add_terrain(scene,PREFIX)
+    wing_manifest['billboards'] = json.loads((HERE/'billboard-material.json').read_text(encoding='utf-8'))
+    wing_manifest['fur']={'material':'fur-material.json','view':'fur','room':'silva','toggle':'F11',
+                          'layers':14,'source':'Frakassets/Pixor, Bear, CC0-1.0'}
+    wing_manifest["parallax"]={"materials":"relief-materials.json","geometry":"relief-geometry.json",
+        "bark_depth_m":.018,"brick_depth_m":.035,"toggle":"F9","views":list(RELIEF_CAMERAS),
+        "brick_location":"Tower 007 ground-floor walls","brick_height_m":3.6}
+    wing_manifest["city_trees"]={"instances":len(TREE_PLACEMENTS),"shared_asset":"relief-oak","placements":TREE_PLACEMENTS,"vertex_warps":TREE_WARPS,"deformation_height":8}
+    wing_manifest["vertex_bounce"]={"instance":"Bouncing ball","room":"lapis","view":"bounce",
+        "pause":"Aim, then click Pause or press P","shader":"shaders/bounce.glsl",
+        "material":"basketball-material.json","parallax_depth_m":.004}
     wing_manifest["pantheon_surfaces"]={"plaster":hall_stone,"marble":hall_marble,"dark_stone":hall_verde,
         "columns":column_finish,"texture_repeat_m":3,"normal_resolution":2048,"height_resolution":1024,
         "room_signs":dict(themes),"room_sign_dimensions_m":[3.4,.66],
@@ -478,7 +512,7 @@ def main():
     summary={"interior_diameter_m":2*R,"virtual_sphere_height_m":2*R,"oculus_diameter_m":2*OCULUS,
              "portal_plane_m":DOOR,"passage_half_width_m":HALF,"rooms":ROOMS,
              "authored_instances":len(list(scene.iter("instance"))),"lod_nodes":len(list(scene.iter("lod"))),
-             "mesh_resources":COUNTS,"unique_mesh_triangles":sum(v["triangles"] for v in COUNTS.values())}
+             "mesh_resources":COUNTS,"unique_mesh_triangles":sum(v["triangles"] for v in COUNTS.values()),"terrain":wing_manifest["terrain"]}
     (HERE/"geometry.json").write_text(json.dumps(summary,indent=2)+"\n",encoding="utf-8")
     print(json.dumps({k:v for k,v in summary.items() if k!="mesh_resources"},indent=2))
 

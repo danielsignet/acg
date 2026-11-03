@@ -14,6 +14,7 @@ namespace pantheon{
 // the callback off the architecture avoids marking every shadow caster dynamic.
 class RoomIsolation final : public vr::UpdateCallback, public vr::SceneRenderExtension{
 public:
+    vr::SceneRenderExtension* renderExtension() override{return this;}
     struct Zone{
         std::string room;
         glm::vec3 minimum,maximum;

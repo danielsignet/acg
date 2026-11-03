@@ -1,0 +1,25 @@
+{
+  "title": "Bear",
+  "author": "Frakassets / Pixor",
+  "license": "CC0-1.0",
+  "source_url": "https://pixor.art/library/creatures/bear/",
+  "download_url": "https://pixor.art/library/files/bear/pixor-library-bear.glb",
+  "source_sha256": "0e4098c297f93b05adbc589a717f91241836f198fdee48a0dec94a0d782f9a68",
+  "modifications": "Baked default skeletal pose; Loop refinement of body/muzzle; linear leg refinement preserves paw contact; smoothed normals; separate face, leg and muzzle grooming",
+  "triangles": 4924,
+  "materials": {
+    "coat": 1212,
+    "face": 1052,
+    "bare": 164,
+    "legs": 2240,
+    "muzzle": 256
+  },
+  "vertices": 2510,
+  "technique": "Shell fur with instanced layers and additive blending",
+  "layers": 14,
+  "blend_rgb": "FUNC_ADD, SRC_ALPHA, ONE",
+  "room": "silva",
+  "view": "fur",
+  "derived_sha256": "e1898dbc92ab597b91133409aa674161d94658085d47fa02fca1c86ffec69811",
+  "texture_sha256": "ca027035f49d0a3cfa7d4cf521d946874bc215ffc6ac0098e5ace2911167bd0e"
+}

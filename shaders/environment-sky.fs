@@ -12,7 +12,8 @@ uniform bool uLinearOutput;
 void main(){
     vec4 view = uInverseProjection * vec4(texCoord * 2.0 - 1.0, 1, 1);
     vec3 direction = mat3(uInverseView) * view.xyz;
-    vec3 color = texture(uSky, vec4(direction, float(skyLayerForRay(uEye,direction)))).rgb;
+    int layer=skyLayerForRay(uEye,direction);
+    vec3 color = uParticleSky[layer] ? vec3(.00002,.00003,.00008) : texture(uSky, vec4(direction,float(layer))).rgb;
     if (!uLinearOutput){ color = displayColor(color); }
     fragmentColor = vec4(color, 1);
 }

@@ -16,12 +16,14 @@ public:
     // Prevents assigning framebuffer ownership or scene pointers.
     ReflectionProbes& operator=(const ReflectionProbes&) = delete;
 
-    // Captures at most one visible object's cube face and publishes complete filtered maps.
+    // Captures one selected object's full cube when moving, or one face when static.
     void update(Scene& scene, const Camera& camera, EnvironmentMap& environment,
                 ShadingMode shading, const PortalResult& visibility, bool dynamic);
-    // Select one face before shadows; update consumes this exact observer later in the frame.
+    // Plans capture observers before shadows; update consumes those exact views.
     const Camera* plan(Scene& scene, const Camera& camera, const PortalResult& visibility, bool dynamic,
                               const std::function<bool(const std::string&)>& roomVisible = {});
+    // Live captures plan all six observers before room updates and shadow selection.
+    const std::vector<const Camera*>& getPlannedViews() const{ return m_plannedViews; }
 
     // Restarts partial captures after lighting, material or geometry changes.
     void invalidate(){
@@ -98,7 +100,9 @@ private:
     unsigned m_cursor = 0, m_face = 0, m_revision = 1, m_readyMask = 1;
     unsigned m_faces = 0, m_filterDraws = 0;
     unsigned m_filterCursor = 54;
-    std::unique_ptr<Camera> m_planned;
+    std::array<std::unique_ptr<Camera>,6> m_cameras;
+    std::vector<const Camera*> m_plannedViews;
+    bool m_liveCapture = false;
     bool m_planValid = false;
     bool m_hasPlan = false;
 };

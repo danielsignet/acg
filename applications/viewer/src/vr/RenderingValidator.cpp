@@ -199,7 +199,7 @@ void RenderingValidator::validateMaterialGallery(){
     const auto lights = app.m_pointLights;
     app.m_scene->getCamera()->setLookAt({23, 7, -63},{0, 2.3f, -44.18f});
     app.handleKey(GLFW_KEY_Z);
-    app.handleKey(GLFW_KEY_P);
+    app.handleKey(GLFW_KEY_K);
     app.render();
     const auto cook = captureScene();
     require(app.m_shadingMode == ShadingMode::CookTorrance && app.m_reflection->getRendered() &&
@@ -424,13 +424,16 @@ void RenderingValidator::validateReflections(){
     require(app.m_reflectionMode == ReflectionMode::Cubemaps,
             "The reflection button advances Environment to Cubemaps");
     app.render();
-    // Allow a complete round of captures plus bounded incremental GGX filtering.
-    // The old 90-frame limit assumed all 54 filter draws happened in one frame.
+    // Static captures amortize their faces and filtering; moving scenes publish
+    // six faces and the complete GGX filter together for each selected probe.
     const auto reflectionWarmup=16u*app.m_reflectionProbes->getProbeCount();
     for (unsigned frame = 0; frame < reflectionWarmup; ++frame){
         app.render();
-        require(app.m_reflectionProbes && app.m_reflectionProbes->getFaces() <= 1,
-                "Local reflections respect the one-cube-face-per-frame capture budget");
+        const auto& probes = *app.m_reflectionProbes;
+        const bool live = probes.getPlannedViews().size() == 6;
+        require(live ? probes.getFaces() == 6 && probes.getFilterDraws() == 54
+                     : probes.getFaces() <= 1,
+                "Local reflections publish coherent live cubes or budget static face captures");
     }
     const auto reflectionChanges=captureScene().countChangedPixels(original);
     std::cout << "Local probes: " << app.m_reflectionProbes->getReadyCount() << '/'
@@ -1466,12 +1469,29 @@ void RenderingValidator::validateControls(){
     require(app.m_vsync != vsync, "The VSync button changes the presentation setting");
     app.handleKey(GLFW_KEY_F7);
     require(app.m_vsync == vsync, "F7 uses the same VSync action as the toolbar");
+    const bool lightCulling = app.m_lightCullingEnabled;
+    const bool parallax = app.m_parallaxMappingEnabled;
+    app.handleKey(GLFW_KEY_F9);
+    require(app.m_parallaxMappingEnabled != parallax &&
+                std::get<bool>(app.m_scene->getRoot()->getState()->getUniforms().at("uParallaxMapping")) ==
+                    app.m_parallaxMappingEnabled,
+            "F9 switches parallax mapping independently of normal/bump mapping");
+    app.handleKey(GLFW_KEY_F8);
+    require(app.m_lightCullingEnabled != lightCulling &&
+                app.m_deferred->getLightCulling() == app.m_lightCullingEnabled,
+            "F8 switches the actual deferred light-list culling path");
     app.execute(Action::ToonShader);
     app.execute(Action::Shadows);
     app.execute(Action::ReloadScene);
     require(!app.m_shadowsEnabled && app.m_scene->getRenderTargets().size() == 2 &&
-                app.m_vsync == vsync,
-            "Reload preserves shadow and VSync settings and recreates scene depth attachments");
+                app.m_vsync == vsync && app.m_lightCullingEnabled != lightCulling &&
+                app.m_deferred->getLightCulling() == app.m_lightCullingEnabled &&
+                app.m_parallaxMappingEnabled != parallax &&
+                std::get<bool>(app.m_scene->getRoot()->getState()->getUniforms().at("uParallaxMapping")) ==
+                    app.m_parallaxMappingEnabled,
+            "Reload preserves shadows, VSync and light culling and recreates scene depth attachments");
+    app.handleKey(GLFW_KEY_F8);
+    app.handleKey(GLFW_KEY_F9);
     app.execute(Action::Shadows);
     require(app.m_renderer->getShadingMode() == ShadingMode::Toon,
             "Reload preserves the selected shading mode");

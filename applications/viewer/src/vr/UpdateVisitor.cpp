@@ -37,19 +37,12 @@ bool UpdateVisitor::enter(Node& node){
 
 // Executes this group's callback once, then visits its children.
 void UpdateVisitor::apply(Group& node){
-    if (enter(node)){
-        if (auto instance = dynamic_cast<ModelInstance*>(&node)){
-            if (instance->getVisible()){
-                const auto children = instance->getChildren();
-                for (const auto& child : children){
-                    if (child != instance->getInactiveVariant()){
-                        child->accept(*this);
-                    }
-                }
-            }
-        } else{
-            traverse(node);
-        }
+    if(enter(node)) traverse(node);
+}
+void UpdateVisitor::apply(ModelInstance& node){
+    if(enter(node) && node.getVisible()){
+        const auto children=node.getChildren();
+        for(const auto& child:children) if(child!=node.getInactiveVariant()) child->accept(*this);
     }
 }
 

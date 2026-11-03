@@ -165,7 +165,9 @@ public:
             m_uniforms = std::make_shared<Uniforms>(*m_uniforms);
         }
         (*m_uniforms)[name] = std::move(value);
-        if(name=="uAlphaCutoff" || name=="uLodRange") m_shadowRevision=nextRevision();
+        if(name=="uAlphaCutoff" || name=="uLodRange" || name=="uBounceRadius" || name=="uBounceTime" ||
+           name=="uTreeHeight" || name=="uTreeWarp")
+            m_shadowRevision=nextRevision();
         changed();
     }
 

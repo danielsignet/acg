@@ -30,7 +30,11 @@ bool Viewer::parseOptions(int argc, char** argv){
             }
             return std::string(argv[++i]);
         };
-        if (option == "--shading"){
+        if (option == "--size"){
+            m_startWidth=std::stoi(next());m_startHeight=std::stoi(next());
+            if(m_startWidth<1 || m_startHeight<1 || m_startWidth>8192 || m_startHeight>8192)
+                throw std::invalid_argument("--size requires width and height between 1 and 8192");
+        } else if (option == "--shading"){
             const auto mode = next();
             if (mode != "phong" && mode != "blinn" && mode != "cook"){
                 throw std::invalid_argument("Unknown shading model: " + mode);
@@ -60,6 +64,12 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_noAO = true;
         } else if (option == "--no-bump"){
             m_noBump = true;
+        } else if (option == "--no-parallax"){
+            m_noParallax = true;
+        } else if (option == "--no-fur"){
+            m_noFur = true;
+        } else if (option == "--no-particles"){
+            m_noParticles = true;
         } else if (option == "--cpu-skinning"){
             m_cpuSkinning = true;
         } else if (option == "--no-shadow-cache"){
@@ -77,6 +87,8 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_noVsync = true;
         } else if (option == "--no-menus"){
             m_noMenus = true;
+        } else if (option == "--no-hud"){
+            m_noHud = true;
         } else if (option == "--hidden"){
             m_hidden = true;
         } else if (option == "--validate"){
@@ -103,6 +115,8 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_bufferView = static_cast<BufferView>(std::distance(names.begin(), found));
         } else if (option == "--no-culling"){
             m_noCulling = true;
+        } else if (option == "--no-light-culling"){
+            m_noLightCulling = true;
         } else if (option == "--no-shadows"){
             m_noShadows = true;
         } else if (option == "--portal-demo"){
@@ -126,12 +140,12 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_dotFile = next();
         } else if (option == "--help"){
             std::cout << "viewer [--root path] [--scene file] [--frames N] [--hidden] [--validate] "
-                         "[--lod-demo] [--inside] [--no-culling] "
+                         "[--lod-demo] [--inside] [--no-culling] [--no-light-culling] "
                          "[--portal-demo] [--no-portals] [--solid-walls] [--no-shadows] "
                          "[--buffer lit|positions|normals|albedo|specular|depth|"
                          "ambient|emissive|plane|ao] [--bloom] [--dof] "
                          "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
-                         "[--no-menus] [--no-bump] [--no-vsync] [--cpu-skinning] [--benchmark "
+                         "[--no-menus] [--no-hud] [--no-bump] [--no-parallax] [--no-fur] [--no-particles] [--size width height] [--no-vsync] [--cpu-skinning] [--benchmark "
                          "output.csv] [--no-shadow-cache] [--no-scene-cache] "
                          "[--aa off|fxaa|msaa] "
                          "[--reflections off|environment|cubemaps] "
@@ -163,7 +177,7 @@ void Viewer::initialize(){
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 0);
     glfwWindowHint(GLFW_VISIBLE, m_hidden ? GLFW_FALSE : GLFW_TRUE);
-    m_window = glfwCreateWindow(1280, 800, Application::WindowTitle, nullptr, nullptr);
+    m_window = glfwCreateWindow(m_startWidth,m_startHeight,Application::WindowTitle,nullptr,nullptr);
     if (!m_window){
         throw std::runtime_error("Window creation failed");
     }
@@ -186,6 +200,9 @@ void Viewer::initialize(){
     });
     glfwSetFramebufferSizeCallback(m_window, [](GLFWwindow* window, int width, int height){
         static_cast<Application*>(glfwGetWindowUserPointer(window))->resize(width, height);
+    });
+    glfwSetWindowFocusCallback(m_window, [](GLFWwindow* window, int){
+        static_cast<Application*>(glfwGetWindowUserPointer(window))->resetMouseInput();
     });
     glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int){
         if (button != GLFW_MOUSE_BUTTON_LEFT || action != GLFW_PRESS){
@@ -254,6 +271,9 @@ int Viewer::run(int argc, char** argv){
     if (m_noCulling){
         m_application->execute(Controls::Action::Culling);
     }
+    if (m_noLightCulling){
+        m_application->execute(Controls::Action::LightCulling);
+    }
     if (m_portalDemo){
         m_application->execute(Controls::Action::CullingDemo);
     }
@@ -283,10 +303,16 @@ int Viewer::run(int argc, char** argv){
     if (m_noBump){
         m_application->execute(Controls::Action::BumpMapping);
     }
+    if (m_noParallax){
+        m_application->execute(Controls::Action::ParallaxMapping);
+    }
+    if (m_noFur) m_application->execute(Controls::Action::FurRendering);
+    if (m_noParticles) m_application->execute(Controls::Action::SkyParticles);
     if (m_forward){
         m_application->execute(Controls::Action::Renderer);
     }
     m_application->m_benchmarkHud=m_benchmarkHud;
+    if (m_noHud) m_application->m_showHud=false;
     if (m_performance){
         m_application->execute(Controls::Action::Performance);
     }
@@ -294,6 +320,10 @@ int Viewer::run(int argc, char** argv){
         m_application->execute(Controls::Action::Hud);
     }
     GLState::Scope trackedContext;
+    m_application->resetMouseInput();
+    if (!m_hidden){
+        glfwFocusWindow(m_window);
+    }
     double previous = glfwGetTime();
     int frames = 0;
     while (!glfwWindowShouldClose(m_window)){
@@ -313,6 +343,9 @@ int Viewer::run(int argc, char** argv){
             profiler.endFrame(glfwGetTime() - frameStart);
             glfwWaitEventsTimeout(0.05);
             continue;
+        }
+        if (width != m_application->m_width || height != m_application->m_height){
+            m_application->resize(width, height);
         }
         {
             FrameProfiler::Scope frame(&profiler, FrameProfiler::Stage::Frame);

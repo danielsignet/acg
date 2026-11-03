@@ -5,6 +5,7 @@ in vec2 texCoord;
 out vec4 fragmentColor;
 #include "lighting.glsl"
 #include "surface.glsl"
+#include "fur-fragment.glsl"
 #include "environment.glsl"
 uniform bool uLinearOutput;
 uniform bool uEnvironmentMaterial, uMirror, uMirrorAvailable, uClipEnabled;
@@ -21,6 +22,7 @@ uniform mat4 uView, uProjection;
 
 // Shades forward surfaces, including transparent geometry over deferred lighting.
 void main(){
+    vec2 coordinates = parallaxCoordinates(texCoord);
     if (outsideRoomWindow(worldPosition)) discard;
     if (uClipEnabled && dot(vec4(worldPosition, 1), uClipPlane) < 0.001){ discard; }
     if (uRoomPortal){
@@ -28,9 +30,11 @@ void main(){
         fragmentColor=vec4(uLinearOutput ? color : displayColor(color),1);
         return;
     }
-    vec4 surface = sampleSurface(texCoord);
+    vec4 surface = sampleSurface(coordinates);
+    float furAlpha=uFurPass?furCoverage():1.0;
+    if(furAlpha<.015) discard;
     vec3 normal, plane;
-    surfaceNormals(normal, plane);
+    surfaceNormals(coordinates, normal, plane);
     if (uGlass){
         fragmentColor = vec4(glassColor(surface.rgb, normal), surface.a * uOpacity);
         return;
@@ -45,6 +49,9 @@ void main(){
         radiance = uMirrorAvailable ? texture(uTextures[3], (gl_FragCoord.xy - uViewportOrigin) / uViewport).rgb
                                     : vec3(0.01);
     }
+    // Additive shells use SRC_ALPHA + ONE. Normalize layer energy so changing the
+    // shell count changes sampling quality rather than multiplying brightness.
+    if(uFurPass) radiance*=3.0/float(max(uFurLayers,1))*mix(.22,1.0,furLayer);
     fragmentColor = vec4(uLinearOutput ? radiance : displaySurface(radiance, worldPosition, uFog),
-                         surface.a * uOpacity);
+                         surface.a * uOpacity * furAlpha);
 }

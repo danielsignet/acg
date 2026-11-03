@@ -77,7 +77,7 @@ int main(int argc, char** argv){
             app.handleKey(GLFW_KEY_C);
             capture("-depth-unculled");
             app.handleKey(GLFW_KEY_Z);
-            app.handleKey(GLFW_KEY_P);
+            app.handleKey(GLFW_KEY_K);
             app.handleKey(GLFW_KEY_TAB);
             app.handleKey(GLFW_KEY_O);
             if (mode=="no-shadows") app.handleKey(GLFW_KEY_O);

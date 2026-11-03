@@ -7,6 +7,7 @@ class SkeletalAnimation;
 class ModelInstance final : public Group{
 public:
     using Group::Group;
+    void accept(NodeVisitor& visitor) override { visitor.apply(*this); }
 
     // Wraps one placement of a shared model asset with its own variant visibility.
     static std::shared_ptr<ModelInstance>

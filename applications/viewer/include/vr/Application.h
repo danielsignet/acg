@@ -36,6 +36,9 @@ public:
     // Dispatches a toolbar click expressed in framebuffer coordinates.
     void handleClick(float x, float y);
 
+    // Releases mouse capture and discards coordinates from the previous focus state.
+    void resetMouseInput();
+
     // Updates the viewport and camera projection for a nonempty framebuffer.
     void resize(int width, int height);
 
@@ -68,6 +71,10 @@ private:
 
     // Reports whether the selected instance belongs to the car exhibit.
     bool carTargeted() const;
+    // Finds a selected object's spin on its placement's ancestor path.
+    std::shared_ptr<SpinCallback> targetSpin() const;
+    // Returns the local playback preference for a pausable target, if any.
+    std::optional<bool> targetAnimationPlaying() const;
 
     // Keeps the car's beams and emissive headlamp surfaces on the same switch.
     void applyCarHeadlights(Scene& scene) const;
@@ -160,6 +167,10 @@ private:
     AntialiasingMode m_antialiasingMode = AntialiasingMode::Off;
     ReflectionMode m_reflectionMode = ReflectionMode::Environment;
     bool m_bumpMappingEnabled = true;
+    bool m_parallaxMappingEnabled = true;
+    bool m_furEnabled = true;
+    bool m_particlesEnabled = true;
+    bool m_lightCullingEnabled = true;
     bool m_deferredEnabled = true, m_ambientOcclusionEnabled = true;
     bool m_bloomEnabled = false, m_depthOfFieldEnabled = false, m_bufferPreviews = true;
     glm::vec3 m_position{0};

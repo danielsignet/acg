@@ -34,9 +34,13 @@
       "kind": "dragon planetarium / star sky"
     }
   },
-  "authored_instances": 937,
+  "authored_instances": 1046,
   "lod_nodes": 161,
   "mesh_resources": {
+    "fur-bear": {
+      "triangles": 4924,
+      "vertices": 2510
+    },
     "door-bay": {
       "vertices_before_import": 336,
       "triangles": 168
@@ -136,6 +140,18 @@
     "coffer-4-low": {
       "vertices_before_import": 36,
       "triangles": 18
+    },
+    "relief-oak": {
+      "vertices_before_import": 466576,
+      "triangles": 165248
+    },
+    "city-007-masonry": {
+      "vertices_before_import": 39402,
+      "triangles": 13134
+    },
+    "bounce-ball": {
+      "vertices_before_import": 11904,
+      "triangles": 3968
     },
     "curtain-short": {
       "vertices_before_import": 312,
@@ -248,7 +264,37 @@
     "gyro-shaft-collars": {
       "vertices_before_import": 1152,
       "triangles": 512
+    },
+    "billboard-grass": {
+      "vertices_before_import": 8,
+      "triangles": 4
     }
   },
-  "unique_mesh_triangles": 20240
+  "unique_mesh_triangles": 207518,
+  "terrain": {
+    "technique": "OpenGL 4.1 geometry shader; height lookup and triangle emission in color and depth passes",
+    "heightmap": "textures/dragon-terrain-height.png",
+    "heightmap_size": [
+      513,
+      513
+    ],
+    "grid_cells": [
+      128,
+      128
+    ],
+    "triangles": 25816,
+    "maximum_grid_triangles": 32768,
+    "clip_zero": true,
+    "dimensions_m": [
+      26,
+      3.8,
+      22
+    ],
+    "height_range_m": [
+      0.0,
+      3.352941176470588
+    ],
+    "cpu": "Immutable matching triangles for conservative bounds and exact ray picking",
+    "source": "Own deterministic procedural height map and rock texture; terrain_demo.py"
+  }
 }

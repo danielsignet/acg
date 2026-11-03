@@ -103,6 +103,9 @@ private:
         glm::vec2 lodRange;
         std::vector<std::size_t> casters;
         bool dynamic = false;
+        glm::vec2 bounce{0};
+        float treeHeight=0;
+        glm::vec4 treeWarp{0};
     };
 
     struct CasterState{
@@ -113,12 +116,13 @@ private:
         glm::vec2 range;
         bool culling;
         std::uint64_t poseRevision = 0;
+        glm::vec2 bounce{0};
 
         bool operator==(const CasterState& other) const{
             return geometry == other.geometry && geometryRevision == other.geometryRevision &&
                    textureRevision == other.textureRevision && model == other.model &&
                    cutoff == other.cutoff && range == other.range && culling == other.culling &&
-                   poseRevision == other.poseRevision;
+                   poseRevision == other.poseRevision && bounce==other.bounce;
         }
     };
 

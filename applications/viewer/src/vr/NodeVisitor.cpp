@@ -5,8 +5,12 @@
 #include <vr/Light.h>
 #include <vr/NodeVisitor.h>
 #include <vr/Transform.h>
+#include <vr/ModelInstance.h>
+#include <vr/Billboard.h>
 
 namespace vr{
+void NodeVisitor::apply(ModelInstance& node){apply(static_cast<Group&>(node));}
+void NodeVisitor::apply(Billboard& node){apply(static_cast<Transform&>(node));}
 // Allows derived objects to release their owned resources safely.
 NodeVisitor::~NodeVisitor() = default;
 

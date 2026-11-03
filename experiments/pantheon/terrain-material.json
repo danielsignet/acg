@@ -1,0 +1,26 @@
+{
+  "technique": "OpenGL 4.1 geometry shader; height lookup and triangle emission in color and depth passes",
+  "heightmap": "textures/dragon-terrain-height.png",
+  "heightmap_size": [
+    513,
+    513
+  ],
+  "grid_cells": [
+    128,
+    128
+  ],
+  "triangles": 25816,
+  "maximum_grid_triangles": 32768,
+  "clip_zero": true,
+  "dimensions_m": [
+    26,
+    3.8,
+    22
+  ],
+  "height_range_m": [
+    0.0,
+    3.352941176470588
+  ],
+  "cpu": "Immutable matching triangles for conservative bounds and exact ray picking",
+  "source": "Own deterministic procedural height map and rock texture; terrain_demo.py"
+}

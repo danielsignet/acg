@@ -1,6 +1,9 @@
 in vec2 texCoord;
 out vec4 fragmentColor;
 #include "lighting.glsl"
+// 16 x 9 tile masks, four exact ten-bit integers packed into each vector.
+uniform vec4 uLightTiles[36];
+uniform vec2 uLightGridScale;
 #ifdef MULTISAMPLE
 uniform sampler2DMS uGPosition, uGNormal, uGAlbedo, uGSpecular, uGAmbient, uGEmissive, uGPlane;
 // gl_SampleID forces separate lighting for each coverage sample, before color resolution.
@@ -25,13 +28,16 @@ void main(){
     vec4 plane = readSurface(uGPlane, texCoord);
     vec4 albedo = readSurface(uGAlbedo, texCoord);
     int flags = int(round(emissive.a));
+    ivec2 tile = clamp(ivec2(gl_FragCoord.xy * uLightGridScale), ivec2(0), ivec2(15, 8));
+    int tileIndex = tile.y * 16 + tile.x;
+    int lightMask = int(round(plane.a)) & int(uLightTiles[tileIndex / 4][tileIndex % 4]);
     Material material = Material(readSurface(uGAmbient, texCoord).rgb, albedo.rgb,
                                  specular.rgb, specular.a,
                                  readSurface(uGNormal, texCoord).a, albedo.a);
     vec3 radiance =
         shadeSurface(position.xyz, normalize(readSurface(uGNormal, texCoord).xyz), normalize(plane.xyz),
                      vec4(material.diffuse, 1.0), material, emissive.rgb, (flags & 1) != 0,
-                     (flags & 8) != 0, (flags & 4) != 0, int(round(plane.a)),
+                     (flags & 8) != 0, (flags & 4) != 0, lightMask,
                      readSurface(uGAmbient, texCoord).a, (flags & 16) != 0);
     fragmentColor = vec4(radiance, 1.0);
 }

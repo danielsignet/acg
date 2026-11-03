@@ -3,6 +3,7 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <variant>
@@ -40,6 +41,8 @@ public:
     }
 
     bool supportsInstancing() const;
+    // Reuses this pass's fragment stage with height-map geometry generation.
+    std::shared_ptr<Program> heightFieldVariant(bool depth = false) const;
 
 private:
     // Reads shader source and expands relative includes with bounded nesting.
@@ -48,6 +51,8 @@ private:
     // Compiles one shader stage and reports the driver diagnostic on failure.
     static GLuint compileShader(const std::filesystem::path& path, GLenum type);
     GLuint m_id = 0;
+    std::filesystem::path m_fragment;
+    mutable std::shared_ptr<Program> m_heightColor, m_heightDepth;
     mutable std::map<std::string, GLint> m_locations;
     mutable std::vector<std::optional<Uniform>> m_values;
     mutable int m_instancing = -1;

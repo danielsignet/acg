@@ -6,9 +6,11 @@
 #include "ScreenQuad.h"
 #include "RenderMode.h"
 #include "SceneEnvironments.h"
+#include "SkyParticles.h"
 #include <array>
 
 namespace vr{
+class FrameProfiler;
 class EnvironmentMap final{
 public:
     // Loads one HDRI and bakes reusable GGX reflections, diffuse SH and the BRDF lookup.
@@ -21,6 +23,14 @@ public:
     void apply(const Program& program, unsigned firstUnit = 14) const;
     // Draws an HDR or display-encoded sky before forward scene geometry.
     void drawSky(const Camera& camera, bool linearOutput);
+    void setParticlesEnabled(bool enabled){m_particlesEnabled=enabled;}
+    bool getParticlesEnabled() const{return m_particlesEnabled;}
+    void advanceParticles(double delta,bool animate);
+    void setProfiler(FrameProfiler* profiler){m_profiler=profiler;}
+    unsigned getParticleDraws() const{return m_particleDraws;}
+    unsigned getParticleCount() const{return m_particleCount;}
+    unsigned getSkyScreenDraws() const{return m_skyScreenDraws;}
+    std::size_t getParticleBytes() const;
     // Adds the sky and surface IBL to the currently bound deferred lighting target.
     void drawDeferred(const Camera& camera, const GBuffer& buffer,
                       const std::shared_ptr<Texture>& ambient, int brdfMode);
@@ -54,6 +64,16 @@ public:
     }
 
 private:
+    bool particlesVisible(unsigned layer,const Camera& camera) const;
+    void drawSkyBase(const Camera& camera,bool linearOutput);
+    void drawParticles(const Camera& camera,bool depth);
+    std::array<std::unique_ptr<SkyParticles>,4> m_particles;
+    std::shared_ptr<Program> m_particleProgram,m_particlePresent;
+    std::unique_ptr<ColorTarget> m_particleTarget;
+    FrameProfiler* m_profiler=nullptr;
+    float m_particleTime=0;
+    bool m_particlesEnabled=true;
+    unsigned m_particleDraws=0,m_particleCount=0,m_skyScreenDraws=1;
     // Projects diffuse lighting and normalizes exposure before the temporary HDR upload.
     void projectLighting(float* pixels, int width, int height, float exposure);
     void applyRegions(const Program& program) const;

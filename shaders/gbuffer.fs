@@ -11,21 +11,21 @@ layout(location = 5) out vec4 gEmissive;
 layout(location = 6) out vec4 gPlane;
 
 #include "brdf.glsl"
-
+uniform vec3 uEye;
 #include "surface.glsl"
 uniform bool uReceiveShadows, uEnvironmentMaterial, uMirror, uMirrorAvailable;
 uniform vec2 uViewport;
 uniform vec2 uViewportOrigin;
-uniform vec3 uEye;
 #include "room-window.glsl"
 #include "room-portal.glsl"
 
 // Stores visible surface data without evaluating any lights.
 void main(){
+    vec2 coordinates = parallaxCoordinates(texCoord);
     if (outsideRoomWindow(worldPosition)) discard;
-    vec4 surface = sampleSurface(texCoord);
+    vec4 surface = sampleSurface(coordinates);
     vec3 normal, plane;
-    surfaceNormals(normal, plane);
+    surfaceNormals(coordinates, normal, plane);
     int flags = (uLighting ? 1 : 0) | (uFog ? 2 : 0) | (uReceiveShadows ? 4 : 0) |
                 (uToon ? 8 : 0) | (uEnvironmentMaterial ? 16 : 0) | (uReflectionProbe << 5);
     gPosition = vec4(worldPosition, 1.0);

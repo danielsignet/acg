@@ -117,13 +117,43 @@ vec3 cubeTexelDirection(vec3 direction, float size){
     return cubeDirection(uv, face);
 }
 
+// Tile lists vary per fragment. Constant sampler indices keep these lookups valid
+// on OpenGL 4.1; explicit LOD avoids implicit derivatives in divergent light loops.
+float pointShadowDepth(int slot, vec3 ray){
+    switch (slot){
+    case 0: return textureLod(uPointShadows[0], ray, 0.0).r;
+    case 1: return textureLod(uPointShadows[1], ray, 0.0).r;
+    case 2: return textureLod(uPointShadows[2], ray, 0.0).r;
+    case 3: return textureLod(uPointShadows[3], ray, 0.0).r;
+    case 4: return textureLod(uPointShadows[4], ray, 0.0).r;
+    case 5: return textureLod(uPointShadows[5], ray, 0.0).r;
+    case 6: return textureLod(uPointShadows[6], ray, 0.0).r;
+    case 7: return textureLod(uPointShadows[7], ray, 0.0).r;
+    }
+    return 1.0;
+}
+
+float pointShadowSize(int slot){
+    switch (slot){
+    case 0: return float(textureSize(uPointShadows[0], 0).x);
+    case 1: return float(textureSize(uPointShadows[1], 0).x);
+    case 2: return float(textureSize(uPointShadows[2], 0).x);
+    case 3: return float(textureSize(uPointShadows[3], 0).x);
+    case 4: return float(textureSize(uPointShadows[4], 0).x);
+    case 5: return float(textureSize(uPointShadows[5], 0).x);
+    case 6: return float(textureSize(uPointShadows[6], 0).x);
+    case 7: return float(textureSize(uPointShadows[7], 0).x);
+    }
+    return 1.0;
+}
+
 float pointVisibility(vec3 position, vec3 normal, vec3 lightPosition, int slot){
     vec3 delta = position - lightPosition;
     float distanceToLight = length(delta);
     if (distanceToLight < 0.0001 || distanceToLight >= uPointShadowFar[slot]){
         return 1.0;
     }
-    float size = float(textureSize(uPointShadows[slot], 0).x), visible = 0.0;
+    float size = pointShadowSize(slot), visible = 0.0;
     // Scale contact-edge tolerance with the light-space footprint and receiver slope.
     float cosine = clamp(abs(dot(normal, delta / max(distanceToLight, 0.0001))), 0.0, 1.0);
     float slope = sqrt(1.0 - cosine * cosine) / max(cosine, 0.1);
@@ -143,7 +173,7 @@ float pointVisibility(vec3 position, vec3 normal, vec3 lightPosition, int slot){
             float reference = abs(denominator) > 1e-6 && numerator * denominator > 0.0
                                   ? numerator / denominator * length(sampleRay)
                                   : distanceToLight;
-            float stored = texture(uPointShadows[slot], sampleRay).r * uPointShadowFar[slot];
+            float stored = pointShadowDepth(slot, sampleRay) * uPointShadowFar[slot];
             visible += reference - bias <= stored ? weight : 0.0;
         }
     }
@@ -160,8 +190,11 @@ vec3 shadeSurface(vec3 position, vec3 n, vec3 planeNormal, vec4 surface, Materia
     float diffuseScale = environmentMaterial ? 1.0 - material.metallic : 1.0;
     if (lighting){
         result = material.ambient * surface.rgb * 0.6 * ambientVisibility * ambientScale;
-        for (int i = 0; i < uLightCount; ++i){
-            if (!uLights[i].enabled || (lightMask & (1 << i)) == 0){
+        // Visit only selected indices, preserving light/shadow slots and summation order.
+        for (int remaining = lightMask & ((1 << uLightCount) - 1); remaining != 0;){
+            int i = findLSB(remaining);
+            remaining &= remaining - 1;
+            if (!uLights[i].enabled){
                 continue;
             }
             vec3 lightDirection;

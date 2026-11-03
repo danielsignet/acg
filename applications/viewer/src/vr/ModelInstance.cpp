@@ -1,6 +1,7 @@
 #include <functional>
 #include <map>
 #include <vr/Geometry.h>
+#include <vr/GraphCloneVisitor.h>
 #include <vr/ModelInstance.h>
 #include <vr/SkeletalAnimation.h>
 #include <vr/Subdivision.h>
@@ -21,7 +22,7 @@ std::shared_ptr<ModelInstance> ModelInstance::create(const std::string& name,
     instance->m_selectable = selectable;
     instance->m_original = std::make_shared<Group>("original");
     auto placed = asset;
-    if (auto source = std::dynamic_pointer_cast<SkeletalAnimation>(asset->getUpdateCallback())){
+    if (auto source = callbackAs<SkeletalAnimation>(asset->getUpdateCallback())){
         auto animation = source->instantiate();
         instance->m_animation = animation;
         instance->setUpdateCallback(animation);
@@ -29,55 +30,18 @@ std::shared_ptr<ModelInstance> ModelInstance::create(const std::string& name,
         for (std::size_t i = 0; i < source->getBindings().size(); ++i){
             palettes[source->getBindings()[i].pose.get()] = animation->getBindings()[i].pose;
         }
-        std::map<const Node*, std::shared_ptr<Node>> copies;
-        const std::function<std::shared_ptr<Node>(const std::shared_ptr<Node>&)> clone =
-            [&](const auto& node) -> std::shared_ptr<Node>{
-            if (auto found = copies.find(node.get()); found != copies.end()){
-                return found->second;
-            }
-            std::shared_ptr<Node> copy;
-            if (auto geometry = std::dynamic_pointer_cast<Geometry>(node)){
-                copy = geometry->getSkin()
-                           ? geometry->instantiateSkin(palettes.at(geometry->getSkin().get()))
-                           : node;
-            } else if (auto group = std::dynamic_pointer_cast<Group>(node)){
-                std::shared_ptr<Group> branch;
-                if (auto transform = std::dynamic_pointer_cast<Transform>(node)){
-                    auto transformed = std::make_shared<Transform>(node->getName());
-                    transformed->setMatrix(transform->getMatrix());
-                    branch = transformed;
-                } else{
-                    branch = std::make_shared<Group>(node->getName());
-                }
-                copy = branch;
-                copies[node.get()] = copy;
-                for (const auto& child : group->getChildren()){
-                    branch->addChild(clone(child));
-                }
-            } else{
-                throw std::runtime_error("Unsupported animated model node");
-            }
-            if (copy != node){
-                copy->setState(node->getState());
-                copy->setVisible(node->getVisible());
-                copy->setCullingEnabled(node->getCullingEnabled());
-                copy->setRoomId(node->getRoomId());
-                auto callback = node->getUpdateCallback();
-                if (node == asset){
-                    callback = std::dynamic_pointer_cast<Transform>(copy)
-                                   ? std::make_shared<JointAnimationCallback>(animation, 0)
-                                   : nullptr;
-                } else if (auto joint =
-                               std::dynamic_pointer_cast<JointAnimationCallback>(callback)){
-                    callback =
-                        std::make_shared<JointAnimationCallback>(animation, joint->getJoint());
-                }
-                copy->setUpdateCallback(std::move(callback));
-            }
-            copies[node.get()] = copy;
-            return copy;
-        };
-        placed = clone(asset);
+        GraphCloneVisitor cloner;
+        cloner.setGeometryHandler([&](Geometry& geometry)->std::shared_ptr<Node>{
+            return geometry.getSkin()?geometry.instantiateSkin(palettes.at(geometry.getSkin().get()))
+                                     :geometry.shared_from_this();
+        });
+        cloner.setCallbackHandler([&](Node& node,bool transformed)->std::shared_ptr<UpdateCallback>{
+            if(&node==asset.get())return transformed?std::make_shared<JointAnimationCallback>(animation,0):nullptr;
+            if(auto joint=callbackAs<JointAnimationCallback>(node.getUpdateCallback()))
+                return std::make_shared<JointAnimationCallback>(animation,joint->getJoint());
+            return node.getUpdateCallback();
+        });
+        placed=cloner.clone(asset);
     }
     instance->m_original->addChild(placed);
     instance->addChild(instance->m_original);

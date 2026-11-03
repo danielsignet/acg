@@ -17,8 +17,10 @@ SpinCallback::SpinCallback(const std::shared_ptr<Transform>& target, float speed
 
 // Rotates the local object only while object animation is enabled.
 void SpinCallback::update(Node& node, const UpdateContext& context){
+    m_changed=false;
     if (auto target = m_target.lock(); target && target.get() == &node){
-        if (context.animate){
+        m_changed=m_enabled && context.animate && std::isfinite(context.delta) && context.delta>0;
+        if (m_changed){
             m_angleRadians += static_cast<float>(context.delta) * m_radiansPerSecond;
         }
         target->setMatrix(m_baseMatrix * glm::rotate(glm::mat4(1), m_angleRadians, m_axis));

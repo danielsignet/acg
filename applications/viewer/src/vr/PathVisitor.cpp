@@ -7,6 +7,7 @@
 #include <vr/ModelInstance.h>
 #include <vr/PathVisitor.h>
 #include <vr/Transform.h>
+#include <vr/Billboard.h>
 
 namespace vr{
 namespace{
@@ -92,17 +93,17 @@ void PathVisitor::scoped(Node& node, const std::function<void()>& action){
 
 // Applies local state while traversing the group's children.
 void PathVisitor::apply(Group& node){
-    auto instance = m_instances.back();
-    if (auto model = dynamic_cast<ModelInstance*>(&node)){
-        instance ={model, m_models.back()};
-    }
-    StackScope<InstancePath> scope(m_instances, instance);
     scoped(node, [&]{ traverse(node); });
+}
+
+void PathVisitor::apply(ModelInstance& node){
+    StackScope<InstancePath> scope(m_instances,{&node,m_models.back()});
+    apply(static_cast<Group&>(node));
 }
 
 // Accumulates the local matrix and restores it after visiting descendants.
 void PathVisitor::apply(Transform& node){
-    StackScope<glm::mat4> matrixScope(m_models, node.getWorldMatrix(m_models.back()));
+    StackScope<glm::mat4> matrixScope(m_models,node.traversalMatrix(m_models.back(),m_eye));
     scoped(node, [&]{ traverse(node); });
 }
 

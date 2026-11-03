@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf8'?>
 <scene>
   <camera eye="-41 5 -15" target="-58 6.8 0" />
   <assets>
@@ -131,9 +131,10 @@
       <material name="ground" environment="true" metallic="0.65" roughness="0.26" diffuse="0.32 0.36 0.41" specular="0.2 0.22 0.25" texture0="none" normalMap="none" />
       <material name="hotel_glas" environment="true" metallic="0" roughness="0.055" ior="1.52" diffuse="0.095 0.16 0.21" specular="0.04 0.04 0.04" texture0="none" normalMap="none" cull="false" />
     </model>
-    <model id="city-7" file="models/ResidentialBuildings/ResidentialBuildings007.fbx">
+    <model id="city-7" file="experiments/pantheon/meshes/city-007-masonry.obj">
       <material name="ground" environment="true" metallic="0.65" roughness="0.26" diffuse="0.32 0.36 0.41" specular="0.2 0.22 0.25" texture0="none" normalMap="none" />
       <material name="hotel_glas" environment="true" metallic="0" roughness="0.055" ior="1.52" diffuse="0.095 0.16 0.21" specular="0.04 0.04 0.04" texture0="none" normalMap="none" cull="false" />
+      <material name="brick" diffuse="1 1 1" ambient=".2 .2 .2" specular=".035 .035 .035" metallic="0" roughness=".88" environment="true" texture0="experiments/pantheon/textures/red_brick-albedo.jpg" normalMap="experiments/pantheon/textures/red_brick-normal.png" normalScale="1" heightMap="experiments/pantheon/textures/red_brick-height.png" parallax="true" parallaxScale="0.035" />
     </model>
     <model id="city-9" file="models/ResidentialBuildings/ResidentialBuildings009.fbx">
       <material name="ground" environment="true" metallic="0.65" roughness="0.26" diffuse="0.32 0.36 0.41" specular="0.2 0.22 0.25" texture0="none" normalMap="none" />
@@ -256,9 +257,31 @@
     <model id="gyro-label-quaternion" file="experiments/pantheon/meshes/sign.obj">
       <material name="*" diffuse="1 1 1" lighting="false" texture0="experiments/pantheon/textures/gyro-quaternion.png" castShadows="false" cull="false" />
     </model>
+    <model id="fur-bear" file="experiments/pantheon/meshes/fur-bear.obj">
+      <material name="coat" furLength="0.1" furLayers="14" furDensity="2.5" furBend="0 -0.06 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
+      <material name="legs" furLength="0.055" furLayers="14" furDensity="2.5" furBend="0 -0.033 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
+      <material name="face" furLength="0.008" furLayers="14" furDensity="7" furBend="0 -0.0048 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
+      <material name="muzzle" furLength="0.012" furLayers="14" furDensity="7" furBend="0 -0.0072 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
+      <material name="bare" roughness=".35" />
+    </model>
+    <model id="relief-oak" file="experiments/pantheon/meshes/relief-oak.obj">
+      <material name="bark" diffuse="1 1 1" ambient=".2 .2 .2" specular=".035 .035 .035" metallic="0" roughness=".88" environment="true" texture0="experiments/pantheon/textures/bark_brown_01-albedo.jpg" normalMap="experiments/pantheon/textures/bark_brown_01-normal.png" normalScale="1" heightMap="experiments/pantheon/textures/bark_brown_01-height.png" parallax="true" parallaxScale="0.018" />
+      <material name="leaf0" cull="false" roughness=".72" environment="true" />
+      <material name="leaf1" cull="false" roughness=".72" environment="true" />
+      <material name="leaf2" cull="false" roughness=".72" environment="true" />
+      <material name="leaf3" cull="false" roughness=".72" environment="true" />
+      <material name="leaf4" cull="false" roughness=".72" environment="true" />
+      <material name="leaf5" cull="false" roughness=".72" environment="true" />
+    </model>
+    <model id="bounce-ball" file="experiments/pantheon/meshes/bounce-ball.obj">
+      <material name="rubber" texture0="experiments/pantheon/textures/basketball-albedo.png" normalMap="experiments/pantheon/textures/basketball-normal.png" normalScale="1" heightMap="experiments/pantheon/textures/basketball-height.png" parallax="true" parallaxScale="0.004" diffuse="1 1 1" ambient=".16 .16 .16" specular=".04 .04 .04" shininess="28" roughness=".76" metallic="0" environment="true" />
+    </model>
+    <model id="billboard-grass" file="experiments/pantheon/meshes/billboard-grass.obj">
+      <material name="grass" texture0="experiments/pantheon/textures/billboard-grass.png" diffuse="1 1 1" ambient=".22 .25 .15" specular=".015 .02 .005" roughness=".96" metallic="0" alphaCutoff=".35" cull="false" blend="false" environment="true" />
+    </model>
   </assets>
   <group name="Pantheon experiment">
-    <transform name="Room visibility controller 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0" animation="room-isolation" zone-lapis="-24 0 -82 24 26 -34.6633 0 -58 24" opening-lapis="-5.603432 0 -34.6633 5.603432 10 -34.6633" zone-aes="34 0 -32 112 106 32 0 0 0" opening-aes="34 0 -5.603432 34 10 5.603432" zone-silva="-21 0 34 21 14 78 0 0 0" opening-silva="-5.603432 0 34 5.603432 10 34" zone-astra="-82 -30 -24 -34.6633 30 24 -58 1.065443e-14 24" opening-astra="-34.6633 0 -5.603432 -34.6633 10 5.603432" hub-radius="20.71229" entry-lapis="-3 0 -20.91229 3 7.4 -20.91229" entry-aes="20.91229 0 -3 20.91229 7.4 3" entry-silva="-3 0 20.91229 3 7.4 20.91229" entry-astra="-20.91229 0 -3 -20.91229 7.4 3" />
+    <transform name="Room visibility controller 001" translate="0 0 0" scale="1 1 1" rotate="0 0 0" animation="room-isolation" hub-radius="20.71229" zone-lapis="-24 0 -82 24 26 -34.6633 0 -58 24" opening-lapis="-5.603432 0 -34.6633 5.603432 10 -34.6633" entry-lapis="-3 0 -20.91229 3 7.4 -20.91229" zone-aes="34 0 -32 112 106 32 0 0 0" opening-aes="34 0 -5.603432 34 10 5.603432" entry-aes="20.91229 0 -3 20.91229 7.4 3" zone-silva="-21 0 34 21 14 78 0 0 0" opening-silva="-5.603432 0 34 5.603432 10 34" entry-silva="-3 0 20.91229 3 7.4 20.91229" zone-astra="-82 -30 -24 -34.6633 30 24 -58 1.065443e-14 24" opening-astra="-34.6633 0 -5.603432 -34.6633 10 5.603432" entry-astra="-20.91229 0 -3 -20.91229 7.4 3" />
     <state>
       <uniform name="uFog" type="bool" value="false" />
       <uniform name="uRoomWindowEnabled" type="bool" value="false" />
@@ -547,6 +570,14 @@
           </transform>
         </transform>
       </transform>
+      <group name="Shell fur exhibit" room="silva">
+        <transform name="Fur bear plinth" translate="-5 .4 -61" scale="6 .8 7">
+          <instance ref="polished-plinth" selectable="false" />
+        </transform>
+        <transform name="Fur bear placement" translate="-5 .8 -61" rotate="0 -25 0" scale="4 4 4">
+          <instance ref="fur-bear" name="Brown bear - shell fur" selectable="true" />
+        </transform>
+      </group>
     </transform>
     <light name="Oculus sun" position="0.22 0.96 0.16 0" diffuse="3.1 2.75 2.25" specular="2.2 1.95 1.6" ambient="0.05 0.046 0.04" />
     <group name="Rotunda architecture" room="rotunda">
@@ -2498,6 +2529,9 @@
           <instance ref="polished-plinth" name="Mirror lower rail 002" selectable="false" />
         </transform>
       </group>
+      <transform name="Vertex shader bouncing ball" translate="-7 1.16 -47" scale="1.15 1.15 1.15">
+        <instance ref="bounce-ball" name="Bouncing ball" selectable="true" bounceRadius="1" />
+      </transform>
     </transform>
     <transform name="roomPortal_lapis" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
       <instance ref="room-portal-lapis" name="roomPortal_lapis" selectable="false" />
@@ -3595,35 +3629,11 @@
       <transform name="Street planter 001" translate="-7 0.48 -39" scale="1.4 0.72 3" rotate="0 0 0">
         <instance ref="polished-plinth" name="Street planter 001" selectable="false" />
       </transform>
-      <transform name="Planter foliage 001" translate="-7 0.7 -39.55" scale="0.65 0.65 0.65" rotate="0 -25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
-      <transform name="Planter foliage 002" translate="-7 0.7 -38.45" scale="0.65 0.65 0.65" rotate="0 -25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
       <transform name="Street planter 002" translate="-7 0.48 -70" scale="1.4 0.72 3" rotate="0 0 0">
         <instance ref="polished-plinth" name="Street planter 002" selectable="false" />
       </transform>
-      <transform name="Planter foliage 003" translate="-7 0.7 -70.55" scale="0.65 0.65 0.65" rotate="0 -25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
-      <transform name="Planter foliage 004" translate="-7 0.7 -69.45" scale="0.65 0.65 0.65" rotate="0 -25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
       <transform name="Street planter 003" translate="-7 0.48 -104" scale="1.4 0.72 3" rotate="0 0 0">
         <instance ref="polished-plinth" name="Street planter 003" selectable="false" />
-      </transform>
-      <transform name="Planter foliage 005" translate="-7 0.7 -104.55" scale="0.65 0.65 0.65" rotate="0 -25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
-      <transform name="Planter foliage 006" translate="-7 0.7 -103.45" scale="0.65 0.65 0.65" rotate="0 -25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
       </transform>
       <transform name="Continuous stone sidewalk 002" translate="8.2 0.12 -73" scale="3.8 0.24 78" rotate="0 0 0">
         <state diffuse="1 1 1" ambient="0.32 0.28 0.23" specular="0.05 0.05 0.05" roughness=".35" metallic="0" environment="false" texture0="experiments/pantheon/textures/marble_01-albedo.jpg" normalMap="experiments/pantheon/textures/marble_01-normal.jpg" normalScale="0.7" tint=".32 .37 .4" />
@@ -3632,35 +3642,11 @@
       <transform name="Street planter 004" translate="7 0.48 -39" scale="1.4 0.72 3" rotate="0 0 0">
         <instance ref="polished-plinth" name="Street planter 004" selectable="false" />
       </transform>
-      <transform name="Planter foliage 007" translate="7 0.7 -39.55" scale="0.65 0.65 0.65" rotate="0 25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
-      <transform name="Planter foliage 008" translate="7 0.7 -38.45" scale="0.65 0.65 0.65" rotate="0 25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
       <transform name="Street planter 005" translate="7 0.48 -70" scale="1.4 0.72 3" rotate="0 0 0">
         <instance ref="polished-plinth" name="Street planter 005" selectable="false" />
       </transform>
-      <transform name="Planter foliage 009" translate="7 0.7 -70.55" scale="0.65 0.65 0.65" rotate="0 25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
-      <transform name="Planter foliage 010" translate="7 0.7 -69.45" scale="0.65 0.65 0.65" rotate="0 25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
       <transform name="Street planter 006" translate="7 0.48 -104" scale="1.4 0.72 3" rotate="0 0 0">
         <instance ref="polished-plinth" name="Street planter 006" selectable="false" />
-      </transform>
-      <transform name="Planter foliage 011" translate="7 0.7 -104.55" scale="0.65 0.65 0.65" rotate="0 25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
-      </transform>
-      <transform name="Planter foliage 012" translate="7 0.7 -103.45" scale="0.65 0.65 0.65" rotate="0 25 0">
-        <state cull="false" diffuse=".6 .85 .6" ambient=".3 .3 .3" texture0="textures/alphatest.png" alphaCutoff=".5" />
-        <instance ref="alphatest-panel" name="Leaf" selectable="true" />
       </transform>
       <transform name="Road centre marking 001" translate="0 0.006 -40" scale="0.12 0.012 3.5" rotate="0 0 0">
         <state diffuse=".75 .69 .5" ambient=".2 .2 .2" roughness=".7" />
@@ -3710,6 +3696,434 @@
         <light name="carHeadlightLeft" enabled="false" position="-0.67 0.724 2.18 1" direction="0 -0.08 1" inner="8" outer="16" range="30" diffuse="18 18.5 20" specular="2 2 2.2" ambient="0 0 0" attenuation="1 0.05 0.02" />
         <light name="carHeadlightRight" enabled="false" position="0.67 0.724 2.18 1" direction="0 -0.08 1" inner="8" outer="16" range="30" diffuse="18 18.5 20" specular="2 2 2.2" ambient="0 0 0" attenuation="1 0.05 0.02" />
       </transform>
+      <group name="Parallax bark and brick" room="aes">
+        <transform name="Oak planting 001" translate="-7 0.875 -39">
+          <transform name="Oak soil bed 001" translate="0 -.015 0" scale="1.2 .04 2.75">
+            <state diffuse=".28 .18 .08" ambient=".12 .1 .07" roughness="1" texture0="experiments/pantheon/textures/asphalt.png" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Oak shape 001" scale="0.65 1.28 0.82" rotate="0 31 0">
+            <group name="Oak crown deformation 001">
+              <state>
+                <uniform name="uTreeHeight" type="float" value="8" />
+                <uniform name="uTreeWarp" type="vec4" value="-1.35 0.35 0.85 -0.18" />
+              </state>
+              <instance ref="relief-oak" name="Street oak 001" selectable="true" />
+            </group>
+          </transform>
+          <group name="Billboard grass">
+            <billboard name="Oak planting 001 grass 01" mode="axial-y" translate="-0.3800 .01 -0.9900" scale="0.4332 0.3737 0.4332">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 02" mode="axial-y" translate="-0.3800 .01 -0.6600" scale="0.5308 0.4154 0.5308">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 03" mode="axial-y" translate="-0.3800 .01 -0.3300" scale="0.5080 0.3900 0.5080">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 04" mode="axial-y" translate="-0.3800 .01 0.0000" scale="0.4369 0.5025 0.4369">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 05" mode="axial-y" translate="-0.3800 .01 0.3300" scale="0.5268 0.5278 0.5268">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 06" mode="axial-y" translate="-0.3800 .01 0.6600" scale="0.5261 0.4952 0.5261">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 07" mode="axial-y" translate="-0.3800 .01 0.9900" scale="0.5162 0.5377 0.5162">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 08" mode="axial-y" translate="0.3800 .01 -0.9900" scale="0.5424 0.3407 0.5424">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 09" mode="axial-y" translate="0.3800 .01 -0.6600" scale="0.5010 0.4443 0.5010">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 10" mode="axial-y" translate="0.3800 .01 -0.3300" scale="0.5430 0.3540 0.5430">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 11" mode="axial-y" translate="0.3800 .01 0.0000" scale="0.5390 0.4299 0.5390">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 12" mode="axial-y" translate="0.3800 .01 0.3300" scale="0.5589 0.4365 0.5589">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 13" mode="axial-y" translate="0.3800 .01 0.6600" scale="0.4775 0.5003 0.4775">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 14" mode="axial-y" translate="0.3800 .01 0.9900" scale="0.5325 0.5233 0.5325">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 15" mode="axial-y" translate="-0.1600 .01 -1.1200" scale="0.5243 0.5293 0.5243">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 16" mode="axial-y" translate="0.1600 .01 -1.1200" scale="0.4390 0.4295 0.4390">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 17" mode="axial-y" translate="-0.1600 .01 1.1200" scale="0.4722 0.4322 0.4722">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 001 grass 18" mode="axial-y" translate="0.1600 .01 1.1200" scale="0.4743 0.5100 0.4743">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+          </group>
+        </transform>
+        <transform name="Oak planting 002" translate="-7 0.875 -70">
+          <transform name="Oak soil bed 002" translate="0 -.015 0" scale="1.2 .04 2.75">
+            <state diffuse=".28 .18 .08" ambient=".12 .1 .07" roughness="1" texture0="experiments/pantheon/textures/asphalt.png" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Oak shape 002" scale="1.18 0.78 1.25" rotate="0 112 0">
+            <group name="Oak crown deformation 002">
+              <state>
+                <uniform name="uTreeHeight" type="float" value="8" />
+                <uniform name="uTreeWarp" type="vec4" value="0.6 -0.9 -0.6 0.4" />
+              </state>
+              <instance ref="relief-oak" name="Street oak 002" selectable="true" />
+            </group>
+          </transform>
+          <group name="Billboard grass">
+            <billboard name="Oak planting 002 grass 01" mode="axial-y" translate="-0.3800 .01 -0.9900" scale="0.4818 0.5433 0.4818">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 02" mode="axial-y" translate="-0.3800 .01 -0.6600" scale="0.4744 0.5450 0.4744">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 03" mode="axial-y" translate="-0.3800 .01 -0.3300" scale="0.5363 0.5268 0.5363">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 04" mode="axial-y" translate="-0.3800 .01 0.0000" scale="0.5307 0.4906 0.5307">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 05" mode="axial-y" translate="-0.3800 .01 0.3300" scale="0.4411 0.4596 0.4411">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 06" mode="axial-y" translate="-0.3800 .01 0.6600" scale="0.4385 0.3692 0.4385">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 07" mode="axial-y" translate="-0.3800 .01 0.9900" scale="0.4402 0.4827 0.4402">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 08" mode="axial-y" translate="0.3800 .01 -0.9900" scale="0.5455 0.4736 0.5455">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 09" mode="axial-y" translate="0.3800 .01 -0.6600" scale="0.5465 0.4754 0.5465">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 10" mode="axial-y" translate="0.3800 .01 -0.3300" scale="0.4956 0.3318 0.4956">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 11" mode="axial-y" translate="0.3800 .01 0.0000" scale="0.5027 0.5457 0.5027">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 12" mode="axial-y" translate="0.3800 .01 0.3300" scale="0.5138 0.4817 0.5138">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 13" mode="axial-y" translate="0.3800 .01 0.6600" scale="0.5244 0.3483 0.5244">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 14" mode="axial-y" translate="0.3800 .01 0.9900" scale="0.4616 0.5046 0.4616">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 15" mode="axial-y" translate="-0.1600 .01 -1.1200" scale="0.5455 0.5211 0.5455">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 16" mode="axial-y" translate="0.1600 .01 -1.1200" scale="0.5450 0.3432 0.5450">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 17" mode="axial-y" translate="-0.1600 .01 1.1200" scale="0.5258 0.3754 0.5258">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 002 grass 18" mode="axial-y" translate="0.1600 .01 1.1200" scale="0.5791 0.5270 0.5791">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+          </group>
+        </transform>
+        <transform name="Oak planting 003" translate="-7 0.875 -104">
+          <transform name="Oak soil bed 003" translate="0 -.015 0" scale="1.2 .04 2.75">
+            <state diffuse=".28 .18 .08" ambient=".12 .1 .07" roughness="1" texture0="experiments/pantheon/textures/asphalt.png" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Oak shape 003" scale="0.9 1.07 0.75" rotate="0 204 0">
+            <group name="Oak crown deformation 003">
+              <state>
+                <uniform name="uTreeHeight" type="float" value="8" />
+                <uniform name="uTreeWarp" type="vec4" value="1.8 0.75 1.15 -0.1" />
+              </state>
+              <instance ref="relief-oak" name="Street oak 003" selectable="true" />
+            </group>
+          </transform>
+          <group name="Billboard grass">
+            <billboard name="Oak planting 003 grass 01" mode="axial-y" translate="-0.3800 .01 -0.9900" scale="0.4567 0.4091 0.4567">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 02" mode="axial-y" translate="-0.3800 .01 -0.6600" scale="0.5484 0.5089 0.5484">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 03" mode="axial-y" translate="-0.3800 .01 -0.3300" scale="0.4404 0.3963 0.4404">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 04" mode="axial-y" translate="-0.3800 .01 0.0000" scale="0.5686 0.5149 0.5686">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 05" mode="axial-y" translate="-0.3800 .01 0.3300" scale="0.4377 0.5261 0.4377">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 06" mode="axial-y" translate="-0.3800 .01 0.6600" scale="0.4449 0.4035 0.4449">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 07" mode="axial-y" translate="-0.3800 .01 0.9900" scale="0.5615 0.4800 0.5615">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 08" mode="axial-y" translate="0.3800 .01 -0.9900" scale="0.5549 0.3714 0.5549">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 09" mode="axial-y" translate="0.3800 .01 -0.6600" scale="0.5335 0.5488 0.5335">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 10" mode="axial-y" translate="0.3800 .01 -0.3300" scale="0.5397 0.3577 0.5397">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 11" mode="axial-y" translate="0.3800 .01 0.0000" scale="0.5341 0.4186 0.5341">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 12" mode="axial-y" translate="0.3800 .01 0.3300" scale="0.4893 0.4547 0.4893">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 13" mode="axial-y" translate="0.3800 .01 0.6600" scale="0.5638 0.3897 0.5638">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 14" mode="axial-y" translate="0.3800 .01 0.9900" scale="0.4696 0.4166 0.4696">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 15" mode="axial-y" translate="-0.1600 .01 -1.1200" scale="0.5750 0.4336 0.5750">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 16" mode="axial-y" translate="0.1600 .01 -1.1200" scale="0.5746 0.4828 0.5746">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 17" mode="axial-y" translate="-0.1600 .01 1.1200" scale="0.5175 0.5570 0.5175">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 003 grass 18" mode="axial-y" translate="0.1600 .01 1.1200" scale="0.5571 0.4115 0.5571">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+          </group>
+        </transform>
+        <transform name="Oak planting 004" translate="7 0.875 -39">
+          <transform name="Oak soil bed 004" translate="0 -.015 0" scale="1.2 .04 2.75">
+            <state diffuse=".28 .18 .08" ambient=".12 .1 .07" roughness="1" texture0="experiments/pantheon/textures/asphalt.png" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Oak shape 004" scale="1.03 0.95 1.1" rotate="0 0 0">
+            <group name="Oak crown deformation 004">
+              <state>
+                <uniform name="uTreeHeight" type="float" value="8" />
+                <uniform name="uTreeWarp" type="vec4" value="-0.7 -0.5 -0.95 0.2" />
+              </state>
+              <instance ref="relief-oak" name="Street oak 004" selectable="true" />
+            </group>
+          </transform>
+          <group name="Billboard grass">
+            <billboard name="Oak planting 004 grass 01" mode="axial-y" translate="-0.3800 .01 -0.9900" scale="0.5782 0.3425 0.5782">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 02" mode="axial-y" translate="-0.3800 .01 -0.6600" scale="0.5408 0.4886 0.5408">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 03" mode="axial-y" translate="-0.3800 .01 -0.3300" scale="0.5313 0.3840 0.5313">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 04" mode="axial-y" translate="-0.3800 .01 0.0000" scale="0.4634 0.4540 0.4634">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 05" mode="axial-y" translate="-0.3800 .01 0.3300" scale="0.5187 0.3663 0.5187">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 06" mode="axial-y" translate="-0.3800 .01 0.6600" scale="0.5194 0.3309 0.5194">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 07" mode="axial-y" translate="-0.3800 .01 0.9900" scale="0.4950 0.5213 0.4950">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 08" mode="axial-y" translate="0.3800 .01 -0.9900" scale="0.4713 0.4702 0.4713">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 09" mode="axial-y" translate="0.3800 .01 -0.6600" scale="0.5722 0.5167 0.5722">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 10" mode="axial-y" translate="0.3800 .01 -0.3300" scale="0.4430 0.3407 0.4430">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 11" mode="axial-y" translate="0.3800 .01 0.0000" scale="0.5576 0.4758 0.5576">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 12" mode="axial-y" translate="0.3800 .01 0.3300" scale="0.4648 0.4630 0.4648">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 13" mode="axial-y" translate="0.3800 .01 0.6600" scale="0.4978 0.3318 0.4978">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 14" mode="axial-y" translate="0.3800 .01 0.9900" scale="0.5733 0.4432 0.5733">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 15" mode="axial-y" translate="-0.1600 .01 -1.1200" scale="0.4428 0.3487 0.4428">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 16" mode="axial-y" translate="0.1600 .01 -1.1200" scale="0.4403 0.5536 0.4403">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 17" mode="axial-y" translate="-0.1600 .01 1.1200" scale="0.4754 0.4216 0.4754">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 004 grass 18" mode="axial-y" translate="0.1600 .01 1.1200" scale="0.5441 0.5431 0.5441">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+          </group>
+        </transform>
+        <transform name="Oak planting 005" translate="7 0.875 -70">
+          <transform name="Oak soil bed 005" translate="0 -.015 0" scale="1.2 .04 2.75">
+            <state diffuse=".28 .18 .08" ambient=".12 .1 .07" roughness="1" texture0="experiments/pantheon/textures/asphalt.png" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Oak shape 005" scale="0.72 1.32 0.8" rotate="0 73 0">
+            <group name="Oak crown deformation 005">
+              <state>
+                <uniform name="uTreeHeight" type="float" value="8" />
+                <uniform name="uTreeWarp" type="vec4" value="0.35 1.45 0.55 -0.28" />
+              </state>
+              <instance ref="relief-oak" name="Street oak 005" selectable="true" />
+            </group>
+          </transform>
+          <group name="Billboard grass">
+            <billboard name="Oak planting 005 grass 01" mode="axial-y" translate="-0.3800 .01 -0.9900" scale="0.5286 0.3997 0.5286">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 02" mode="axial-y" translate="-0.3800 .01 -0.6600" scale="0.4937 0.4878 0.4937">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 03" mode="axial-y" translate="-0.3800 .01 -0.3300" scale="0.5755 0.5572 0.5755">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 04" mode="axial-y" translate="-0.3800 .01 0.0000" scale="0.5759 0.4694 0.5759">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 05" mode="axial-y" translate="-0.3800 .01 0.3300" scale="0.5470 0.4685 0.5470">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 06" mode="axial-y" translate="-0.3800 .01 0.6600" scale="0.4975 0.3669 0.4975">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 07" mode="axial-y" translate="-0.3800 .01 0.9900" scale="0.4470 0.5384 0.4470">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 08" mode="axial-y" translate="0.3800 .01 -0.9900" scale="0.5541 0.5534 0.5541">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 09" mode="axial-y" translate="0.3800 .01 -0.6600" scale="0.5315 0.4938 0.5315">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 10" mode="axial-y" translate="0.3800 .01 -0.3300" scale="0.5315 0.4985 0.5315">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 11" mode="axial-y" translate="0.3800 .01 0.0000" scale="0.5477 0.5091 0.5477">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 12" mode="axial-y" translate="0.3800 .01 0.3300" scale="0.5592 0.4031 0.5592">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 13" mode="axial-y" translate="0.3800 .01 0.6600" scale="0.4461 0.5070 0.4461">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 14" mode="axial-y" translate="0.3800 .01 0.9900" scale="0.5122 0.5101 0.5122">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 15" mode="axial-y" translate="-0.1600 .01 -1.1200" scale="0.4473 0.4580 0.4473">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 16" mode="axial-y" translate="0.1600 .01 -1.1200" scale="0.5223 0.5253 0.5223">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 17" mode="axial-y" translate="-0.1600 .01 1.1200" scale="0.5251 0.4754 0.5251">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 005 grass 18" mode="axial-y" translate="0.1600 .01 1.1200" scale="0.4566 0.4364 0.4566">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+          </group>
+        </transform>
+        <transform name="Oak planting 006" translate="7 0.875 -104">
+          <transform name="Oak soil bed 006" translate="0 -.015 0" scale="1.2 .04 2.75">
+            <state diffuse=".28 .18 .08" ambient=".12 .1 .07" roughness="1" texture0="experiments/pantheon/textures/asphalt.png" />
+            <instance ref="box" selectable="false" />
+          </transform>
+          <transform name="Oak shape 006" scale="1.12 0.84 0.92" rotate="0 161 0">
+            <group name="Oak crown deformation 006">
+              <state>
+                <uniform name="uTreeHeight" type="float" value="8" />
+                <uniform name="uTreeWarp" type="vec4" value="-1.65 0.2 1.35 0.32" />
+              </state>
+              <instance ref="relief-oak" name="Street oak 006" selectable="true" />
+            </group>
+          </transform>
+          <group name="Billboard grass">
+            <billboard name="Oak planting 006 grass 01" mode="axial-y" translate="-0.3800 .01 -0.9900" scale="0.5606 0.4714 0.5606">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 02" mode="axial-y" translate="-0.3800 .01 -0.6600" scale="0.5208 0.4907 0.5208">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 03" mode="axial-y" translate="-0.3800 .01 -0.3300" scale="0.5462 0.5282 0.5462">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 04" mode="axial-y" translate="-0.3800 .01 0.0000" scale="0.4601 0.3403 0.4601">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 05" mode="axial-y" translate="-0.3800 .01 0.3300" scale="0.5599 0.3668 0.5599">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 06" mode="axial-y" translate="-0.3800 .01 0.6600" scale="0.4769 0.5245 0.4769">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 07" mode="axial-y" translate="-0.3800 .01 0.9900" scale="0.5074 0.3393 0.5074">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 08" mode="axial-y" translate="0.3800 .01 -0.9900" scale="0.5513 0.4439 0.5513">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 09" mode="axial-y" translate="0.3800 .01 -0.6600" scale="0.5104 0.4252 0.5104">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 10" mode="axial-y" translate="0.3800 .01 -0.3300" scale="0.5737 0.4816 0.5737">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 11" mode="axial-y" translate="0.3800 .01 0.0000" scale="0.4583 0.5358 0.4583">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 12" mode="axial-y" translate="0.3800 .01 0.3300" scale="0.5439 0.4220 0.5439">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 13" mode="axial-y" translate="0.3800 .01 0.6600" scale="0.5722 0.5153 0.5722">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 14" mode="axial-y" translate="0.3800 .01 0.9900" scale="0.4665 0.5526 0.4665">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 15" mode="axial-y" translate="-0.1600 .01 -1.1200" scale="0.4799 0.4682 0.4799">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 16" mode="axial-y" translate="0.1600 .01 -1.1200" scale="0.4334 0.3809 0.4334">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 17" mode="axial-y" translate="-0.1600 .01 1.1200" scale="0.4587 0.4337 0.4587">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+            <billboard name="Oak planting 006 grass 18" mode="axial-y" translate="0.1600 .01 1.1200" scale="0.5301 0.3851 0.5301">
+              <instance ref="billboard-grass" selectable="false" />
+            </billboard>
+          </group>
+        </transform>
+      </group>
     </transform>
     <transform name="roomPortal_aes" translate="0 0 0" scale="1 1 1" rotate="0 0 0">
       <instance ref="room-portal-aes" name="roomPortal_aes" selectable="false" />
@@ -3738,15 +4152,15 @@
         <instance ref="planetarium-floor" name="Glass planetarium floor 001" selectable="false" />
       </transform>
       <group name="Dragon under the star sky" room="astra">
-        <transform name="Dragon island 001" translate="0 0.18 -58" scale="21 0.36 17" rotate="0 0 0">
-          <instance ref="dragon-plinth" name="Dragon island 001" selectable="false" />
-        </transform>
-        <transform name="Dragon island brass reveal 001" translate="0 0.342 -58" scale="20.9 0.025 16.9" rotate="0 0 0">
-          <state diffuse="0.56 0.32 0.12" ambient="0.035 0.025 0.01" specular="0.62 0.42 0.18" metallic="0.86" roughness="0.29" shininess="170" environment="true" />
-          <instance ref="box" name="Dragon island brass reveal 001" selectable="false" />
-        </transform>
         <transform name="dragonExhibit" translate="0 0.02363 -56.43" scale="0.0065 0.0065 0.0065" rotate="0 0 0">
           <instance ref="dragon" name="Dragon" selectable="true" />
+        </transform>
+        <transform name="Height-map rock island" translate="0 0 -58">
+          <terrain name="Geometry-shader terrain" heightMap="experiments/pantheon/textures/dragon-terrain-height.png" dimensions="26 3.8 22" cells="128 128" clipZero="true">
+            <state diffuse=".24 .25 .27" ambient=".22 .23 .26" specular=".015 .015 .015" roughness=".85" environment="true" texture0="experiments/pantheon/textures/dragon-terrain-rock.png">
+              <uniform name="uProcedural" type="int" value="2" />
+            </state>
+          </terrain>
         </transform>
       </group>
       <light name="Dragon warm key" position="-10 17 -48 1" direction="0.25 -1 -0.2" inner="35" outer="62" range="65" diffuse="6 4.6 3.4" specular="2 2 2" ambient=".015 .016 .02" attenuation="1 .005 .0015" />
@@ -3766,7 +4180,7 @@
     </transform>
   </group>
   <environments>
-    <sky id="astra-stars" file="experiments/pantheon/textures/astra-stars.hdr" exposure="1" />
+    <sky id="astra-stars" file="experiments/pantheon/textures/astra-stars.hdr" exposure="1" particles="experiments/pantheon/textures/astra-particles.bin" />
     <region room="astra" sky="astra-stars" min="-82 -30 -24" max="-34.6633 30 24" cylinder="-58 0 0 24">
       <opening min="-34.6633 0 -5.603432" max="-34.6633 10 5.603432" />
     </region>

@@ -34,6 +34,9 @@ public:
 
     // The parent matrix is part of the key, so shared DAG nodes retain distinct placements.
     glm::mat4 getWorldMatrix(const glm::mat4& parent) const;
+    virtual glm::mat4 traversalMatrix(const glm::mat4& parent,const glm::vec3&) const{
+        return getWorldMatrix(parent);
+    }
 
     // Transforms the union of child bounds into the parent coordinate system.
     BoundingBox computeBound() const override;

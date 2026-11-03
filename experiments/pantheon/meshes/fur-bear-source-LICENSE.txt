@@ -1,0 +1,13 @@
+Bear — Frakassets / Pixor
+Source: https://pixor.art/library/creatures/bear/
+Download: https://pixor.art/library/files/bear/pixor-library-bear.glb
+License: CC0 1.0 Universal (public-domain dedication)
+https://creativecommons.org/publicdomain/zero/1.0/
+Source page and license checked 2 November 2026.
+
+The original GLB is preserved as fur-bear-source.glb. The static OBJ demonstration
+is derived by fur_demo.py: baked default pose, Loop refinement of body/muzzle,
+linear leg refinement preserving paw contacts, smooth normals and separate
+grooming materials. The shell renderer and root texture are authored
+in this project. The source page states no attribution is required; this notice
+records provenance for reproducibility.

@@ -8,6 +8,8 @@ class Geometry;
 class Light;
 class Camera;
 class LOD;
+class ModelInstance;
+class Billboard;
 
 class NodeVisitor{
 public:
@@ -31,6 +33,8 @@ public:
 
     // Processes this concrete node type through visitor dispatch.
     virtual void apply(LOD& node);
+    virtual void apply(ModelInstance& node);
+    virtual void apply(Billboard& node);
 
 protected:
     // Visits a snapshot of the children in depth-first order.

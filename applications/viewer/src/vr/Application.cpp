@@ -6,8 +6,10 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <set>
 #include <stdexcept>
 #include <vr/Application.h>
+#include <vr/BounceAnimation.h>
 #include <vr/DotVisitor.h>
 #include <vr/GLState.h>
 #include <vr/FrameWork.h>
@@ -52,6 +54,8 @@ void Application::reload(){
     auto environment = std::make_unique<EnvironmentMap>(
         m_root, "textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr");
     environment->configureRooms(m_root,scene->getEnvironments());
+    environment->setProfiler(&m_profiler);
+    environment->setParticlesEnabled(m_particlesEnabled);
     environment->setReflectionMode(m_reflectionMode);
     renderer->setEnvironment(environment.get());
     deferred->setEnvironment(environment.get());
@@ -68,6 +72,7 @@ void Application::reload(){
     deferred->setBloom(m_bloomEnabled);
     deferred->setAmbientOcclusion(m_ambientOcclusionEnabled);
     deferred->setDepthOfField(m_depthOfFieldEnabled);
+    deferred->setLightCulling(m_lightCullingEnabled);
     auto gpuSkinning =
         m_gpuSkinningEnabled ? std::make_shared<GpuSkinning>(m_root, &m_profiler) : nullptr;
     auto shadows = std::make_unique<ShadowRenderer>(m_root);
@@ -237,6 +242,24 @@ void Application::execute(Controls::Action action){
         m_profiler.resetAverages();
         m_status = m_bumpMappingEnabled ? "Height-map bump mapping on; averages reset"
                                         : "Height-map bump mapping off; averages reset";
+    } else if (action == Action::SkyParticles){
+        m_particlesEnabled=!m_particlesEnabled;
+        m_environment->setParticlesEnabled(m_particlesEnabled);
+        if(m_reflectionProbes)m_reflectionProbes->invalidate();
+        m_profiler.resetAverages();
+        m_status=m_particlesEnabled?"Star particles on [F12]":"Star particles off [F12]";
+    } else if (action == Action::FurRendering){
+        m_furEnabled=!m_furEnabled;
+        m_scene->getRoot()->getState()->setUniform("uFurRendering",m_furEnabled);
+        if(m_reflectionProbes) m_reflectionProbes->invalidate();
+        m_profiler.resetAverages();
+        m_status=m_furEnabled?"Fur shells on [F11]":"Fur shells off [F11]";
+    } else if (action == Action::ParallaxMapping){
+        m_parallaxMappingEnabled = !m_parallaxMappingEnabled;
+        m_scene->getRoot()->getState()->setUniform("uParallaxMapping", m_parallaxMappingEnabled);
+        m_profiler.resetAverages();
+        m_status = m_parallaxMappingEnabled ? "Parallax mapping on; averages reset"
+                                            : "Parallax mapping off; averages reset";
     } else if (action == Action::Reflections){
         m_reflectionMode = nextReflection(m_reflectionMode);
         m_environment->setReflectionMode(m_reflectionMode);
@@ -253,6 +276,23 @@ void Application::execute(Controls::Action action){
                        "; averages reset. Cycle: Off > FXAA > MSAA 4x";
         } catch (const std::exception& error){
             m_status = error.what();
+        }
+    } else if (action == Action::LightCulling){
+        m_lightCullingEnabled = !m_lightCullingEnabled;
+        m_deferred->setLightCulling(m_lightCullingEnabled);
+        m_profiler.resetAverages();
+        m_status = m_lightCullingEnabled ? "Deferred light culling on; averages reset"
+                                         : "Deferred light culling off; averages reset";
+    } else if (action == Action::PauseAnimation){
+        if (const auto playing=targetAnimationPlaying()){
+            if (auto bounce=callbackAs<BounceAnimation>(m_target->instance->getUpdateCallback()))
+                bounce->setEnabled(!*playing);
+            else if (auto spin=targetSpin()) spin->setEnabled(!*playing);
+            m_status=*playing?"Animation paused at current pose [P]":"Animation resumed [P]";
+            m_profiler.resetAverages();
+            if (m_reflectionProbes) m_reflectionProbes->invalidate();
+        }else{
+            m_status="Aim at a bouncing or spinning object to pause [P]";
         }
     } else if (action == Action::ModelAnimation){
         if (m_target){
@@ -481,6 +521,7 @@ void Application::update(double time, double delta){
     if (m_gpuSkinning){
         m_gpuSkinning->beginFrame();
     }
+    m_environment->advanceParticles(delta,m_animationEnabled && !m_frozenFrustum.has_value());
     m_updater.update(*m_scene->getRoot(),
                      {time, delta, m_animationEnabled && !m_frozenFrustum.has_value(), &m_profiler,
                       m_gpuSkinning});
@@ -541,8 +582,10 @@ void Application::render(){
             const auto capture = m_reflectionProbes->plan(*m_scene, camera, m_portalResult, dynamic,
                 [&](const std::string& id){ return m_renderer->roomVisible(*m_scene->getRoot(), id, camera); });
             if (capture){
-                m_renderer->prepareFrameView(*m_scene->getRoot(), *capture);
-                shadowObservers.push_back(capture);
+                for(const auto* observer:m_reflectionProbes->getPlannedViews()){
+                    m_renderer->prepareFrameView(*m_scene->getRoot(),*observer);
+                    shadowObservers.push_back(observer);
+                }
             }
         }
     }
@@ -605,7 +648,13 @@ void Application::render(){
     {
         FrameProfiler::Scope debug(&m_profiler, FrameProfiler::Stage::Debug);
         if (m_target && m_showHud && !performanceVisible()){
-            m_debugLines->box(m_target->instance->getBound().transformed(m_target->model), vp,
+            auto bound=m_target->instance->getBound();
+            if (callbackAs<BounceAnimation>(m_target->instance->getUpdateCallback())){
+                const auto bounce=bounceParameters(*m_target->instance->getState());
+                bound=BoundingBox(glm::vec3(-bounce.x),glm::vec3(bounce.x))
+                    .transformed(bounceMatrix(bounce.x,bounce.y));
+            }
+            m_debugLines->box(bound.transformed(m_target->model), vp,
                               {1, 0.75f, 0.18f, 1});
         }
         drawVisibilityDebug(camera, vp);
@@ -793,6 +842,8 @@ void Application::applyRenderSettings(Scene& scene) const{
     scene.getRoot()->getState()->setCullFace(m_cullFaceEnabled);
     scene.getRoot()->getState()->setUniform("uMultiTexture", m_multitextureEnabled);
     scene.getRoot()->getState()->setUniform("uBumpMapping", m_bumpMappingEnabled);
+    scene.getRoot()->getState()->setUniform("uParallaxMapping", m_parallaxMappingEnabled);
+    scene.getRoot()->getState()->setUniform("uFurRendering",m_furEnabled);
     if (auto roof = scene.findTransform("roof")){
         roof->setVisible(m_roofEnabled);
     }
@@ -801,6 +852,29 @@ void Application::applyRenderSettings(Scene& scene) const{
             toon->getState()->setUniform("uToon", m_toonEnabled);
         }
     }
+}
+
+// Finds the selected placement's spin without traversing other shared instances.
+std::shared_ptr<SpinCallback> Application::targetSpin() const{
+    if(!m_target) return {};
+    std::vector<Node*> pending{m_target->instance};
+    std::set<Node*> visited;
+    while(!pending.empty()){
+        auto* node=pending.back();pending.pop_back();
+        if(!visited.insert(node).second) continue;
+        if(auto spin=callbackAs<SpinCallback>(node->getUpdateCallback())) return spin;
+        for(const auto& parent:node->getParents())
+            if(auto owner=parent.lock()) pending.push_back(owner.get());
+    }
+    return {};
+}
+
+std::optional<bool> Application::targetAnimationPlaying() const{
+    if(!m_target) return {};
+    if(auto bounce=callbackAs<BounceAnimation>(m_target->instance->getUpdateCallback()))
+        return bounce->getEnabled();
+    if(auto spin=targetSpin()) return spin->getEnabled();
+    return {};
 }
 
 // Reports whether the selected instance belongs to the car exhibit.
@@ -890,10 +964,21 @@ std::shared_ptr<LodDemoCallback> Application::createLodDemo(Scene& scene) const{
     return lodDemo;
 }
 
+// Releases mouse capture and discards coordinates from the previous focus state.
+void Application::resetMouseInput(){
+    m_mouseLookActive = false;
+    if (glfwRawMouseMotionSupported()){
+        glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+    }
+    glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwGetCursorPos(m_window, &m_mouseX, &m_mouseY);
+}
+
 // Updates mouse look and hands camera-tour control back to the user.
 void Application::updateCameraOrientation(){
 
-    const bool look = glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    const bool look = glfwGetWindowAttrib(m_window, GLFW_FOCUSED) == GLFW_TRUE &&
+                      glfwGetMouseButton(m_window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
     if (look){
         m_shaderMenuOpen = false;
         stopLodDemo();
@@ -903,15 +988,19 @@ void Application::updateCameraOrientation(){
             stopLodDemo();
         }
     }
+    const bool captureChanged = look != m_mouseLookActive;
+    if (captureChanged){
+        glfwSetInputMode(m_window, GLFW_CURSOR, look ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+        if (glfwRawMouseMotionSupported()){
+            glfwSetInputMode(m_window, GLFW_RAW_MOUSE_MOTION, look ? GLFW_TRUE : GLFW_FALSE);
+        }
+    }
     double x;
     double y;
     glfwGetCursorPos(m_window, &x, &y);
-    if (look && m_mouseLookActive){
+    if (look && !captureChanged){
         m_yaw += static_cast<float>(x - m_mouseX) * 0.12f;
         m_pitch = std::clamp(m_pitch - static_cast<float>(y - m_mouseY) * 0.12f, -85.0f, 85.0f);
-    }
-    if (look != m_mouseLookActive){
-        glfwSetInputMode(m_window, GLFW_CURSOR, look ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
     }
     m_mouseLookActive = look;
     m_mouseX = x;

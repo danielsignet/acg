@@ -1,0 +1,68 @@
+[
+  {
+    "asset": "bark_brown_01",
+    "role": "albedo",
+    "file": "textures/bark_brown_01-albedo.jpg",
+    "source": "https://polyhaven.com/a/bark_brown_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/bark_brown_01/bark_brown_01_diff_2k.jpg",
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 2667267,
+    "sha256": "0cdd066f34d357fdbf7eb99159e668a6dc346bb7fd093a9e27058eb827d09b9a"
+  },
+  {
+    "asset": "bark_brown_01",
+    "role": "normal",
+    "file": "textures/bark_brown_01-normal.png",
+    "source": "https://polyhaven.com/a/bark_brown_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/bark_brown_01/bark_brown_01_nor_gl_2k.png",
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 8953179,
+    "sha256": "c5d2c162ee3e30a36dfb717fde6703e0202ab9c49fbfe205da521a48d7a5a595"
+  },
+  {
+    "asset": "bark_brown_01",
+    "role": "height",
+    "file": "textures/bark_brown_01-height.png",
+    "source": "https://polyhaven.com/a/bark_brown_01",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/bark_brown_01/bark_brown_01_disp_2k.png",
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 7074420,
+    "sha256": "7d2c56b93806701c4260e8d353949d01010301a6daa6e465d5e5e1a18d4b1465"
+  },
+  {
+    "asset": "red_brick",
+    "role": "albedo",
+    "file": "textures/red_brick-albedo.jpg",
+    "source": "https://polyhaven.com/a/red_brick",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/red_brick/red_brick_diff_2k.jpg",
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 3169072,
+    "sha256": "a1ae5ba7e63026971ceaf68ebbcf8982d9c2dadde1c99996c49b8ac1160af995"
+  },
+  {
+    "asset": "red_brick",
+    "role": "normal",
+    "file": "textures/red_brick-normal.png",
+    "source": "https://polyhaven.com/a/red_brick",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/red_brick/red_brick_nor_gl_2k.png",
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 8907641,
+    "sha256": "e3ca21654988c8ee348fff4a71ccd57fce35073d6898902f185c1f86799e9ae1"
+  },
+  {
+    "asset": "red_brick",
+    "role": "height",
+    "file": "textures/red_brick-height.png",
+    "source": "https://polyhaven.com/a/red_brick",
+    "url": "https://dl.polyhaven.org/file/ph-assets/Textures/png/2k/red_brick/red_brick_disp_2k.png",
+    "license": "CC0-1.0",
+    "license_url": "https://polyhaven.com/license",
+    "bytes": 6312343,
+    "sha256": "733166c31b1b7ba4fc772247edf3527a83f20d4d14d2571ab1674f0dfd28e12a"
+  }
+]

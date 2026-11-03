@@ -10,6 +10,8 @@
 #include <vr/FramebufferState.h>
 #include <vr/GLState.h>
 #include <vr/Geometry.h>
+#include <vr/GraphVisitor.h>
+#include <vr/Fur.h>
 #include <vr/LOD.h>
 #include <vr/Light.h>
 #include <vr/PlanarReflection.h>
@@ -61,14 +63,14 @@ void RenderVisitor::discoverExtensions(Node& root){
     if (m_extensionRoot!=&root){
         m_extensionRoot=&root;m_extensions.clear();
         std::set<Node*> visited;
-        const std::function<void(Node&)> discover=[&](Node& node){
+        GraphVisitor discover;
+        discover.setNodeHandler([&](Node& node){
             if (!visited.insert(&node).second) return;
-            if (auto extension=std::dynamic_pointer_cast<SceneRenderExtension>(node.getUpdateCallback()))
-                m_extensions.push_back(extension);
-            if (auto* group=dynamic_cast<Group*>(&node))
-                for (const auto& child:group->getChildren()) discover(*child);
-        };
-        discover(root);
+            if(const auto callback=node.getUpdateCallback())
+                if(auto* extension=callback->renderExtension())
+                    m_extensions.push_back(std::shared_ptr<SceneRenderExtension>(callback,extension));
+        });
+        root.accept(discover);
     }
 }
 
@@ -183,15 +185,18 @@ void RenderVisitor::drawRenderList(const Camera& camera){
             camera, m_globalState, m_lights,
             [&](const auto& program){ drawOpaque(opaque, program, false); },
             [&]{
+                drawFur(opaque,true);
                 for (const auto* item : transparent){
                     drawInstance(*item,{}, true);
                 }
             });
+        if(m_environment)m_stats.draws+=m_environment->getParticleDraws();
     } else{
         if (m_environment){
             FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Environment);
             m_environment->drawSky(camera, m_linearOutput);
-            ++m_stats.screenDraws;
+            m_stats.screenDraws+=m_environment->getSkyScreenDraws();
+            m_stats.draws+=m_environment->getParticleDraws();
         }
         {
             FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Forward);
@@ -199,6 +204,7 @@ void RenderVisitor::drawRenderList(const Camera& camera){
         }
         {
             FrameProfiler::Scope pass(m_profiler, FrameProfiler::Stage::Transparency);
+            drawFur(opaque,m_linearOutput);
             for (const auto* item : transparent){
                 drawInstance(*item,{}, m_linearOutput);
             }
@@ -209,6 +215,19 @@ void RenderVisitor::drawRenderList(const Camera& camera){
     m_stats.submitCpuMs =
         std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - submit)
             .count();
+}
+
+void RenderVisitor::drawFur(const std::vector<const RenderNode*>& items,bool linearOutput){
+    for(const auto* item:items){
+        const auto count=furLayerCount(item->state);
+        if(!count) continue;
+        auto shell=*item;
+        shell.state.setBlend(true);
+        shell.state.setUniform("uFurPass",true);
+        drawGeometry(shell,{},linearOutput,nullptr,count);
+        ++m_stats.transparentDraws;
+        if(!item->room.empty()) ++m_stats.roomDraws[item->room];
+    }
 }
 
 void RenderVisitor::drawOpaque(const std::vector<const RenderNode*>& items,
@@ -248,7 +267,7 @@ void RenderVisitor::drawOpaque(const std::vector<const RenderNode*>& items,
         const bool refractive =
             glass != item.state.getUniforms().end() && std::get<bool>(glass->second);
         const auto effectiveProgram = program ? program : item.state.getProgram();
-        if (!refractive && effectiveProgram && effectiveProgram->supportsInstancing()){
+        if (!refractive && !item.geometry->hasHeightField() && effectiveProgram && effectiveProgram->supportsInstancing()){
             while (end < sorted.size() && key(sorted[end]) == key(sorted[first]) &&
                    item.state.sameRenderState(sorted[end].item->state)){
                 ++end;
@@ -308,7 +327,7 @@ void RenderVisitor::captureTransmission(){
 // Submits a mesh with its resolved transform and rendering state.
 void RenderVisitor::drawGeometry(const RenderNode& item,
                                  const std::shared_ptr<Program>& overrideProgram, bool linearOutput,
-                                 const std::vector<glm::mat4>* models){
+                                 const std::vector<glm::mat4>* models,unsigned repetitions){
     auto& node = *item.geometry;
     const auto& model = item.model;
     auto state = item.state;
@@ -321,7 +340,13 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     if (overrideProgram){
         state.setProgram(overrideProgram);
     }
+    if(node.hasHeightField()) state.setProgram(state.getProgram()->heightFieldVariant());
     state.apply();
+    const auto furPass=state.getUniforms().find("uFurPass");
+    if(furPass!=state.getUniforms().end() && std::get<bool>(furPass->second)){
+        GLState::blendEquation(GL_FUNC_ADD);
+        GLState::blendFuncSeparate(GL_SRC_ALPHA,GL_ONE,GL_ZERO,GL_ONE);
+    }
     const auto& program = *state.getProgram();
     program.set("uInstanced", models != nullptr);
     if (m_environmentPrograms.insert(program.getId()).second){
@@ -386,14 +411,16 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
     const auto basis = node.getSurfaceTransform(model);
     program.set("uNormal", basis.normal);
     program.set("uTangentSign", basis.tangentSign);
+    node.applyHeightField(program);
     if (models){
         node.drawInstanced(*models, true);
         ++m_stats.instancedDraws;
     } else{
-        node.draw();
+        node.drawRepeated(repetitions);
+        if(repetitions>1) ++m_stats.instancedDraws;
     }
     ++m_stats.draws;
-    const auto count = models ? models->size() : 1;
+    const auto count = models ? models->size() : repetitions;
     m_stats.instances += static_cast<unsigned>(count);
     m_stats.triangles += node.getTriangleCount() * count;
 }

@@ -16,6 +16,7 @@ struct RoomSky{
     // Zero uses the default mean-luminance normalization; positive is an
     // explicit multiplier, useful for a night sky that should stay dark.
     float exposure = 0;
+    std::filesystem::path particles;
 };
 
 struct SkyRegion{

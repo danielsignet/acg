@@ -7,6 +7,10 @@
 #include <sstream>
 #include <stdexcept>
 #include <vr/Animation.h>
+#include <vr/BounceAnimation.h>
+#include <vr/Billboard.h>
+#include <vr/TreeDeformation.h>
+#include <vr/Fur.h>
 
 namespace vr{
 // Returns an XML attribute or the caller-supplied default.
@@ -102,6 +106,8 @@ std::shared_ptr<Scene> SceneReader::read(const std::filesystem::path& path){
             m_scene->getRoot()->addChild(readNode(child));
         }
     }
+    prepareFurBounds(*m_scene->getRoot());
+    prepareTreeBounds(*m_scene->getRoot());
     m_scene->getCamera()->setLookAt(m_scene->getInitialEye(), m_scene->getInitialTarget());
     m_scene->getCamera()->setPerspective(48, 1.6f, 0.1f, 150);
     return m_scene;
@@ -117,7 +123,7 @@ void SceneReader::readEnvironments(Xml* root){
         const std::string tag=item->name();
         if (tag=="sky"){
             skies.push_back({required(item,"id"),portablePath(required(item,"file")),
-                             number(attribute(item,"exposure","0"))});
+                             number(attribute(item,"exposure","0")),portablePath(attribute(item,"particles"))});
         } else if (tag!="region") throw std::runtime_error("Unknown environment element");
     }
     for (auto* item=layout->first_node("region");item;item=item->next_sibling("region")){
@@ -207,6 +213,13 @@ std::shared_ptr<Node> SceneReader::readNode(Xml* xml){
             attribute(xml, "name", asset), m_reader.getAsset(asset),
             boolean(attribute(xml, "selectable", m_modelAssets.count(asset) ? "true" : "false")));
         instance->setCullingEnabled(boolean(attribute(xml, "culling", "true")));
+        if (xml->first_attribute("bounceRadius")){
+            if (instance->getAnimation()) throw std::runtime_error("Vertex bounce requires a static model asset");
+            auto bounce=std::make_shared<BounceAnimation>(number(attribute(xml,"bounceRadius")),
+                number(attribute(xml,"bounceTime","0")),!boolean(attribute(xml,"bouncePaused","false")));
+            instance->setUpdateCallback(bounce);
+            bounce->update(*instance,{0,0,false});
+        }
         return instance;
     }
     if (tag == "light"){
@@ -215,8 +228,32 @@ std::shared_ptr<Node> SceneReader::readNode(Xml* xml){
     if (tag == "lod"){
         return readLod(xml, name);
     }
+    if(tag=="terrain"){
+        const auto cells=numbers(attribute(xml,"cells","128 128"),2);
+        for(float value:cells) if(value<1 || value>512 || std::floor(value)!=value)
+            throw std::runtime_error("Terrain cells must be integers in [1,512]");
+        auto terrain=std::make_shared<Geometry>(name);
+        terrain->setHeightField(m_reader.readTexture(portablePath(required(xml,"heightMap")))->withNormal(nullptr),
+            vec3(required(xml,"dimensions")),static_cast<unsigned>(cells[0]),static_cast<unsigned>(cells[1]));
+        if(boolean(attribute(xml,"clipZero","false"))){
+            // Optional zero-height exterior: retain only cells belonging to the island.
+            const auto& vertices=terrain->getVertices();
+            std::vector<unsigned> indices;
+            const auto& source=terrain->getIndices();
+            for(std::size_t i=0;i<source.size();i+=3)
+                if(vertices[source[i]].position.y>0 || vertices[source[i+1]].position.y>0 || vertices[source[i+2]].position.y>0)
+                    indices.insert(indices.end(),{source[i],source[i+1],source[i+2]});
+            std::vector<glm::vec3> positions,normals;std::vector<glm::vec2> uv;
+            for(const auto& v:vertices){positions.push_back(v.position);normals.push_back(v.normal);uv.push_back(v.texCoord);}
+            terrain->setData(std::move(positions),std::move(indices),std::move(normals),std::move(uv));
+        }
+        if(auto* state=xml->first_node("state")) terrain->setState(readState(state));
+        terrain->setRoomId(attribute(xml,"room"));
+        terrain->setCullingEnabled(boolean(attribute(xml,"culling","true")));
+        return terrain;
+    }
     std::shared_ptr<Group> group;
-    if (tag == "transform"){
+    if (tag == "transform" || tag == "billboard"){
         group = readTransform(xml, name);
     } else if (tag == "group"){
         group = std::make_shared<Group>(name);
@@ -295,7 +332,12 @@ std::shared_ptr<LOD> SceneReader::readLod(Xml* xml, const std::string& name){
 // Combines local translation, rotation and scale before attaching animation.
 std::shared_ptr<Transform> SceneReader::readTransform(Xml* xml, const std::string& name){
 
-    auto transform = std::make_shared<Transform>(name);
+    std::shared_ptr<Transform> transform;
+    if (std::string(xml->name()) == "billboard"){
+        if (attribute(xml, "mode", "axial-y") != "axial-y")
+            throw std::runtime_error("Billboard mode must be axial-y");
+        transform = std::make_shared<Billboard>(name);
+    } else transform = std::make_shared<Transform>(name);
     glm::mat4 matrix = glm::translate(glm::mat4(1), vec3(attribute(xml, "translate", "0 0 0")));
     const auto rotation = vec3(attribute(xml, "rotate", "0 0 0"));
     const auto scale = vec3(attribute(xml, "scale", "1 1 1"));
@@ -411,6 +453,27 @@ void SceneReader::readTextures(Xml* xml, State& state){
 
 // Reads built-in and arbitrary typed shader-uniform overrides.
 void SceneReader::readUniforms(Xml* xml, State& state){
+    for(const auto* name:{"furLength","furDensity"}){
+        if(xml->first_attribute(name)){
+            const auto value=number(attribute(xml,name));
+            if(!std::isfinite(value) || value<0 || value>(std::string(name)=="furLength"?1.0f:100.0f))
+                throw std::runtime_error("Invalid fur length/density");
+            state.setUniform(std::string(name)=="furLength"?"uFurLength":"uFurDensity",value);
+        }
+    }
+    if(xml->first_attribute("furLayers")){
+        const auto layers=number(attribute(xml,"furLayers"));
+        if(!std::isfinite(layers) || layers<1 || layers>64 || std::floor(layers)!=layers)
+            throw std::runtime_error("Fur layers must be an integer in 1..64");
+        state.setUniform("uFurLayers",static_cast<int>(layers));
+    }
+    if(xml->first_attribute("furBend")){
+        const auto bend=vec3(attribute(xml,"furBend"));
+        if(!std::isfinite(bend.x) || !std::isfinite(bend.y) || !std::isfinite(bend.z) ||
+           glm::any(glm::greaterThan(glm::abs(bend),glm::vec3(1))))
+            throw std::runtime_error("Fur bend must be finite and in -1..1");
+        state.setUniform("uFurBend",bend);
+    }
     if (xml->first_attribute("glass")){
         state.setUniform("uGlass", boolean(attribute(xml, "glass")));
     }
@@ -432,6 +495,16 @@ void SceneReader::readUniforms(Xml* xml, State& state){
     }
     if (xml->first_attribute("heightScale")){
         state.setUniform("uHeightScale", number(attribute(xml, "heightScale")));
+    }
+    if (xml->first_attribute("parallax")){
+        state.setUniform("uParallax", boolean(attribute(xml, "parallax")));
+    }
+    if (xml->first_attribute("parallaxScale")){
+        const auto scale = number(attribute(xml, "parallaxScale"));
+        if (!std::isfinite(scale) || std::abs(scale) > 1.0f){
+            throw std::runtime_error("Parallax scale must be a finite world-space distance in -1..1");
+        }
+        state.setUniform("uParallaxScale", scale);
     }
     if (xml->first_attribute("opacity")){
         const auto opacity = number(attribute(xml, "opacity"));

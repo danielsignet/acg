@@ -1,4 +1,5 @@
 #pragma once
+#include "Billboard.h"
 #include "BoundingBox.h"
 #include "Camera.h"
 #include "CullVisitor.h"

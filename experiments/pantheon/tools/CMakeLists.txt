@@ -11,6 +11,15 @@ add_executable(room_isolation_tests room_isolation_tests.cpp)
 add_executable(picking_audit picking_audit.cpp)
 add_executable(room_work_tests room_work_tests.cpp)
 add_executable(reflection_transition_tests reflection_transition_tests.cpp)
+add_executable(city_masonry city_masonry.cpp)
+target_include_directories(city_masonry PRIVATE
+  "${ACG}/dependencies/assimp-5.3.1/include" "${BASE}/dependencies/assimp-5.3.1/include")
+target_link_libraries(city_masonry PRIVATE
+  "${BASE}/dependencies/assimp-5.3.1/lib/$<CONFIG>/assimp-vc143-mt$<$<CONFIG:Debug>:d>.lib"
+  "${BASE}/dependencies/assimp-5.3.1/contrib/zlib/$<CONFIG>/zlibstatic$<$<CONFIG:Debug>:d>.lib")
+if(MSVC)
+  target_compile_options(city_masonry PRIVATE /W4 /utf-8 /permissive-)
+endif()
 enable_testing()
 add_test(NAME gyroscopes COMMAND gyroscope_tests "${ACG}")
 add_test(NAME room_skies COMMAND sky_environment_tests "${ACG}")

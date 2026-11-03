@@ -1,0 +1,60 @@
+{
+  "seed": 180209,
+  "particles": 131072,
+  "stride_bytes": 32,
+  "gpu_buffer_bytes": 4194304,
+  "formations": [
+    {
+      "type": "field stars: blue, white, yellow and red",
+      "count": 16384,
+      "angular_speed_rad_s": 0.0
+    },
+    {
+      "type": "Milky Way star clouds, central bulge and dust lanes",
+      "count": 65344,
+      "angular_speed_rad_s": 0.0
+    },
+    {
+      "type": "two-arm spiral galaxy",
+      "count": 10240,
+      "angular_speed_rad_s": 0.007669903939428206
+    },
+    {
+      "type": "elliptical galaxy",
+      "count": 10240,
+      "angular_speed_rad_s": 0.0
+    },
+    {
+      "type": "edge-on disc galaxy",
+      "count": 10240,
+      "angular_speed_rad_s": 0.0046019423636569235
+    },
+    {
+      "type": "barred spiral galaxy",
+      "count": 10240,
+      "angular_speed_rad_s": -0.0046019423636569235
+    },
+    {
+      "type": "globular star cluster",
+      "count": 8192,
+      "angular_speed_rad_s": 0.0015339807878856412
+    },
+    {
+      "type": "eight moving meteor trails, 24 particles each",
+      "count": 192,
+      "angular_speed_rad_s": 0.0
+    }
+  ],
+  "source": "Original procedural particle catalog, starfield_demo.py",
+  "snapshot": "astra-stars.hdr: static mean IBL only; displayed sky uses live GL_POINTS",
+  "toggle": "F12",
+  "views": [
+    "particles",
+    "galaxies",
+    "milky-way"
+  ],
+  "max_point_size_reference_px": 4.5,
+  "meteor_streams": 8,
+  "meteor_trail_particles": 192,
+  "ibl_excludes_transient_meteors": true
+}

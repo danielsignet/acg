@@ -66,7 +66,12 @@ public:
         ModelAnimation,
         Reflections,
         BumpMapping,
-        Vsync
+        Vsync,
+        LightCulling,
+        ParallaxMapping,
+        PauseAnimation,
+        FurRendering,
+        SkyParticles
     };
 
     struct Binding{
@@ -108,7 +113,7 @@ public:
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 26>& getBindings(){
+    static const std::array<Binding, 31>& getBindings(){
         return m_bindings;
     }
 
@@ -163,16 +168,21 @@ private:
           "N  Phong (plain)"},
          {Action::BlinnPhongShader, ShadingMode::BlinnPhong, BufferView::Lit, GLFW_KEY_H,
           "H  Blinn-Phong"},
-         {Action::CookTorranceShader, ShadingMode::CookTorrance, BufferView::Lit, GLFW_KEY_P,
-          "P  Cook-Torrance"}}};
+         {Action::CookTorranceShader, ShadingMode::CookTorrance, BufferView::Lit, GLFW_KEY_K,
+          "K  Cook-Torrance"}}};
 
-    inline static constexpr std::array<Binding, 26> m_bindings{
+    inline static constexpr std::array<Binding, 31> m_bindings{
         {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
          {Action::Antialiasing, GLFW_KEY_F3, "F3", "Anti-aliasing"},
          {Action::Subdivision, GLFW_KEY_F4, "F4", "Subdivision"},
          {Action::Reflections, GLFW_KEY_F5, "F5", "Reflections"},
          {Action::BumpMapping, GLFW_KEY_F6, "F6", "Bump maps"},
          {Action::Vsync, GLFW_KEY_F7, "F7", "VSync"},
+         {Action::LightCulling, GLFW_KEY_F8, "F8", "Light culling"},
+         {Action::ParallaxMapping, GLFW_KEY_F9, "F9", "Parallax mapping"},
+         {Action::PauseAnimation, GLFW_KEY_P, "P", "Pause / resume targeted animation"},
+         {Action::FurRendering, GLFW_KEY_F11, "F11", "Fur shells"},
+         {Action::SkyParticles, GLFW_KEY_F12, "F12", "Star particles"},
          {Action::Hud, GLFW_KEY_TAB, "Tab", "Menus"},
          {Action::AmbientOcclusion, GLFW_KEY_O, "O", "Ambient occlusion"},
          {Action::Performance, GLFW_KEY_F1, "F1", "Performance"},

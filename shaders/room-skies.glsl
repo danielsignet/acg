@@ -5,6 +5,7 @@ uniform vec3 uSkyRegionMin[4], uSkyRegionMax[4];
 uniform vec4 uSkyRegionCylinder[4];
 uniform vec3 uSkyOpeningMin[4], uSkyOpeningMax[4], uSkyOpeningNormal[4];
 uniform int uSkyRegionLayer[4];
+uniform bool uParticleSky[4];
 
 bool insideSkyRegion(int i, vec3 point){
     if (any(lessThan(point,uSkyRegionMin[i]-1e-4)) ||

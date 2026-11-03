@@ -143,6 +143,7 @@ private:
     void drawRenderList(const Camera& camera);
     void drawOpaque(const std::vector<const RenderNode*>& items,
                     const std::shared_ptr<Program>& program, bool linearOutput);
+    void drawFur(const std::vector<const RenderNode*>& items,bool linearOutput);
 
     // Submits one resolved instance and updates room and transparency counts.
     void drawInstance(const RenderNode& item, const std::shared_ptr<Program>& program ={},
@@ -150,7 +151,8 @@ private:
 
     // Submits a mesh with its resolved transform and rendering state.
     void drawGeometry(const RenderNode& item, const std::shared_ptr<Program>& program,
-                      bool linearOutput, const std::vector<glm::mat4>* models = nullptr);
+                      bool linearOutput, const std::vector<glm::mat4>* models = nullptr,
+                      unsigned repetitions=1);
 
     // Copies the current color before refractive glass samples the background.
     void captureTransmission();

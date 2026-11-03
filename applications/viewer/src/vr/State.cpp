@@ -47,6 +47,19 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uNormalY", 1.0f);
     s.setUniform("uBumpMapping", true);
     s.setUniform("uHeightScale", 0.03f);
+    s.setUniform("uParallax", false);
+    s.setUniform("uParallaxMapping", true);
+    s.setUniform("uParallaxScale", 0.03f);
+    s.setUniform("uBounceRadius", 0.0f);
+    s.setUniform("uBounceTime", 0.0f);
+    s.setUniform("uTreeHeight",0.0f);
+    s.setUniform("uTreeWarp",glm::vec4(0));
+    s.setUniform("uFurPass", false);
+    s.setUniform("uFurRendering", true);
+    s.setUniform("uFurLength", 0.0f);
+    s.setUniform("uFurLayers", 14);
+    s.setUniform("uFurDensity", 5.0f);
+    s.setUniform("uFurBend", glm::vec3(0));
     s.setUniform("uEnvironmentMaterial", false);
     s.setUniform("uReflectionProbe", 0);
     s.setUniform("uMirror", false);
@@ -64,7 +77,7 @@ State State::mergedShadow(const State& local) const{
     if (auto texture = local.m_textures.find(0); texture != local.m_textures.end()){
         result.m_textures[0] = texture->second;
     }
-    for (const auto* name :{"uAlphaCutoff", "uLodRange"}){
+    for (const auto* name :{"uAlphaCutoff", "uLodRange", "uBounceRadius", "uBounceTime", "uTreeHeight", "uTreeWarp"}){
         if (auto uniform = local.m_uniforms->find(name); uniform != local.m_uniforms->end()){
             result.setUniform(name, uniform->second);
         }
@@ -296,10 +309,14 @@ void State::apply() const{
         m_program->set("uHasTexture[" + std::to_string(i) + "]", static_cast<bool>(texture));
     }
     const auto bump = m_uniforms->find("uBumpMapping");
+    const auto parallax = m_uniforms->find("uParallax");
+    const bool relief = getHeightMap() && parallax != m_uniforms->end() &&
+                        std::get<bool>(parallax->second);
     const bool useHeight =
         getHeightMap() && (bump == m_uniforms->end() || std::get<bool>(bump->second));
-    // Height and RGB normal maps share a sampler to retain the 16-unit GL 4.1 budget.
-    const auto surfaceMap = useHeight ? getHeightMap() : getNormalMap();
+    // Parallax uses matched normal RGB and height alpha in the existing sampler slot.
+    const auto surfaceMap = relief ? getHeightMap()->withNormal(getNormalMap())
+                                  : useHeight ? getHeightMap() : getNormalMap();
     if (surfaceMap){
         surfaceMap->apply(MaxTextures);
     } else{
@@ -307,8 +324,10 @@ void State::apply() const{
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     m_program->set("uSurfaceMap", static_cast<int>(MaxTextures));
-    m_program->set("uHasNormalMap", static_cast<bool>(surfaceMap) && !useHeight);
-    m_program->set("uHasHeightMap", useHeight);
+    m_program->set("uHasNormalMap", relief ? static_cast<bool>(getNormalMap())
+                                          : static_cast<bool>(surfaceMap) && !useHeight);
+    m_program->set("uHasHeightMap", useHeight || relief);
+    m_program->set("uHeightInAlpha", relief);
     for (const auto& value : *m_uniforms){
         if (!m_passUniforms || !m_passUniforms->count(value.first)){
             m_program->set(value.first, value.second);

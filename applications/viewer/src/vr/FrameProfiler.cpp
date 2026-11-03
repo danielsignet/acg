@@ -46,7 +46,8 @@ FrameProfiler::descriptions(){
          {"Room portal textures", true},
          {"Render setup / submission", false},
          {"Profiler query collection", false},
-         {"Skinning transform feedback", true}}};
+         {"Skinning transform feedback", true},
+         {"Sky particles", true}}};
     return stages;
 }
 
@@ -118,6 +119,7 @@ FrameProfiler::breakdown(const Summary& summary){
                                           {"Render setup / submission", false},
                                           {"Profiler query collection", false},
                                           {"Vertex deformation (GPU)"},
+                                          {"Sky particles"},
                                           {"Other / gaps"}}};
     const auto add = [&](std::size_t slice, std::initializer_list<Stage> stages){
         for (const auto stage : stages){
@@ -152,6 +154,7 @@ FrameProfiler::breakdown(const Summary& summary){
     add(22,{Stage::Submission});
     add(23,{Stage::Profiler});
     add(24,{Stage::SkinningDraw});
+    add(25,{Stage::Particles});
     // Retain support for manually constructed summaries with inclusive timings.
     if (!summary.hasExclusiveTimings){
         for (std::size_t i = 14; i <= 17; ++i){

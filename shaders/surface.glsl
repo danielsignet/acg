@@ -36,7 +36,8 @@ vec4 sampleSurface(vec2 coordinates){
     }
     if (uProcedural == 1){
         vec2 brick = coordinates * vec2(10.0, 6.0);
-        brick.x += mod(floor(brick.y), 2.0) * 0.5;
+        // Image-backed height data is loaded with V flipped; match its row phase.
+        brick.x += mod(floor(brick.y) + 1.0, 2.0) * 0.5;
         vec2 edge = min(fract(brick), 1.0 - fract(brick));
         vec2 width = max(fwidth(brick), vec2(0.001));
         float interior =

@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf8'?>
 <scene>
-  <camera eye="10 3.7 54.8" target="5 2.5 61" />
+  <camera eye="12 4.7 52" target="5 2.9 61" />
   <assets>
     <model id="wall-sector" file="experiments/pantheon/meshes/wall-sector.obj">
       <material name="*" cull="true" />
@@ -134,7 +134,7 @@
     <model id="city-7" file="experiments/pantheon/meshes/city-007-masonry.obj">
       <material name="ground" environment="true" metallic="0.65" roughness="0.26" diffuse="0.32 0.36 0.41" specular="0.2 0.22 0.25" texture0="none" normalMap="none" />
       <material name="hotel_glas" environment="true" metallic="0" roughness="0.055" ior="1.52" diffuse="0.095 0.16 0.21" specular="0.04 0.04 0.04" texture0="none" normalMap="none" cull="false" />
-      <material name="brick" diffuse="1 1 1" ambient=".2 .2 .2" specular=".035 .035 .035" metallic="0" roughness=".88" environment="true" texture0="experiments/pantheon/textures/red_brick-albedo.jpg" normalMap="experiments/pantheon/textures/red_brick-normal.png" normalScale="1" heightMap="experiments/pantheon/textures/red_brick-height.png" parallax="true" parallaxScale="0.035" />
+      <material name="brick" diffuse="1 1 1" ambient=".2 .2 .2" specular=".035 .035 .035" metallic="0" roughness=".88" environment="true" texture0="experiments/pantheon/textures/red_brick-albedo.jpg" normalMap="experiments/pantheon/textures/red_brick-normal.png" normalScale="1" heightMap="experiments/pantheon/textures/red_brick-parallax-height.png" parallax="true" parallaxScale="0.035" />
     </model>
     <model id="city-9" file="models/ResidentialBuildings/ResidentialBuildings009.fbx">
       <material name="ground" environment="true" metallic="0.65" roughness="0.26" diffuse="0.32 0.36 0.41" specular="0.2 0.22 0.25" texture0="none" normalMap="none" />
@@ -257,13 +257,6 @@
     <model id="gyro-label-quaternion" file="experiments/pantheon/meshes/sign.obj">
       <material name="*" diffuse="1 1 1" lighting="false" texture0="experiments/pantheon/textures/gyro-quaternion.png" castShadows="false" cull="false" />
     </model>
-    <model id="fur-bear" file="experiments/pantheon/meshes/fur-bear.obj">
-      <material name="coat" furLength="0.1" furLayers="14" furDensity="2.5" furBend="0 -0.06 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
-      <material name="legs" furLength="0.055" furLayers="14" furDensity="2.5" furBend="0 -0.033 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
-      <material name="face" furLength="0.008" furLayers="14" furDensity="7" furBend="0 -0.0048 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
-      <material name="muzzle" furLength="0.012" furLayers="14" furDensity="7" furBend="0 -0.0072 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".025 .025 .025" environment="true" />
-      <material name="bare" roughness=".35" />
-    </model>
     <model id="relief-oak" file="experiments/pantheon/meshes/relief-oak.obj">
       <material name="bark" diffuse="1 1 1" ambient=".2 .2 .2" specular=".035 .035 .035" metallic="0" roughness=".88" environment="true" texture0="experiments/pantheon/textures/bark_brown_01-albedo.jpg" normalMap="experiments/pantheon/textures/bark_brown_01-normal.png" normalScale="1" heightMap="experiments/pantheon/textures/bark_brown_01-height.png" parallax="true" parallaxScale="0.018" />
       <material name="leaf0" cull="false" roughness=".72" environment="true" />
@@ -278,6 +271,33 @@
     </model>
     <model id="billboard-grass" file="experiments/pantheon/meshes/billboard-grass.obj">
       <material name="grass" texture0="experiments/pantheon/textures/billboard-grass.png" diffuse="1 1 1" ambient=".22 .25 .15" specular=".015 .02 .005" roughness=".96" metallic="0" alphaCutoff=".35" cull="false" blend="false" environment="true" />
+    </model>
+    <model id="fur-monster-body" file="experiments/pantheon/meshes/fur-monster-body.obj">
+      <material name="*" furLength="0.18" furLayers="32" furDensity="2.1" furSoft="true" furFace="true" furBend="0 -0.06300 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".015 .015 .015" environment="false" />
+    </model>
+    <model id="fur-monster-arm" file="experiments/pantheon/meshes/fur-monster-arm.obj">
+      <material name="*" furLength="0.16" furLayers="32" furDensity="2.1" furSoft="true" furFace="false" furBend="0 -0.05600 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".015 .015 .015" environment="false" />
+    </model>
+    <model id="fur-monster-foot" file="experiments/pantheon/meshes/fur-monster-foot.obj">
+      <material name="*" furLength="0.1" furLayers="32" furDensity="2.1" furSoft="true" furFace="false" furBend="0 -0.03500 0" texture2="experiments/pantheon/textures/fur-roots.png" roughness=".92" specular=".015 .015 .015" environment="false" />
+    </model>
+    <model id="fur-monster-face" file="experiments/pantheon/meshes/fur-monster-face.obj">
+      <material name="*" roughness=".42" specular=".12 .12 .12" environment="false" />
+    </model>
+    <model id="fur-monster-horn" file="experiments/pantheon/meshes/fur-monster-horn.obj">
+      <material name="*" roughness=".42" specular=".12 .12 .12" environment="false" />
+    </model>
+    <model id="parallax-reference-plane" file="experiments/pantheon/meshes/parallax-reference-flat.obj">
+      <material name="*" diffuse="1 1 1" lighting="false" texture0="experiments/pantheon/textures/parallax-reference-color.png" />
+    </model>
+    <model id="parallax-reference-mount" file="models/procedural-brick-plinth.obj">
+      <material name="*" diffuse=".025 .035 .045" roughness=".85" specular=".02 .02 .02" />
+    </model>
+    <model id="parallax-reference-label-off" file="experiments/pantheon/meshes/parallax-reference-flat.obj">
+      <material name="*" diffuse="1 1 1" lighting="false" castShadows="false" texture0="experiments/pantheon/textures/parallax-reference-label-off.png" />
+    </model>
+    <model id="parallax-reference-label-on" file="experiments/pantheon/meshes/parallax-reference-flat.obj">
+      <material name="*" diffuse="1 1 1" lighting="false" castShadows="false" texture0="experiments/pantheon/textures/parallax-reference-label-on.png" />
     </model>
   </assets>
   <group name="Pantheon experiment">
@@ -571,11 +591,39 @@
         </transform>
       </transform>
       <group name="Shell fur exhibit" room="silva">
-        <transform name="Fur bear plinth" translate="-5 .4 -61" scale="6 .8 7">
+        <transform name="Fur monster stage" translate="-5 .35 -61" scale="13 .7 7">
           <instance ref="polished-plinth" selectable="false" />
         </transform>
-        <transform name="Fur bear placement" translate="-5 .8 -61" rotate="0 -25 0" scale="4 4 4">
-          <instance ref="fur-bear" name="Brown bear - shell fur" selectable="true" />
+        <transform name="Monster 1 placement" translate="-5 .72 -61" scale="1.7 1.7 1.7">
+          <transform name="Monster 1 body" animation="fur-dance" dancePart="0" dancePhase="0.0">
+            <group name="Colored coat">
+              <state tint=".64 .22 .94" />
+              <instance ref="fur-monster-body" name="Dancing monster 1" selectable="true" />
+            </group>
+            <instance ref="fur-monster-face" selectable="false" />
+            <transform translate="-0.51 2.22 -.03" rotate="0 0 18">
+              <instance ref="fur-monster-horn" selectable="false" />
+            </transform>
+            <transform translate="0.51 2.22 -.03" rotate="0 0 -18">
+              <instance ref="fur-monster-horn" selectable="false" />
+            </transform>
+            <transform name="Monster 1 limb 1" animation="fur-dance" dancePart="1" dancePhase="0.0">
+              <state tint=".12 .85 .66" />
+              <instance ref="fur-monster-arm" selectable="false" />
+            </transform>
+            <transform name="Monster 1 limb 2" animation="fur-dance" dancePart="2" dancePhase="0.0">
+              <state tint=".12 .85 .66" />
+              <instance ref="fur-monster-arm" selectable="false" />
+            </transform>
+          </transform>
+          <transform name="Monster 1 limb 3" animation="fur-dance" dancePart="3" dancePhase="0.0">
+            <state tint="1 .40 .08" />
+            <instance ref="fur-monster-foot" selectable="false" />
+          </transform>
+          <transform name="Monster 1 limb 4" animation="fur-dance" dancePart="4" dancePhase="0.0">
+            <state tint="1 .40 .08" />
+            <instance ref="fur-monster-foot" selectable="false" />
+          </transform>
         </transform>
       </group>
     </transform>
@@ -4194,4 +4242,29 @@
       <opening min="-5.603432 0 34" max="5.603432 10 34" />
     </region>
   </environments>
+  <transform name="Parallax wall comparison" room="aes" translate="60.5 0 10.83" rotate="0 180 0">
+    <state>
+      <uniform name="uFog" type="bool" value="false" />
+    </state>
+    <transform translate="-1.4 1.4 -.235" scale="2.5 2.5 .46">
+      <instance ref="parallax-reference-mount" selectable="false" />
+    </transform>
+    <transform translate="-1.4 1.4 0">
+      <state heightMap="experiments/pantheon/textures/parallax-reference-height.png" parallax="false" parallaxScale="0.28" />
+      <instance ref="parallax-reference-plane" name="Flat panel - no parallax" selectable="true" />
+    </transform>
+    <transform translate="-1.4 2.85 .02" scale="1 .12 1">
+      <instance ref="parallax-reference-label-off" selectable="false" />
+    </transform>
+    <transform translate="1.4 1.4 -.235" scale="2.5 2.5 .46">
+      <instance ref="parallax-reference-mount" selectable="false" />
+    </transform>
+    <transform translate="1.4 1.4 0">
+      <state heightMap="experiments/pantheon/textures/parallax-reference-height.png" parallax="true" parallaxScale="0.28" />
+      <instance ref="parallax-reference-plane" name="Parallax height field - F9" selectable="true" />
+    </transform>
+    <transform translate="1.4 2.85 .02" scale="1 .12 1">
+      <instance ref="parallax-reference-label-on" selectable="false" />
+    </transform>
+  </transform>
 </scene>

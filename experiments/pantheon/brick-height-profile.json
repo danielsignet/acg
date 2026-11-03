@@ -1,0 +1,15 @@
+{
+  "source": "textures/red_brick-height.png",
+  "source_sha256": "733166c31b1b7ba4fc772247edf3527a83f20d4d14d2571ab1674f0dfd28e12a",
+  "source_range_16bit": [
+    231,
+    32191
+  ],
+  "runtime_range_8bit": [
+    0,
+    255
+  ],
+  "operation": "Per-brick footprints from matched albedo, closed small holes, bevelled edge profile; brick fronts anchored near height 1, mortar at height 0; 3 percent source microrelief retained",
+  "relief_depth_m": 0.035,
+  "output_sha256": "6923d52d42f3ad54a88b1be5f0dd22b18bf60c2cd5f0110218723a126faf856a"
+}

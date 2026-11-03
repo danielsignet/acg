@@ -11,11 +11,12 @@ import xml.etree.ElementTree as ET
 from PIL import Image, ImageDraw, ImageFont
 from types import SimpleNamespace
 from wings import add_wings, ROOMS, START
-from relief_demo import add_demonstration, build_meshes as build_relief_meshes, CAMERAS as RELIEF_CAMERAS, TREE_PLACEMENTS, TREE_WARPS
+from relief_demo import add_demonstration, configure_parallax_view, build_meshes as build_relief_meshes, CAMERAS as RELIEF_CAMERAS, TREE_PLACEMENTS, TREE_WARPS
 from fur_demo import add_demonstration as add_fur_demonstration, bake as bake_fur, CAMERAS as FUR_CAMERAS
 from billboard_demo import add_demonstration as add_billboards, bake as bake_billboards, CAMERAS as BILLBOARD_CAMERAS
 from starfield_demo import add_demonstration as add_starfield, bake as bake_starfield, CAMERAS as STAR_CAMERAS
 from terrain_demo import add_demonstration as add_terrain, bake as bake_terrain, CAMERAS as TERRAIN_CAMERAS
+from parallax_demo import bake as bake_parallax_reference, add_demonstration as add_parallax_reference, CAMERA as PARALLAX_REFERENCE_CAMERA
 
 HERE = Path(__file__).resolve().parent
 PREFIX = "experiments/pantheon/"
@@ -49,6 +50,7 @@ CAMERAS.update(FUR_CAMERAS)
 CAMERAS.update(BILLBOARD_CAMERAS)
 CAMERAS.update(STAR_CAMERAS)
 CAMERAS.update(TERRAIN_CAMERAS)
+CAMERAS['parallax-reference']=PARALLAX_REFERENCE_CAMERA
 COUNTS = {}
 TRANSFORMS = {}
 
@@ -342,7 +344,7 @@ def asset(parent,name,mesh,mats):
 def main():
     COUNTS['billboard-grass'] = bake_billboards()
     fur_geometry=bake_fur()
-    COUNTS['fur-bear']={'triangles':fur_geometry['triangles'],'vertices':fur_geometry['vertices']}
+    COUNTS['fur-monsters']={'triangles':fur_geometry['triangles'],'vertices':fur_geometry['vertices']}
     build_meshes()
     relief_geometry=build_relief_meshes()
     for name,key in (("relief-oak","oak"),("city-007-masonry","city_masonry"),("bounce-ball","ball")):
@@ -483,7 +485,7 @@ def main():
     add_terrain(scene,PREFIX)
     wing_manifest['billboards'] = json.loads((HERE/'billboard-material.json').read_text(encoding='utf-8'))
     wing_manifest['fur']={'material':'fur-material.json','view':'fur','room':'silva','toggle':'F11',
-                          'layers':14,'source':'Frakassets/Pixor, Bear, CC0-1.0'}
+                          'layers':32,'instances':1,'source':'Original procedural dancing monster'}
     wing_manifest["parallax"]={"materials":"relief-materials.json","geometry":"relief-geometry.json",
         "bark_depth_m":.018,"brick_depth_m":.035,"toggle":"F9","views":list(RELIEF_CAMERAS),
         "brick_location":"Tower 007 ground-floor walls","brick_height_m":3.6}
@@ -503,11 +505,14 @@ def main():
     # The existing engine clips away an aperture inside the near plane. Keep
     # that investigation opt-in; normal scene loading uses frustum culling/LOD.
     scene.remove(visibility)
+    bake_parallax_reference()
+    add_parallax_reference(scene)
     write(scene,HERE/"scene.xml")
     for name,(eye,target) in CAMERAS.items():
         if name=="rotunda": continue
         doc=copy.deepcopy(scene)
         camera=doc.find("camera");camera.set("eye",vec(eye));camera.set("target",vec(target))
+        configure_parallax_view(doc,name)
         write(doc,HERE/"views"/(name+".xml"))
     summary={"interior_diameter_m":2*R,"virtual_sphere_height_m":2*R,"oculus_diameter_m":2*OCULUS,
              "portal_plane_m":DOOR,"passage_half_width_m":HALF,"rooms":ROOMS,

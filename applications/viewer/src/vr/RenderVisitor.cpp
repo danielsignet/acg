@@ -218,12 +218,29 @@ void RenderVisitor::drawRenderList(const Camera& camera){
 }
 
 void RenderVisitor::drawFur(const std::vector<const RenderNode*>& items,bool linearOutput){
+    bool cachedLighting=false;
     for(const auto* item:items){
-        const auto count=furLayerCount(item->state);
+        auto count=furLayerCount(item->state);
         if(!count) continue;
+        const auto soft=item->state.getUniforms().find("uFurSoft");
+        const bool groomed=soft!=item->state.getUniforms().end() && std::get<bool>(soft->second);
+        const bool reuse=linearOutput && groomed && !item->state.getTexture(3);
+        if(reuse && !cachedLighting){
+            // Freeze opaque root lighting before any fur is blended into the HDR target.
+            captureTransmission();cachedLighting=true;
+        }
+        if(groomed){
+            const auto center=glm::vec3(item->model*glm::vec4(item->geometry->getBound().getCenter(),1));
+            const auto scale=std::max({glm::length(glm::vec3(item->model[0])),glm::length(glm::vec3(item->model[1])),glm::length(glm::vec3(item->model[2]))});
+            const auto pixels=furLength(item->state)*scale*m_viewport.w*std::abs(m_camera->getProjection()[1][1])*.5f/
+                std::max(.1f,glm::distance(center,m_camera->getPosition()));
+            count=std::min(count,static_cast<unsigned>(std::clamp(std::ceil(pixels*.65f),8.0f,32.0f)));
+        }
         auto shell=*item;
         shell.state.setBlend(true);
         shell.state.setUniform("uFurPass",true);
+        shell.state.setUniform("uFurLayers",static_cast<int>(count));
+        shell.state.setUniform("uFurCachedLighting",reuse);
         drawGeometry(shell,{},linearOutput,nullptr,count);
         ++m_stats.transparentDraws;
         if(!item->room.empty()) ++m_stats.roomDraws[item->room];
@@ -348,6 +365,9 @@ void RenderVisitor::drawGeometry(const RenderNode& item,
         GLState::blendFuncSeparate(GL_SRC_ALPHA,GL_ONE,GL_ZERO,GL_ONE);
     }
     const auto& program = *state.getProgram();
+    const auto cachedFur=state.getUniforms().find("uFurCachedLighting");
+    if(cachedFur!=state.getUniforms().end() && std::get<bool>(cachedFur->second))
+        m_transmission->getTexture()->apply(3);
     program.set("uInstanced", models != nullptr);
     if (m_environmentPrograms.insert(program.getId()).second){
         if (m_environment){

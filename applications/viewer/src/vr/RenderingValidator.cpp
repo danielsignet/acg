@@ -979,7 +979,7 @@ void RenderingValidator::validateLightOrbit(){
     app.handleKey(GLFW_KEY_T);
     require(app.m_lightOrbitCallback->getEnabled() != wasMoving,
             "T toggles the light orbit independently of object animation");
-    app.handleClick(810, 66);
+    app.handleClick(944, 24);
     require(app.m_lightOrbitCallback->getEnabled() == wasMoving,
             "The light-orbit toolbar button uses the same control as T");
     app.m_showHud = wasHud;
@@ -1542,6 +1542,12 @@ void RenderingValidator::validateControls(){
     require(app.m_vsync == vsync, "F7 uses the same VSync action as the toolbar");
     const bool lightCulling = app.m_lightCullingEnabled;
     const bool parallax = app.m_parallaxMappingEnabled;
+    app.handleClick(812,68);
+    require(app.m_parallaxMappingEnabled != parallax,
+            "The upper Parallax button switches the same state as F9");
+    app.handleKey(GLFW_KEY_F9);
+    require(app.m_parallaxMappingEnabled == parallax,
+            "F9 reverses the Parallax button without changing other material controls");
     app.handleKey(GLFW_KEY_F9);
     require(app.m_parallaxMappingEnabled != parallax &&
                 std::get<bool>(app.m_scene->getRoot()->getState()->getUniforms().at("uParallaxMapping")) ==

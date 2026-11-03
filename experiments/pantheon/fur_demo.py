@@ -1,162 +1,140 @@
-"""Offline CC0 bear preparation and the gallery's shell-fur exhibit.
-
-The original rigged GLB is preserved. The demonstration bakes its default pose,
-refines the surface and smooths normals, so repeated shells share one mesh.
-"""
-import hashlib
+"""Deterministic, self-contained dancing monsters and instanced shell fur."""
 import json
 import math
 from pathlib import Path
-import struct
 import xml.etree.ElementTree as ET
 import numpy as np
 from PIL import Image
 
 HERE=Path(__file__).resolve().parent
 PREFIX='experiments/pantheon/'
-CAMERAS={'fur':((10,3.7,54.8),(5,2.5,61))}
+CAMERAS={'fur':((12,4.7,52),(5,2.9,61))}
 
 
-def refine(points,triangles,smooth=True):
-    # Weld the source's hard-normal splits before applying geometric Loop weights.
-    unique={};ids=[];welded=[]
-    for p in points:
-        key=tuple(np.round(p,6))
-        if key not in unique:unique[key]=len(welded);welded.append(p)
-        ids.append(unique[key])
-    p=np.asarray(welded,dtype=float);tri=np.asarray(ids)[triangles]
-    neighbours=[set() for _ in p];edges={}
-    for a,b,c in tri:
-        for x,y,opposite in ((a,b,c),(b,c,a),(c,a,b)):
-            neighbours[x].add(y);neighbours[y].add(x)
-            edges.setdefault(tuple(sorted((x,y))),[]).append(opposite)
-    boundary=[set() for _ in p]
-    for (a,b),opposite in edges.items():
-        if len(opposite)==1:boundary[a].add(b);boundary[b].add(a)
-    output=[]
-    for i,near in enumerate(neighbours):
-        if not smooth:output.append(p[i]);continue
-        if len(boundary[i])==2:output.append(.75*p[i]+.125*sum(p[j] for j in boundary[i]))
-        else:
-            beta=3/16 if len(near)==3 else 3/(8*len(near))
-            output.append((1-len(near)*beta)*p[i]+beta*sum(p[j] for j in near))
-    midpoint={}
-    for edge,opposite in edges.items():
-        a,b=edge;midpoint[edge]=len(output)
-        output.append(.375*(p[a]+p[b])+.125*(p[opposite[0]]+p[opposite[1]])
-                      if smooth and len(opposite)==2 else .5*(p[a]+p[b]))
-    result=[]
-    for a,b,c in tri:
-        ab=midpoint[tuple(sorted((a,b)))];bc=midpoint[tuple(sorted((b,c)))];ca=midpoint[tuple(sorted((c,a)))]
-        result.extend(((a,ab,ca),(ab,b,bc),(ca,bc,c),(ab,bc,ca)))
-    return np.asarray(output),np.asarray(result)
+class Mesh:
+    def __init__(self):self.points=[];self.faces=[];self.materials=[]
+    def ellipsoid(self,center,radius,material='coat',segments=32,rings=22,pear=False):
+        start=len(self.points)
+        for row in range(rings+1):
+            p=math.pi*row/rings
+            for column in range(segments):
+                t=2*math.pi*column/segments
+                waist=1-.12*math.cos(p) if pear else 1
+                self.points.append(np.array(center)+np.array(radius)*[math.sin(p)*math.cos(t)*waist,math.cos(p),math.sin(p)*math.sin(t)*waist])
+        for row in range(rings):
+            for col in range(segments):
+                a=start+row*segments+col;b=start+row*segments+(col+1)%segments
+                c=b+segments;d=a+segments
+                for tri in ((a,b,c),(a,c,d)):
+                    points=np.asarray([self.points[i] for i in tri]);normal=np.cross(points[1]-points[0],points[2]-points[0])
+                    if np.linalg.norm(normal)<1e-10:continue
+                    if np.dot(normal,points.mean(0)-center)<0:tri=tri[::-1]
+                    self.faces.append(tri);self.materials.append(material)
+    def horn(self):
+        segments=20;rings=12
+        for row in range(rings+1):
+            t=row/rings;radius=.14*(1-t)+.005
+            for col in range(segments):
+                a=col/segments*2*math.pi
+                self.points.append(np.array([.17*t*t+radius*math.cos(a),.55*t,radius*math.sin(a)]))
+        for row in range(rings):
+            for col in range(segments):
+                a=row*segments+col;b=row*segments+(col+1)%segments;c=b+segments;d=a+segments
+                self.faces.extend(((a,c,b),(a,d,c)));self.materials.extend(('ivory','ivory'))
+    def save(self,name):
+        points=np.asarray(self.points);normals=np.zeros_like(points)
+        for face in self.faces:
+            a,b,c=points[list(face)];n=np.cross(b-a,c-a)
+            for i in face:normals[i]+=n
+        normals/=np.maximum(np.linalg.norm(normals,axis=1,keepdims=True),1e-12)
+        lines=['# Original procedural monster geometry.','mtllib fur-monster.mtl']
+        lines.extend('v '+' '.join(f'{x:.7f}' for x in p) for p in points)
+        lines.extend('vn '+' '.join(f'{x:.7f}' for x in n) for n in normals)
+        for material in dict.fromkeys(self.materials):
+            lines.extend(['g '+material,'usemtl '+material])
+            lines.extend('f '+' '.join(f'{i+1}//{i+1}' for i in face) for face,m in zip(self.faces,self.materials) if m==material)
+        (HERE/'meshes'/name).write_text('\n'.join(lines)+'\n',encoding='ascii')
+        return {'vertices':len(points),'triangles':len(self.faces)}
 
 
 def bake():
-    source=HERE/'meshes/fur-bear-source.glb';raw=source.read_bytes()
-    size=struct.unpack_from('<I',raw,12)[0];doc=json.loads(raw[20:20+size]);binary=raw[28+size:]
-    def read(index):
-        a=doc['accessors'][index];view=doc['bufferViews'][a['bufferView']]
-        components={'VEC3':3,'VEC4':4,'MAT4':16,'SCALAR':1}[a['type']]
-        return np.frombuffer(binary,dtype={5126:'<f4',5123:'<u2',5121:'u1'}[a['componentType']],
-            count=a['count']*components,offset=view.get('byteOffset',0)+a.get('byteOffset',0)).reshape(-1,components)
-    worlds={}
-    def world(index,parent):
-        node=doc['nodes'][index];x,y,z,w=node.get('rotation',[0,0,0,1])
-        rotation=np.array([[1-2*y*y-2*z*z,2*x*y-2*z*w,2*x*z+2*y*w],
-                           [2*x*y+2*z*w,1-2*x*x-2*z*z,2*y*z-2*x*w],
-                           [2*x*z-2*y*w,2*y*z+2*x*w,1-2*x*x-2*y*y]])
-        local=np.eye(4);local[:3,:3]=rotation@np.diag(node.get('scale',[1,1,1]));local[:3,3]=node.get('translation',[0,0,0])
-        worlds[index]=parent@local
-        for child in node.get('children',[]):world(child,worlds[index])
-    for index in doc['scenes'][doc.get('scene',0)]['nodes']:world(index,np.eye(4))
-    lines=['# CC0 bear from Frakassets/Pixor; derived static demonstration mesh.','mtllib fur-bear.mtl']
-    offset=0;counts={}
-    for mesh_index,mesh in enumerate(doc['meshes']):
-        primitive=mesh['primitives'][0];p=read(primitive['attributes']['POSITION']);tri=read(primitive['indices']).reshape(-1,3)
-        node_index,node=next((i,n) for i,n in enumerate(doc['nodes']) if n.get('mesh')==mesh_index)
-        if 'skin' in node:
-            skin=doc['skins'][node['skin']];inverse=read(skin['inverseBindMatrices']).reshape(-1,4,4).transpose(0,2,1)
-            matrices=np.array([worlds[j]@b for j,b in zip(skin['joints'],inverse)])
-            joints=read(primitive['attributes']['JOINTS_0']);weights=read(primitive['attributes']['WEIGHTS_0'])
-            pose=np.sum(matrices[joints]*weights[...,None,None],axis=1)
-            p=np.einsum('nij,nj->ni',pose,np.column_stack([p,np.ones(len(p))]))[:,:3]
-        else:p=(np.column_stack([p,np.ones(len(p))])@worlds[node_index].T)[:,:3]
-        if mesh['name'] not in ('Bear eyes','Bear nose'):
-            p,tri=refine(p,tri,smooth=mesh['name']!='Bear legs')
-        normal=np.zeros_like(p)
-        for face in tri:
-            a,b,c=p[face];n=np.cross(b-a,c-a)
-            for i in face:normal[i]+=n
-        normal/=np.maximum(np.linalg.norm(normal,axis=1,keepdims=True),1e-12)
-        for pos in p:lines.append('v '+' '.join(f'{v:.8f}' for v in pos))
-        for n in normal:lines.append('vn '+' '.join(f'{v:.8f}' for v in n))
-        groups={}
-        for face in tri:
-            center=p[face].mean(0)
-            material='bare' if mesh['name'] in ('Bear eyes','Bear nose') else 'muzzle' if mesh['name']=='Bear muzzle' else 'legs' if mesh['name']=='Bear legs' else 'face' if center[2]>.58 and center[1]>.60 else 'coat'
-            groups.setdefault(material,[]).append(face)
-        for material,faces in groups.items():
-            lines.extend(['g '+mesh['name'].replace(' ','-')+'-'+material,'usemtl '+material])
-            for face in faces:lines.append('f '+' '.join(f'{i+1+offset}//{i+1+offset}' for i in face))
-            counts[material]=counts.get(material,0)+len(faces)
-        offset+=len(p)
-    obj=HERE/'meshes/fur-bear.obj';obj.write_text('\n'.join(lines)+'\n',encoding='ascii')
-    materials={'coat':(.198,.089,.037),'legs':(.198,.089,.037),'face':(.198,.089,.037),
-               'muzzle':(.552,.332,.150),'bare':(.017,.014,.024)}
-    (HERE/'meshes/fur-bear.mtl').write_text(''.join('newmtl '+name+'\nKd '+' '.join(map(str,color))+'\nKa .2 .2 .2\nKs .04 .04 .04\nNs 25\n\n' for name,color in materials.items()),encoding='ascii')
-    # Periodic jittered strand roots. The radial profile stores each strand's
-    # height, so successive shells share roots and taper towards their tips.
-    size,cells=512,64;rng=np.random.default_rng(18022026)
-    roots=rng.uniform(.15,.85,(cells,cells,2));height=rng.uniform(.6,1,(cells,cells))
+    body=Mesh();body.ellipsoid((0,1.32,0),(.81,1.12,.60),segments=40,rings=28,pear=True)
+    arm=Mesh();arm.ellipsoid((0,-.39,0),(.21,.61,.23),segments=24,rings=18)
+    foot=Mesh();foot.ellipsoid((0,0,.07),(.30,.22,.39),segments=24,rings=16)
+    face=Mesh()
+    for x in (-.28,.28):
+        face.ellipsoid((x,1.70,.55),(.225,.275,.13),'white',24,18)
+        face.ellipsoid((x+.025,1.69,.669),(.093,.135,.041),'dark',24,16)
+        face.ellipsoid((x-.008,1.74,.707),(.025,.033,.012),'white',12,8)
+    face.ellipsoid((0,1.10,.568),(.39,.20,.095),'dark',32,18)
+    for x in (-.18,0,.18):face.ellipsoid((x,1.205,.647),(.064,.087,.035),'ivory',16,12)
+    horn=Mesh();horn.horn()
+    meshes={name:mesh.save(f'fur-monster-{name}.obj') for name,mesh in
+            [('body',body),('arm',arm),('foot',foot),('face',face),('horn',horn)]}
+    colors={'coat':(.55,.55,.55),'white':(.92,.94,.91),'dark':(.008,.012,.022),'ivory':(.95,.79,.53)}
+    (HERE/'meshes/fur-monster.mtl').write_text('\n'.join('newmtl '+name+'\nKd '+' '.join(map(str,color))+
+        '\nKa .12 .12 .12\nKs .025 .025 .025\nNs 32\n' for name,color in colors.items()),encoding='ascii')
+    # Every shell samples the same periodic root identities and tapered profile.
+    size,cells=1024,64;rng=np.random.default_rng(18022026)
+    roots=rng.uniform(.15,.85,(cells,cells,2));height=rng.uniform(.72,1,(cells,cells))
     y,x=np.meshgrid((np.arange(size)+.5)/size*cells,(np.arange(size)+.5)/size*cells,indexing='ij')
     bx,by=np.floor(x).astype(int),np.floor(y).astype(int);field=np.zeros_like(x)
     for dx in (-1,0,1):
         for dy in (-1,0,1):
             rx,ry=(bx+dx)%cells,(by+dy)%cells;root=roots[ry,rx]
             d2=(x-bx-dx-root[...,0])**2+(y-by-dy-root[...,1])**2
-            field=np.maximum(field,height[ry,rx]*np.exp(-d2/(2*.18**2)))
-    texture=HERE/'textures/fur-roots.png';Image.fromarray(np.uint8(np.clip(field,0,1)*255+.5)).save(texture)
-    stats={'title':'Bear','author':'Frakassets / Pixor','license':'CC0-1.0',
-        'source_url':'https://pixor.art/library/creatures/bear/',
-        'download_url':'https://pixor.art/library/files/bear/pixor-library-bear.glb',
-        'source_sha256':hashlib.sha256(raw).hexdigest(),
-        'modifications':'Baked default skeletal pose; Loop refinement of body/muzzle; linear leg refinement preserves paw contact; smoothed normals; separate face, leg and muzzle grooming',
-        'triangles':sum(counts.values()),'materials':counts,'vertices':offset,
-        'technique':'Shell fur with instanced layers and additive blending',
-        'layers':14,'blend_rgb':'FUNC_ADD, SRC_ALPHA, ONE','room':'silva','view':'fur',
-        'derived_sha256':hashlib.sha256(obj.read_bytes()).hexdigest(),
-        'texture_sha256':hashlib.sha256(texture.read_bytes()).hexdigest()}
-    (HERE/'fur-material.json').write_text(json.dumps(stats,indent=2)+'\n',encoding='utf-8')
+            field=np.maximum(field,height[ry,rx]*np.exp(-d2/(2*.165**2)))
+    Image.fromarray(np.uint8(np.clip(field,0,1)*255+.5)).save(HERE/'textures/fur-roots.png')
+    triangles=meshes['body']['triangles']+2*meshes['arm']['triangles']+2*meshes['foot']['triangles']+meshes['face']['triangles']+2*meshes['horn']['triangles']
+    stats={'title':'Dancing fur monsters','author':'Daniel Nilsson','source':'Original procedural geometry',
+        'triangles':triangles,'vertices':sum(m['vertices'] for m in meshes.values()),'meshes':meshes,
+        'instances':1,'layers':32,'blend_rgb':'FUNC_ADD, SRC_ALPHA, ONE',
+        'simulation':'Damped springs per articulated patch, 1/240 s steps, 0.12 local-unit motion envelope',
+        'technique':'Shared instanced shells, tapered triplanar roots, darker roots, inertial tip bending',
+        'room':'silva','view':'fur'}
+    (HERE/'fur-material.json').write_text(json.dumps(stats,indent=2)+'\n',encoding='utf8')
     return stats
 
 
 def add_demonstration(scene):
     assets=scene.find('assets')
     for model in list(assets):
-        if model.get('id')=='fur-bear':assets.remove(model)
-    model=ET.SubElement(assets,'model',id='fur-bear',file=PREFIX+'meshes/fur-bear.obj')
-    for material,length in [('coat',.10),('legs',.055),('face',.008),('muzzle',.012)]:
-        ET.SubElement(model,'material',name=material,furLength=str(length),furLayers='14',
-            furDensity='7' if material in ('face','muzzle') else '2.5',
-            furBend=f'0 {-length*.6} 0',texture2=PREFIX+'textures/fur-roots.png',
-            roughness='.92',specular='.025 .025 .025',environment='true')
-    ET.SubElement(model,'material',name='bare',roughness='.35')
+        if model.get('id','').startswith(('fur-bear','fur-monster-')):assets.remove(model)
+    for part,length in [('body',.18),('arm',.16),('foot',.10),('face',0),('horn',0)]:
+        model=ET.SubElement(assets,'model',id='fur-monster-'+part,file=PREFIX+f'meshes/fur-monster-{part}.obj')
+        if length:
+            ET.SubElement(model,'material',name='*',furLength=str(length),furLayers='32',furDensity='2.1',furSoft='true',
+                furFace='true' if part=='body' else 'false',
+                furBend=f'0 {-length*.35:.5f} 0',texture2=PREFIX+'textures/fur-roots.png',
+                roughness='.92',specular='.015 .015 .015',environment='false')
+        else:ET.SubElement(model,'material',name='*',roughness='.42',specular='.12 .12 .12',environment='false')
     south=next(n for n in scene.iter('transform') if n.get('name','').startswith('SILVA expanded wing'))
     for old in list(south):
         if old.get('name')=='Shell fur exhibit':south.remove(old)
     group=ET.SubElement(south,'group',name='Shell fur exhibit',room='silva')
-    plinth=ET.SubElement(group,'transform',name='Fur bear plinth',translate='-5 .4 -61',scale='6 .8 7')
+    plinth=ET.SubElement(group,'transform',name='Fur monster stage',translate='-5 .35 -61',scale='13 .7 7')
     ET.SubElement(plinth,'instance',ref='polished-plinth',selectable='false')
-    bear=ET.SubElement(group,'transform',name='Fur bear placement',translate='-5 .8 -61',rotate='0 -25 0',scale='4 4 4')
-    ET.SubElement(bear,'instance',ref='fur-bear',name='Brown bear - shell fur',selectable='true')
+    for index,(x,scale,color) in enumerate([(-5,1.7,'.64 .22 .94')]):
+        root=ET.SubElement(group,'transform',name=f'Monster {index+1} placement',translate=f'{x} .72 -61',scale=f'{scale} {scale} {scale}')
+        phase=str(index*.8)
+        body=ET.SubElement(root,'transform',name=f'Monster {index+1} body',animation='fur-dance',dancePart='0',dancePhase=phase)
+        coat=ET.SubElement(body,'group',name='Colored coat');ET.SubElement(coat,'state',tint=color)
+        ET.SubElement(coat,'instance',ref='fur-monster-body',name=f'Dancing monster {index+1}',selectable='true')
+        ET.SubElement(body,'instance',ref='fur-monster-face',selectable='false')
+        for side in (-1,1):
+            horn=ET.SubElement(body,'transform',translate=f'{side*.51} 2.22 -.03',rotate=f'0 0 {-side*18}')
+            ET.SubElement(horn,'instance',ref='fur-monster-horn',selectable='false')
+        for part in range(1,5):
+            limb=ET.SubElement(body if part<=2 else root,'transform',name=f'Monster {index+1} limb {part}',
+                animation='fur-dance',dancePart=str(part),dancePhase=phase)
+            ET.SubElement(limb,'state',tint='.12 .85 .66' if part<=2 else '1 .40 .08')
+            ET.SubElement(limb,'instance',ref='fur-monster-arm' if part<=2 else 'fur-monster-foot',selectable='false')
 
 
 if __name__=='__main__':
     print(json.dumps(bake(),indent=2))
     for path in [HERE/'scene.xml',HERE/'portal-scene.xml',*sorted((HERE/'views').glob('*.xml'))]:
-        scene=ET.parse(path).getroot();add_demonstration(scene);ET.indent(scene,space='  ')
-        ET.ElementTree(scene).write(path,encoding='utf-8',xml_declaration=True)
-    scene=ET.parse(HERE/'scene.xml').getroot();eye,target=CAMERAS['fur']
-    scene.find('camera').set('eye',' '.join(map(str,eye)));scene.find('camera').set('target',' '.join(map(str,target)))
-    ET.indent(scene,space='  ');ET.ElementTree(scene).write(HERE/'views/fur.xml',encoding='utf-8',xml_declaration=True)
+        scene=ET.parse(path).getroot();add_demonstration(scene)
+        if path.name=='fur.xml':
+            for key,value in zip(('eye','target'),CAMERAS['fur']):scene.find('camera').set(key,' '.join(map(str,value)))
+        ET.indent(scene,space='  ');ET.ElementTree(scene).write(path,encoding='utf-8',xml_declaration=True)

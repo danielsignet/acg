@@ -184,6 +184,67 @@ void rendering(const std::filesystem::path& path){
     renderer.setShadingMode(vr::ShadingMode::UnmappedPhong);
     check(render(true)==render(false),"Plain Phong disables parallax together with other surface detail");
     renderer.setShadingMode(vr::ShadingMode::Phong);
+    // Constant height alone cannot distinguish relief from a uniform UV shift.
+    // Check spatially varying profiles against an independent dense ray search.
+    const auto variableField=[&](const std::shared_ptr<vr::Texture>& heightMap,float depth,const char* label){
+        state->setHeightMap(heightMap);state->setUniform("uParallaxScale",depth);
+        const auto packed=heightMap->withNormal(state->getNormalMap());
+        packed->apply(4);
+        // This is a magnified surface comparison: sample the base profile exactly.
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        // Measure UVs without the production albedo buffer's 8-bit rounding.
+        deferred.getGBuffer().get(vr::GBuffer::Albedo)->apply(0);
+        glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA32F,width,height,0,GL_RGBA,GL_FLOAT,nullptr);
+        state->getTexture(0)->apply(0);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+        camera->setLookAt({2,0,2},{0,0,0});
+        render(false);
+        const auto baseColor=deferred.getGBuffer().read(vr::GBuffer::Albedo);
+        const auto positions=deferred.getGBuffer().read(vr::GBuffer::Position);
+        render(true);
+        const auto shiftedColor=deferred.getGBuffer().read(vr::GBuffer::Albedo);
+        float minimum=1,maximum=0,maxError=0,maxRawError=0;unsigned samples=0;
+        for(int y=height/4;y<3*height/4;y+=7)for(int x=width/4;x<3*width/4;x+=7){
+            const auto i=(y*width+x)*4;
+            if(positions[i+3]<.5f)continue;
+            const glm::vec2 uv=(glm::vec2(positions[i],positions[i+1])+1.0f)*.5f;
+            if(uv.x<.15f || uv.x>.85f || uv.y<.15f || uv.y>.85f)continue;
+            const glm::vec2 ray=depth*.5f*glm::vec2(2-positions[i],-positions[i+1])/2.0f;
+            const auto denseHit=[&](float rounding){
+                float hit=0;
+                // Thousands of tiny steps, rather than the shader's coarse bracket.
+                for(int j=0;j<=8192;++j){
+                    hit=j/8192.0f;
+                    if(hit>=1-glm::clamp(packed->sampleAlpha(uv-ray*hit)+rounding,0.0f,1.0f))break;
+                }
+                return uv-ray*hit;
+            };
+            const glm::vec2 expected=denseHit(0);
+            const glm::vec2 actual=(glm::vec2(shiftedColor[i],shiftedColor[i+1])*255.0f+.5f)/256.0f;
+            maxRawError=std::max(maxRawError,glm::length(actual-expected));
+            // RGBA8 hardware filtering has finite fractional precision. At a
+            // near-tangent ridge, one height LSB can select a different crossing.
+            // Bound that uncertainty explicitly, without relaxing UV accuracy.
+            const auto near=denseHit(1.0f/255),far=denseHit(-1.0f/255),span=far-near;
+            const float along=glm::clamp(glm::dot(actual-near,span)/std::max(glm::dot(span,span),1e-14f),0.0f,1.0f);
+            maxError=std::max(maxError,glm::length(actual-(near+along*span)));
+            const float offset=glm::length(uv-actual);
+            minimum=std::min(minimum,offset);maximum=std::max(maximum,offset);++samples;
+        }
+        std::cout<<label<<": "<<samples<<" samples, offset range "<<minimum<<".."<<maximum
+                 <<" UV, max raw error "<<maxRawError<<", error outside height-rounding bounds "<<maxError<<" UV\n";
+        check(samples>30 && maxError<.0005f,"Varying-height intersections agree with dense ray search within one texel and one height LSB");
+        check(maximum-minimum>.002f,"Different heights produce different shifts, not a uniform texture translation");
+    };
+    std::vector<unsigned char> ramp(64*64*4);
+    for(unsigned y=0;y<64;++y)for(unsigned x=0;x<64;++x){
+        const auto i=(y*64+x)*4;const auto value=static_cast<unsigned char>(32+3*x);
+        ramp[i]=ramp[i+1]=ramp[i+2]=value;ramp[i+3]=255;
+    }
+    variableField(std::make_shared<vr::Texture>(64,64,std::move(ramp),false),.14f,"Sloped height profile");
+    auto brickHeight=vr::Texture::fromFile(path/"experiments/pantheon/textures/red_brick-parallax-height.png");
+    variableField(brickHeight,.035f,"Actual brick, 35 mm");
+    variableField(brickHeight,.14f,"Actual brick, 140 mm demonstration");
     mesh->setData(positions,indices,flatNormals);
     check(render(true)==render(false),"Missing or degenerate UV coordinates safely disable parallax");
     mesh->setData(positions,indices,flatNormals,{{0,0},{1,0},{1,1},{0,1}});

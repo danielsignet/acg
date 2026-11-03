@@ -24,12 +24,15 @@ vec2 parallaxCoordinates(vec2 coordinates){
     // The inverse surface Jacobian preserves UV tiling, mirrored charts and model scale.
     vec2 ray = (uvX * dot(view, acrossY) + uvY * dot(view, acrossX)) / determinant;
     ray *= abs(uParallaxScale) * smoothstep(0.04, 0.15, facing) / max(facing, 0.08);
-    int layers = int(mix(48.0, 16.0, clamp(facing, 0.0, 1.0)));
+    // A view-angle budget alone can skip narrow mortar/brick edges when depth
+    // is amplified. Bound the step in height-map texels as well as by angle.
+    float rayTexels=length(ray*vec2(textureSize(uSurfaceMap,0)));
+    int layers=int(clamp(max(mix(48.0,16.0,clamp(facing,0.0,1.0)),ceil(rayTexels*3.0)),16.0,512.0));
     float low = 0.0, high = 0.0;
     float initialHeight = surfaceHeight(coordinates, uvX, uvY);
     if ((uParallaxScale > 0.0 ? 1.0 - initialHeight : initialHeight) <= 0.0)
         return coordinates;
-    for (int step = 1; step <= 48; ++step){
+    for (int step = 1; step <= 512; ++step){
         high = float(step) / float(layers);
         float height = surfaceHeight(coordinates - ray * high, uvX, uvY);
         float depth = uParallaxScale > 0.0 ? 1.0 - height : height;

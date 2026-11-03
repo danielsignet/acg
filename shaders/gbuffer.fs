@@ -13,6 +13,7 @@ layout(location = 6) out vec4 gPlane;
 #include "brdf.glsl"
 uniform vec3 uEye;
 #include "surface.glsl"
+#include "fur-fragment.glsl"
 uniform bool uReceiveShadows, uEnvironmentMaterial, uMirror, uMirrorAvailable;
 uniform vec2 uViewport;
 uniform vec2 uViewportOrigin;
@@ -24,6 +25,7 @@ void main(){
     vec2 coordinates = parallaxCoordinates(texCoord);
     if (outsideRoomWindow(worldPosition)) discard;
     vec4 surface = sampleSurface(coordinates);
+    surface.rgb=furAlbedo(surface.rgb);
     vec3 normal, plane;
     surfaceNormals(coordinates, normal, plane);
     int flags = (uLighting ? 1 : 0) | (uFog ? 2 : 0) | (uReceiveShadows ? 4 : 0) |

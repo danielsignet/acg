@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <vr/Animation.h>
 #include <vr/BounceAnimation.h>
+#include <vr/FurDynamics.h>
 #include <vr/Billboard.h>
 #include <vr/TreeDeformation.h>
 #include <vr/Fur.h>
@@ -353,6 +354,12 @@ std::shared_ptr<Transform> SceneReader::readTransform(Xml* xml, const std::strin
         transform->setUpdateCallback(
             std::make_shared<SpinCallback>(transform, number(attribute(xml, "speed", "35")),
                                            vec3(attribute(xml, "axis", "0.3 1 0.2"))));
+    } else if (attribute(xml,"animation")=="fur-dance"){
+        const auto part=number(attribute(xml,"dancePart","0"));
+        if(!std::isfinite(part) || part!=std::floor(part) || part<0 || part>4)
+            throw std::runtime_error("Invalid fur dance part");
+        transform->setUpdateCallback(std::make_shared<FurDanceAnimation>(transform,static_cast<int>(part),
+            number(attribute(xml,"dancePhase","0"))));
     } else if (!attribute(xml, "animation").empty()){
         Reader::AnimationAttributes attributes;
         for (auto* item = xml->first_attribute(); item; item = item->next_attribute()){
@@ -453,6 +460,8 @@ void SceneReader::readTextures(Xml* xml, State& state){
 
 // Reads built-in and arbitrary typed shader-uniform overrides.
 void SceneReader::readUniforms(Xml* xml, State& state){
+    if(xml->first_attribute("furSoft"))state.setUniform("uFurSoft",boolean(attribute(xml,"furSoft")));
+    if(xml->first_attribute("furFace"))state.setUniform("uFurFace",boolean(attribute(xml,"furFace")));
     for(const auto* name:{"furLength","furDensity"}){
         if(xml->first_attribute(name)){
             const auto value=number(attribute(xml,name));

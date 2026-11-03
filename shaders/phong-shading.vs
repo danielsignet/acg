@@ -32,6 +32,7 @@ void main(){
     vec3 localPosition=treePoint*deformationScale+
         vec3(0,deformationOffset,0);
     vec4 p = model * vec4(localPosition, 1.0);
+    furRootClip=uProjection*uView*model*vec4(vertexPosition,1);
     worldPosition = p.xyz;
     worldNormal = normalize(normalMatrix * (treeNormal/deformationScale));
     worldTangent = vec4(0);

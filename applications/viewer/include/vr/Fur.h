@@ -24,7 +24,9 @@ inline void prepareFurBounds(Node& node,const State& inherited=State{}){
     visitor.setGeometryHandler([](Geometry& mesh,const State& state){
         if(furLength(state)>0){
             const auto bend=state.getUniforms().find("uFurBend");
-            const auto padding=glm::vec3(furLength(state))+
+            const auto soft=state.getUniforms().find("uFurSoft");
+            const float motion=soft!=state.getUniforms().end() && std::get<bool>(soft->second)?.12f:0.0f;
+            const auto padding=glm::vec3(furLength(state)+motion)+
                 (bend==state.getUniforms().end()?glm::vec3(0):glm::abs(std::get<glm::vec3>(bend->second)));
             mesh.setFurPadding(glm::max(mesh.getFurPadding(),padding));
         }

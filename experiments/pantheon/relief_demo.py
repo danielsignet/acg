@@ -7,14 +7,15 @@ from pathlib import Path
 import subprocess
 import xml.etree.ElementTree as ET
 import numpy as np
+from PIL import Image,ImageFilter
 from basketball_material import bake as bake_basketball, DEPTH_M as BASKETBALL_DEPTH
 
 HERE = Path(__file__).resolve().parent
 PREFIX = "experiments/pantheon/"
 CAMERAS = {
-    "parallax": ((29, 4.8, -3.5), (41.5, 3.8, 8)),
+    "parallax": ((54.2, 1.45, 10.55), (55.5, 1.45, 11.303)),
     "bark": ((37.55, 1.9, 6.25), (39, 2.0, 7)),
-    "brick": ((45.2, 1.7, 8.55), (49.2, 1.65, 10.7)),
+    "brick": ((54.2, 1.45, 10.55), (55.5, 1.45, 11.303)),
     "trees": ((25, 6.7, 0), (82, 6.3, 0)),
     "bounce": ((-13, 4.2, -50), (-5.6, 2.1, -44)),
 }
@@ -204,6 +205,32 @@ def ball():
     return mesh.save("bounce-ball","bounce-ball.mtl")
 
 
+def prepare_brick_height():
+    # The source is 16-bit displacement with a sub-range of the PNG's full range.
+    # Keep it intact and make an explicitly normalized runtime height profile.
+    source=HERE/'textures/red_brick-height.png'
+    values=np.asarray(Image.open(source),dtype=np.float64)
+    low,high=float(values.min()),float(values.max())
+    if high<=low:raise ValueError('Brick height data has no relief')
+    normalized=(values-low)/(high-low)
+    # Anchor brick fronts to the mesh plane. Derive their individual footprints
+    # from the matched colour image; mortar remains recessed between the bricks.
+    colour=np.asarray(Image.open(HERE/'textures/red_brick-albedo.jpg').convert('RGB'),dtype=np.float64)/255
+    mask=Image.fromarray(np.uint8((colour[...,0]-colour[...,1]>.075)*255))
+    mask=mask.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.GaussianBlur(2.0))
+    profile=np.clip((np.asarray(mask,dtype=np.float64)/255-.12)/.76,0,1)
+    profile=profile*profile*(3-2*profile)
+    normalized=np.uint8(np.rint(profile*(.97+.03*normalized)*255))
+    target=HERE/'textures/red_brick-parallax-height.png'
+    Image.fromarray(normalized).save(target)
+    metadata={'source':source.relative_to(HERE).as_posix(),'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
+              'source_range_16bit':[int(low),int(high)],'runtime_range_8bit':[0,255],
+              'operation':'Per-brick footprints from matched albedo, closed small holes, bevelled edge profile; brick fronts anchored near height 1, mortar at height 0; 3 percent source microrelief retained',
+              'relief_depth_m':.035,'output_sha256':hashlib.sha256(target.read_bytes()).hexdigest()}
+    (HERE/'brick-height-profile.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf8')
+    return metadata
+
+
 def add_demonstration(scene):
     assets=scene.find("assets")
     city=next(node for node in scene.iter("transform") if node.get("name","").startswith("AES expanded wing"))
@@ -223,7 +250,8 @@ def add_demonstration(scene):
             specular=".035 .035 .035",metallic="0",roughness=".88",environment="true",
             texture0=PREFIX+f"textures/{source}-albedo.jpg",
             normalMap=PREFIX+f"textures/{source}-normal.png",normalScale="1",
-            heightMap=PREFIX+f"textures/{source}-height.png",parallax="true",parallaxScale=str(depth))
+            heightMap=PREFIX+("textures/red_brick-parallax-height.png" if source=="red_brick" else f"textures/{source}-height.png"),
+            parallax="true",parallaxScale=str(depth))
         if model=="relief-oak":
             for i in range(6):
                 ET.SubElement(asset,"material",name=f"leaf{i}",cull="false",roughness=".72",environment="true")
@@ -253,7 +281,15 @@ def add_demonstration(scene):
     ET.SubElement(placed,"instance",ref="bounce-ball",name="Bouncing ball",selectable="true",bounceRadius="1")
 
 
+def configure_parallax_view(scene,name):
+    if name not in ('brick','parallax'):return
+    # The close view uses the same physical depth as the building in the main scene.
+    material=scene.find("assets/model[@id='city-7']/material[@name='brick']")
+    material.set('parallaxScale','.035')
+
+
 def build_meshes():
+    prepare_brick_height()
     stats={"oak":oak(),"city_masonry":masonry(),"ball":ball(),"tree_instances":len(TREE_PLACEMENTS),
            "tree_placements":TREE_PLACEMENTS,"tree_warps":TREE_WARPS,"seed":18022026,"cameras":CAMERAS}
     (HERE/"relief-geometry.json").write_text(json.dumps(stats,indent=2)+"\n",encoding="utf-8")
@@ -274,6 +310,7 @@ def main():
         scene=copy.deepcopy(base)
         scene.find("camera").set("eye",text(eye))
         scene.find("camera").set("target",text(target))
+        configure_parallax_view(scene,name)
         ET.indent(scene,space="  ")
         ET.ElementTree(scene).write(HERE/"views"/(name+".xml"),encoding="utf-8",xml_declaration=True)
     geometry_path=HERE/"geometry.json"

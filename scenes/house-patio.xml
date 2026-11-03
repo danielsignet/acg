@@ -4,6 +4,9 @@
   <assets>
     <model id="monkey" file="models/monkey.obj" />
     <model id="crate" file="models/texturedBox.obj" />
+    <model id="brick-plinth" file="models/procedural-brick-plinth.obj">
+      <material name="*" diffuse="0.8 0.75 0.7" ambient="0.2 0.2 0.2" specular="0.04 0.04 0.04" roughness="0.82" metallic="0" shininess="20" heightMap="textures/brick-height.png" heightScale="0.006" />
+    </model>
     <model id="cow-0.99" file="models/cow/cow_0.99.obj" />
     <model id="cow-0.5" file="models/cow/cow_0.5.obj" />
     <model id="cow-0.3" file="models/cow/cow_0.3.obj" />
@@ -103,10 +106,10 @@
         <instance ref="box" />
       </transform>
       <transform name="plinthD" translate="-6 0.3 -5" scale="3 0.6 3">
-        <state diffuse="0.65 0.5 0.38" normalMap="textures/brick-normal.png" normalScale="0.8" heightMap="textures/brick-height.png" heightScale="0.025">
+        <state>
           <uniform name="uProcedural" type="int" value="1" />
         </state>
-        <instance ref="box" />
+        <instance ref="brick-plinth" />
       </transform>
       <transform name="plinthE" translate="12 0.4 0" scale="3.8 0.8 3.8">
         <instance ref="box" />

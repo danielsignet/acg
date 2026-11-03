@@ -60,6 +60,10 @@ State State::defaults(const std::shared_ptr<Program>& program){
     s.setUniform("uFurLayers", 14);
     s.setUniform("uFurDensity", 5.0f);
     s.setUniform("uFurBend", glm::vec3(0));
+    s.setUniform("uFurMotion", glm::vec3(0));
+    s.setUniform("uFurSoft", false);
+    s.setUniform("uFurFace", false);
+    s.setUniform("uFurCachedLighting", false);
     s.setUniform("uEnvironmentMaterial", false);
     s.setUniform("uReflectionProbe", 0);
     s.setUniform("uMirror", false);

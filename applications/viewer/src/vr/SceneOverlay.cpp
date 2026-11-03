@@ -25,10 +25,11 @@ constexpr float shaderMenuTop = -8 - shaderRowHeight * Controls::getShaderOption
 constexpr ToolbarButton bloomButton{Action::Bloom, 452, 90};
 constexpr ToolbarButton dofButton{Action::DepthOfField, 554, 90};
 constexpr ToolbarButton multiviewButton{Action::BufferPreviews, 764, 156};
+constexpr ToolbarButton parallaxButton{Action::ParallaxMapping, 800, 232};
 constexpr ToolbarButton aaButton{Action::Antialiasing, 12, 232};
 constexpr ToolbarButton reflectionsButton{Action::Reflections, 256, 260};
 constexpr ToolbarButton bumpButton{Action::BumpMapping, 528, 260};
-constexpr ToolbarButton orbitButton{Action::PointOrbit, 800, 232};
+constexpr ToolbarButton orbitButton{Action::PointOrbit, 932, 164};
 constexpr float secondaryTop = 56;
 
 constexpr auto& shaderOptions = Controls::getShaderOptions();
@@ -137,7 +138,7 @@ void SceneOverlay::click(Application& app, float x, float y){
         app.execute(Action::Hud);
         return;
     }
-    for (const auto& button :{aaButton, reflectionsButton, bumpButton, orbitButton}){
+    for (const auto& button :{aaButton, reflectionsButton, bumpButton, parallaxButton}){
         if (button.action == Action::PointOrbit && !app.m_lightOrbitCallback){
             continue;
         }
@@ -146,7 +147,8 @@ void SceneOverlay::click(Application& app, float x, float y){
             return;
         }
     }
-    for (const auto& button :{bloomButton, dofButton, aoButton, rendererButton, multiviewButton}){
+    for (const auto& button :{bloomButton, dofButton, aoButton, rendererButton, multiviewButton, orbitButton}){
+        if(button.action==Action::PointOrbit && !app.m_lightOrbitCallback)continue;
         if (x >= button.x && x <= button.x + button.width && y >= 12 && y <= 44){
             app.execute(button.action);
             return;
@@ -229,11 +231,15 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.rectangle(bumpButton.x, secondaryTop, bumpButton.width, 28,{0.09f, 0.16f, 0.2f, 1});
     m_text.draw(std::string("Normal/bump maps: ") + (app.m_bumpMappingEnabled ? "ON" : "OFF") + " [F6]",
                 bumpButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+    m_text.rectangle(parallaxButton.x,secondaryTop,parallaxButton.width,28,
+                     app.m_parallaxMappingEnabled?glm::vec4(.14f,.22f,.27f,1):glm::vec4(.09f,.16f,.20f,1));
+    m_text.draw(std::string("Parallax: ")+(app.m_parallaxMappingEnabled?"ON":"OFF")+" [F9]",
+                parallaxButton.x+10,secondaryTop+6,12,{.7f,.9f,.84f,1});
     if (app.m_lightOrbitCallback){
         const bool moving = app.m_frozenLightOrbitEnabled.value_or(app.m_lightOrbitCallback->getEnabled());
-        m_text.rectangle(orbitButton.x, secondaryTop, orbitButton.width, 28,{0.09f, 0.16f, 0.2f, 1});
+        m_text.rectangle(orbitButton.x, 12, orbitButton.width, 32,{0.09f, 0.16f, 0.2f, 1});
         m_text.draw(std::string("Light orbit: ") + (moving ? "ON" : "PAUSED") + " [T]",
-                    orbitButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
+                    orbitButton.x + 8, 21, 11,{0.7f, 0.9f, 0.84f, 1});
     }
     const auto hide = menuToggleRectangle(app);
     m_text.rectangle(hide.x, hide.y, hide.z, hide.w,{0.09f, 0.16f, 0.2f, 1});
@@ -261,7 +267,7 @@ void SceneOverlay::drawHeader(const Application& app){
                                  : button.action == Action::Bloom            ? "Bloom"
                                  : button.action == Action::AmbientOcclusion ? "AO"
                                                                              : "DoF";
-        const std::string key = multiview                                   ? "G"
+        const std::string key = multiview                                    ? "G"
                                 : button.action == Action::Bloom            ? "B"
                                 : button.action == Action::AmbientOcclusion ? "O"
                                                                             : "V";
@@ -279,7 +285,7 @@ void SceneOverlay::drawHeader(const Application& app){
     std::ostringstream info;
     info << stats.draws << " draws | " << std::fixed << std::setprecision(0)
          << app.m_framesPerSecond << " FPS";
-    if (app.m_width - 185 >= multiviewButton.x + multiviewButton.width + 12){
+    if (app.m_width - 185 >= orbitButton.x + orbitButton.width + 12){
         m_text.draw(info.str(), static_cast<float>(app.m_width) - 185, 20, 12,
                     {0.7f, 0.8f, 0.88f, 1});
     }

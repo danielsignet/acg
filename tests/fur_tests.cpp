@@ -1,5 +1,6 @@
 #include <vr/Application.h>
 #include <vr/Fur.h>
+#include <vr/FurDynamics.h>
 #include <vr/FramebufferImage.h>
 #include <vr/GeometryFactory.h>
 #include <vr/Reader.h>
@@ -16,10 +17,32 @@ namespace{
 unsigned checks=0;
 void check(bool ok,const char* message){++checks;if(!ok) throw std::runtime_error(message);}
 
+void dynamics(){
+    auto a=std::make_shared<vr::Transform>(),b=std::make_shared<vr::Transform>();
+    vr::FurDanceAnimation first(a,1,.3),second(b,1,.3);
+    for(int i=0;i<180;++i)first.update(*a,{0,1.0/60,true});
+    for(int i=0;i<432;++i)second.update(*b,{0,1.0/144,true});
+    check(glm::distance(first.spring().displacement,second.spring().displacement)<1e-5f,
+          "Fixed-step fur physics agrees at 60 and 144 render frames per second");
+    const auto before=first.spring().displacement;const auto pose=a->getMatrix();
+    first.update(*a,{4,1,false});
+    check(a->getMatrix()==pose && first.spring().displacement==before && !first.changesRenderedContent(),
+          "Global animation pause freezes both the articulated pose and fur spring");
+    first.update(*a,{5,1000,true});
+    check(std::isfinite(first.spring().displacement.x) && glm::length(first.spring().displacement)<=.120001f,
+          "A stalled frame cannot make the bounded spring diverge or escape its culling envelope");
+    check(glm::length(before)>.001f,"Dancing accelerations generate visible nonzero inertial fur motion");
+    vr::FurSpring settling;settling.displacement={.1f,0,0};
+    for(int i=0;i<1200;++i)settling.step(glm::vec3(0),1.0f/240);
+    check(glm::length(settling.displacement)<1e-5f && glm::length(settling.velocity)<1e-5f,
+          "Damping dissipates energy after the driving force stops");
+}
+
 void displacement(const std::filesystem::path& root){
     auto mesh=vr::GeometryFactory::createSphere(12,8);
     auto state=std::make_shared<vr::State>();state->setUniform("uFurLength",.2f);
     const glm::vec3 bend(.1f,-.05f,.02f);state->setUniform("uFurBend",bend);mesh->setState(state);
+    state->setUniform("uFurSoft",true);
     vr::prepareFurBounds(*mesh);
     auto refined=vr::Subdivision::create(mesh);
     auto refinedMesh=std::dynamic_pointer_cast<vr::Geometry>(
@@ -38,6 +61,8 @@ void displacement(const std::filesystem::path& root){
         program.use();program.set("uInstanced",false);program.set("uFurPass",true);
         program.set("uFurLength",.2f);program.set("uFurLayers",static_cast<int>(layers));
         program.set("uFurBend",bend);program.set("uModel",model);
+        const glm::vec3 motion(.11f,-.03f,.01f);
+        program.set("uFurSoft",layers==32);program.set("uFurMotion",motion);
         program.set("uNormal",glm::transpose(glm::inverse(glm::mat3(model))));
         program.set("uView",glm::mat4(1));program.set("uProjection",glm::mat4(1));
         glEnable(GL_RASTERIZER_DISCARD);glBeginTransformFeedback(GL_TRIANGLES);
@@ -47,7 +72,9 @@ void displacement(const std::filesystem::path& root){
         for(std::size_t i=0;i<count;++i){
             const auto& vertex=mesh->getVertices()[mesh->getIndices()[i%mesh->getIndices().size()]];
             const auto h=(i/mesh->getIndices().size()+.5f)/layers;
-            const auto p=vertex.position+glm::normalize(vertex.normal)*(.2f*h)+bend*h*h;
+            const auto normal=glm::normalize(vertex.normal);
+            const auto inertia=layers==32?motion-normal*glm::dot(normal,motion):glm::vec3(0);
+            const auto p=vertex.position+normal*(.2f*h)+(bend+inertia)*h*h;
             const glm::vec3 actual(values[i*7],values[i*7+1],values[i*7+2]);
             check(glm::distance(actual,glm::vec3(model*glm::vec4(p,1)))<2e-5f,
                   "GPU shell offsets match the local normal and bend under mirrored/nonuniform transforms");
@@ -111,6 +138,13 @@ void blendingAndDepth(const std::filesystem::path& root){
         check(blocked[i]==blockedPlain[i] && blocked[i+1]==blockedPlain[i+1] && blocked[i+2]==blockedPlain[i+2],
               "Opaque scene depth occludes the additive fur shells");
     }
+    coat->setUniform("uFurSoft",true);
+    vr::prepareFurBounds(*graph);
+    vr::DeferredRenderer hdr(root);hdr.resize(256,256);hdr.setPreviews(false);
+    state->setUniform("uFurRendering",true);
+    renderer.render(*graph,camera,nullptr,nullptr,&hdr);
+    check(renderer.getStats().screenCopies==1 && glGetError()==GL_NO_ERROR,
+          "Groomed fur snapshots root lighting once into a separate texture without framebuffer feedback");
 }
 
 void application(const std::filesystem::path& root,GLFWwindow* window){
@@ -156,7 +190,7 @@ int main(int argc,char** argv){
     if(!window){glfwTerminate();return 1;}glfwMakeContextCurrent(window);int result=0;
     try{
         if(!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))) throw std::runtime_error("OpenGL failed");
-        displacement(argv[1]);blendingAndDepth(argv[1]);application(argv[1],window);
+        dynamics();displacement(argv[1]);blendingAndDepth(argv[1]);application(argv[1],window);
         check(glGetError()==GL_NO_ERROR,"Fur paths leave valid OpenGL state");
         std::cout<<"Shell fur: "<<checks<<" checks passed\n";
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';result=1;}

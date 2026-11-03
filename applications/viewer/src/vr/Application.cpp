@@ -240,8 +240,8 @@ void Application::execute(Controls::Action action){
         m_bumpMappingEnabled = !m_bumpMappingEnabled;
         m_scene->getRoot()->getState()->setUniform("uBumpMapping", m_bumpMappingEnabled);
         m_profiler.resetAverages();
-        m_status = m_bumpMappingEnabled ? "Height-map bump mapping on; averages reset"
-                                        : "Height-map bump mapping off; averages reset";
+        m_status = m_bumpMappingEnabled ? "Normal and height bump maps on; averages reset"
+                                        : "Normal and height bump maps off; averages reset";
     } else if (action == Action::SkyParticles){
         m_particlesEnabled=!m_particlesEnabled;
         m_environment->setParticlesEnabled(m_particlesEnabled);

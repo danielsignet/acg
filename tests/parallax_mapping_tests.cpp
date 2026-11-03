@@ -149,6 +149,15 @@ void rendering(const std::filesystem::path& path){
         const auto forward=render(true,false);
         for (unsigned c=0;c<3;++c) check(std::abs(int(parallax[center+c])-int(forward[center+c]))<=2,
               "Forward and deferred evaluate the same displaced normal/diffuse surface");
+        state->setUniform("uBumpMapping",false);
+        const auto withoutBump=render(true);
+        check(glm::distance(glm::vec3(sample(vr::GBuffer::Normal)),glm::vec3(0,0,1))<.002f &&
+                  sample(vr::GBuffer::Albedo)==shifted,
+              "Bump OFF flattens the normal while preserving independently enabled parallax UVs");
+        const auto forwardWithoutBump=render(true,false);
+        for(unsigned c=0;c<3;++c)check(std::abs(int(withoutBump[center+c])-int(forwardWithoutBump[center+c]))<=2,
+              "Forward and deferred agree on parallax with normal perturbations disabled");
+        state->setUniform("uBumpMapping",true);
         state->setUniform("uParallaxScale",0.0f);
         check(render(true)==reference,"Zero depth restores normal mapping exactly");
         state->setUniform("uParallaxScale",.4f);

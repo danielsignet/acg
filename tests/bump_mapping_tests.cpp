@@ -209,12 +209,32 @@ void rendering(const std::filesystem::path& root){
         std::make_shared<vr::Texture>(1, 1, std::vector<unsigned char>{204, 179, 217, 255});
     state->setNormalMap(normalMap);
     state->setUniform("uBumpMapping", false);
-    render();
-    const auto rgbNormal = glm::normalize(glm::vec3(204, 179, 217) / 255.0f * 2.0f - 1.0f);
-    check(glm::distance(sampleNormal(), rgbNormal) < 0.002f && state->getHeightMap(),
-          "Disabling height relief falls back to the stored RGB normal map "
-          "without losing either asset");
+    check(render() == flat && state->getNormalMap() == normalMap && state->getHeightMap(),
+          "Disabling bump maps restores the base normal while retaining both source maps");
+    state->setHeightMap(nullptr);
+    check(render() == flat,
+          "The bump switch also disables RGB detail on materials without a height map");
     state->setUniform("uBumpMapping", true);
+    const auto normalMapped = render();
+    const auto rgbNormal = glm::normalize(glm::vec3(204, 179, 217) / 255.0f * 2.0f - 1.0f);
+    check(glm::distance(sampleNormal(), rgbNormal) < 0.002f && normalMapped != flat,
+          "Re-enabling bump maps restores the analytic RGB normal on normal-only materials");
+    for (const auto mode :
+         {vr::ShadingMode::Phong, vr::ShadingMode::BlinnPhong, vr::ShadingMode::CookTorrance}){
+        renderer.setShadingMode(mode);
+        for (const bool enabled :{false, true}){
+            state->setUniform("uBumpMapping", enabled);
+            const auto deferredPixels = render();
+            const auto forwardPixels = render(false);
+            for (unsigned channel = 0; channel < 3; ++channel){
+                check(std::abs(static_cast<int>(deferredPixels[center + channel]) -
+                               forwardPixels[center + channel]) <= 2,
+                      "The normal-map switch agrees in forward and deferred for each BRDF");
+            }
+        }
+    }
+    renderer.setShadingMode(vr::ShadingMode::Phong);
+    state->setHeightMap(ramp());
     render();
     check(glm::distance(sampleNormal(), expected) < 0.002f,
           "Enabling height relief selects height data in the same sampler slot");
@@ -222,6 +242,11 @@ void rendering(const std::filesystem::path& root){
     render();
     check(glm::distance(sampleNormal(), expected) < 0.002f,
           "MSAA resolves the same height-derived normal");
+    state->setUniform("uBumpMapping", false);
+    render();
+    check(glm::distance(sampleNormal(), glm::vec3(0, 0, 1)) < 0.002f,
+          "MSAA disables both height and RGB normal perturbations with the same switch");
+    state->setUniform("uBumpMapping", true);
     deferred.setAntialiasing(vr::AntialiasingMode::Off);
     deferred.setAmbientOcclusion(true);
     const auto ambient = [&]{

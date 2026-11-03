@@ -227,7 +227,7 @@ void SceneOverlay::drawHeader(const Application& app){
     m_text.draw(std::string("Reflections: ") + reflectionName(app.m_reflectionMode) + " [F5]  >",
                 reflectionsButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
     m_text.rectangle(bumpButton.x, secondaryTop, bumpButton.width, 28,{0.09f, 0.16f, 0.2f, 1});
-    m_text.draw(std::string("Bump maps: ") + (app.m_bumpMappingEnabled ? "ON" : "OFF") + " [F6]",
+    m_text.draw(std::string("Normal/bump maps: ") + (app.m_bumpMappingEnabled ? "ON" : "OFF") + " [F6]",
                 bumpButton.x + 10, secondaryTop + 6, 12,{0.7f, 0.9f, 0.84f, 1});
     if (app.m_lightOrbitCallback){
         const bool moving = app.m_frozenLightOrbitEnabled.value_or(app.m_lightOrbitCallback->getEnabled());

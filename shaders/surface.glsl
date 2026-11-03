@@ -73,7 +73,7 @@ void surfaceNormals(vec2 coordinates, out vec3 normal, out vec3 plane){
     plane = cross(dFdx(worldPosition), dFdy(worldPosition));
     plane = length(plane) > 1e-8 ? normalize(plane) : normal;
     vec3 tangent = worldTangent.xyz - normal * dot(normal, worldTangent.xyz);
-    if (uNormalMapping && uHasNormalMap && abs(worldTangent.w) > 0.5 && length(tangent) > 1e-8){
+    if (uNormalMapping && uBumpMapping && uHasNormalMap && abs(worldTangent.w) > 0.5 && length(tangent) > 1e-8){
         tangent = normalize(tangent);
         vec3 bitangent = cross(normal, tangent) * sign(worldTangent.w);
         vec3 mapped = textureGrad(uSurfaceMap, coordinates, dFdx(texCoord), dFdy(texCoord)).xyz * 2.0 - 1.0;

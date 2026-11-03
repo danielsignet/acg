@@ -108,89 +108,14 @@ foreach(config Debug Release RelWithDebInfo MinSizeRel)
   set_target_properties(viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${PROJECT_BINARY_DIR}/bin")
 endforeach()
 # Keep the default scene runnable beside the executable and in installed packages.
-set(VIEWER_RESOURCES
-    scenes/demo.xml
-    scenes/house-patio.xml
-    models/monkey.obj
-    models/texturedBox.obj
-    models/texturedBox.mtl
-    models/porsche_911_gt3.glb
-    models/5426_C3PO_Robot_Star_Wars.obj
-    models/5426_C3PO_Robot_Star_Wars.mtl
-    "models/Altair Model/altair.obj"
-    models/dragon/Dragon.fbx
-    models/dragon/readme.txt
-    models/dragon/textures/Dragon_Bump_Col2.jpg
-    models/dragon/textures/Dragon_Nor_mirror2.jpg
-    models/cow/cow_0.99.obj
-    models/cow/cow_0.5.obj
-    models/cow/cow_0.3.obj
-    models/cow/cow_0.1.obj
-    models/cow/cow_0.05.obj
-    models/cow/cow_0.01.obj
-    textures/box.bmp
-    textures/grid.png
-    textures/detail.png
-    textures/brick-normal.png
-    textures/brick-height.png
-    textures/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr
-    textures/alphatest.png
-    fonts/arial.ttf
-    shaders/phong-shading.vs
-    shaders/skinning-feedback.vs
-    shaders/phong-shading.fs
-    shaders/lighting.glsl
-    shaders/display.glsl
-    shaders/surface.glsl
-    shaders/bump-mapping.glsl
-    shaders/parallax-mapping.glsl
-    shaders/bounce.glsl
-    shaders/tree-deformation.glsl
-    shaders/terrain.vs
-    shaders/terrain.gs
-    shaders/terrain-depth.gs
-    shaders/terrain.glsl
-    shaders/sky-particles.vs
-    shaders/sky-particles.fs
-    shaders/sky-particles-present.fs
-    shaders/fur-vertex.glsl
-    shaders/fur-fragment.glsl
-    shaders/lod-fade.glsl
-    shaders/gbuffer.fs
-    shaders/screen-quad.vs
-    shaders/deferred-lighting.fs
-    shaders/deferred-lighting-msaa.fs
-    shaders/deferred-lighting.glsl
-    shaders/gbuffer-resolve.fs
-    shaders/msaa-ambient.fs
-    shaders/antialiasing.fs
-    shaders/brdf.glsl
-    shaders/environment.glsl
-    shaders/room-skies.glsl
-    shaders/room-window.glsl
-    shaders/room-portal.glsl
-    shaders/glass.glsl
-    shaders/environment-bake.fs
-    shaders/environment-sky.fs
-    shaders/environment-deferred.fs
-    shaders/environment-deferred-msaa.fs
-    shaders/environment-deferred.glsl
-    shaders/ssao.fs
-    shaders/ssao-resolve.fs
-    shaders/post-process.fs
-    shaders/depth-of-field.fs
-    shaders/dof.glsl
-    shaders/gbuffer-view.fs
-    shaders/text.vs
-    shaders/text.fs
-    shaders/shadow-depth.vs
-    shaders/shadow-depth.fs
-    shaders/debug.vs
-    shaders/debug.fs
-)
+include("${VRLIB_SOURCE_DIR}/cmake/runtime-resources.cmake")
+
 set(VIEWER_RESOURCE_OUTPUTS)
 foreach(resource IN LISTS VIEWER_RESOURCES)
     get_filename_component(resource_directory "${resource}" DIRECTORY)
+    if(resource_directory STREQUAL "")
+        set(resource_directory ".")
+    endif()
     set(resource_output "${PROJECT_BINARY_DIR}/bin/${resource}")
     add_custom_command(OUTPUT "${resource_output}"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/bin/${resource_directory}"
@@ -205,3 +130,18 @@ add_custom_target(viewer_resources DEPENDS ${VIEWER_RESOURCE_OUTPUTS})
 add_dependencies(viewer viewer_resources)
 install(TARGETS viewer RUNTIME DESTINATION .)
 install(FILES "${VRLIB_SOURCE_DIR}/LICENSE" DESTINATION .)
+
+# Both applications use the same library and carry the complete offline resource set.
+add_executable(pantheon "${VRLIB_SOURCE_DIR}/experiments/pantheon/tools/gyro_main.cpp")
+target_link_libraries(pantheon PRIVATE vrlib)
+set_target_properties(pantheon PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
+foreach(config Debug Release RelWithDebInfo MinSizeRel)
+  string(TOUPPER ${config} CONFIG_UPPER)
+  set_target_properties(pantheon PROPERTIES RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${PROJECT_BINARY_DIR}/bin")
+endforeach()
+if(MSVC)
+  set_target_properties(pantheon PROPERTIES WIN32_EXECUTABLE TRUE)
+  target_link_options(pantheon PRIVATE /ENTRY:mainCRTStartup)
+endif()
+add_dependencies(pantheon viewer_resources)
+install(TARGETS pantheon RUNTIME DESTINATION .)

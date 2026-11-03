@@ -75,6 +75,8 @@ private:
     void validateControls();
     // Checks reticle targeting, per-instance subdivision and exact restoration through the UI.
     void validateModelTargeting();
+    // Checks that hidden crosshairs skip picking and preserve the last focus distance.
+    void validateTargetingToggle();
     Application& m_application;
 };
 } // namespace vr

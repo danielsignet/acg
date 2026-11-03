@@ -72,6 +72,10 @@ void Application::reload(){
     deferred->setBloom(m_bloomEnabled);
     deferred->setAmbientOcclusion(m_ambientOcclusionEnabled);
     deferred->setDepthOfField(m_depthOfFieldEnabled);
+    // Keep a fixed focus usable without casting when the crosshair is hidden.
+    const auto focus = m_deferred ? m_deferred->getFocusDistance() : std::optional<float>{};
+    deferred->setFocusDistance(focus.value_or(
+        std::max(0.1f, glm::length(scene->getInitialTarget() - scene->getInitialEye()))));
     deferred->setLightCulling(m_lightCullingEnabled);
     auto gpuSkinning =
         m_gpuSkinningEnabled ? std::make_shared<GpuSkinning>(m_root, &m_profiler) : nullptr;
@@ -234,14 +238,13 @@ void Application::execute(Controls::Action action){
         m_vsync = !m_vsync;
         glfwSwapInterval(m_vsync ? 1 : 0);
         m_profiler.resetAverages();
-        m_status = m_vsync ? "VSync on; averages reset"
-                           : "VSync off (uncapped); averages reset";
+        m_status = m_vsync ? "VSync on" : "VSync off (uncapped)";
     } else if (action == Action::BumpMapping){
         m_bumpMappingEnabled = !m_bumpMappingEnabled;
         m_scene->getRoot()->getState()->setUniform("uBumpMapping", m_bumpMappingEnabled);
         m_profiler.resetAverages();
-        m_status = m_bumpMappingEnabled ? "Normal and height bump maps on; averages reset"
-                                        : "Normal and height bump maps off; averages reset";
+        m_status = m_bumpMappingEnabled ? "Normal and height bump maps on"
+                                        : "Normal and height bump maps off";
     } else if (action == Action::SkyParticles){
         m_particlesEnabled=!m_particlesEnabled;
         m_environment->setParticlesEnabled(m_particlesEnabled);
@@ -258,14 +261,12 @@ void Application::execute(Controls::Action action){
         m_parallaxMappingEnabled = !m_parallaxMappingEnabled;
         m_scene->getRoot()->getState()->setUniform("uParallaxMapping", m_parallaxMappingEnabled);
         m_profiler.resetAverages();
-        m_status = m_parallaxMappingEnabled ? "Parallax mapping on; averages reset"
-                                            : "Parallax mapping off; averages reset";
+        m_status = m_parallaxMappingEnabled ? "Parallax mapping on" : "Parallax mapping off";
     } else if (action == Action::Reflections){
         m_reflectionMode = nextReflection(m_reflectionMode);
         m_environment->setReflectionMode(m_reflectionMode);
         m_profiler.resetAverages();
-        m_status =
-            std::string("Reflections: ") + reflectionName(m_reflectionMode) + "; averages reset";
+        m_status = std::string("Reflections: ") + reflectionName(m_reflectionMode);
     } else if (action == Action::Antialiasing){
         try{
             const auto next = nextAntialiasing(m_antialiasingMode);
@@ -273,7 +274,7 @@ void Application::execute(Controls::Action action){
             m_antialiasingMode = next;
             m_profiler.resetAverages();
             m_status = std::string("Antialiasing: ") + antialiasingName(next) +
-                       "; averages reset. Cycle: Off > FXAA > MSAA 4x";
+                       ". Cycle: Off > FXAA > MSAA 4x";
         } catch (const std::exception& error){
             m_status = error.what();
         }
@@ -281,8 +282,8 @@ void Application::execute(Controls::Action action){
         m_lightCullingEnabled = !m_lightCullingEnabled;
         m_deferred->setLightCulling(m_lightCullingEnabled);
         m_profiler.resetAverages();
-        m_status = m_lightCullingEnabled ? "Deferred light culling on; averages reset"
-                                         : "Deferred light culling off; averages reset";
+        m_status = m_lightCullingEnabled ? "Deferred light culling on"
+                                         : "Deferred light culling off";
     } else if (action == Action::PauseAnimation){
         if (const auto playing=targetAnimationPlaying()){
             if (auto bounce=callbackAs<BounceAnimation>(m_target->instance->getUpdateCallback()))
@@ -308,8 +309,7 @@ void Application::execute(Controls::Action action){
         m_carHeadlightsEnabled = !m_carHeadlightsEnabled;
         applyCarHeadlights(*m_scene);
         m_profiler.resetAverages();
-        m_status = m_carHeadlightsEnabled ? "Car headlights on; averages reset"
-                                          : "Car headlights off; averages reset";
+        m_status = m_carHeadlightsEnabled ? "Car headlights on" : "Car headlights off";
     } else if (action == Action::Subdivision){
         if (!m_target){
             m_status = "No target";
@@ -476,6 +476,12 @@ void Application::execute(Controls::Action action){
         if (!m_showMenus){
             m_shaderMenuOpen = false;
         }
+    } else if (action == Action::Crosshair){
+        m_crosshairEnabled = !m_crosshairEnabled;
+        m_target.reset();
+        m_picker.invalidate();
+        m_profiler.resetAverages();
+        m_status = m_crosshairEnabled ? "Crosshair shown [X]" : "Crosshair hidden [X]";
     } else if (action == Action::PortalCulling){
         m_portalCulling = !m_portalCulling;
     } else if (action == Action::TransparentWalls){
@@ -624,6 +630,10 @@ void Application::render(){
         m_renderer->render(
             *m_scene->getRoot(), camera, frozen, &m_portalResult,
             m_deferredEnabled ? m_deferred.get() : nullptr, [&]{
+                if (!targetingEnabled()){
+                    m_target.reset();
+                    return;
+                }
                 FrameProfiler::Scope picking(&m_profiler, FrameProfiler::Stage::Picking);
                 float surfaceDistance=0;
                 m_target =

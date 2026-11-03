@@ -107,7 +107,7 @@ void SceneOverlay::click(Application& app, float x, float y){
     const auto inside = [&](const glm::vec4& rect){
         return x >= rect.x && x < rect.x + rect.z && y >= rect.y && y < rect.y + rect.w;
     };
-    if (app.m_target){
+    if (app.targetingEnabled() && app.m_target){
         if (inside(targetActionRectangle(app, 0))){
             app.execute(Action::Subdivision);
             return;
@@ -287,6 +287,9 @@ void SceneOverlay::drawHeader(const Application& app){
 
 // Marks the camera ray used by model targeting and depth-of-field focusing.
 void SceneOverlay::drawFocus(const Application& app){
+    if (!app.targetingEnabled()){
+        return;
+    }
     const float x = app.m_width * 0.5f, y = app.m_height * 0.5f;
     const std::array<glm::vec4, 4> marks{
         {{x - 9, y - 1, 5, 2},{x + 4, y - 1, 5, 2},{x - 1, y - 9, 2, 5},{x - 1, y + 4, 2, 5}}};
@@ -362,14 +365,9 @@ void SceneOverlay::drawFooter(const Application& app){
     drawToolbar(app, top);
     m_text.draw(
         "RMB+WASD/QE: fly   Shift: faster   Arrows/PgUp/PgDn: lamps   T: orbit   F: freeze scene   "
-        "G: buffers   F1: performance   Tab: menus   Space: reset   R: reload   Esc: close",
+        "G: buffers   F1: performance   Tab: menus   X: crosshair   Space: reset   R: reload   Esc: close",
         20, bottom + 53, 11,{0.68f, 0.77f, 0.85f, 1});
-    const auto& shadowStats = app.m_shadowRenderer->getStats();
-    const auto status = std::string("Parallax [F9]: ") + (app.m_parallaxMappingEnabled ? "ON" : "OFF") +
-                        " | Fur [F11]: " + (app.m_furEnabled ? "ON" : "OFF") +
-                        " | " + app.m_status + " | Shadow passes: " + std::to_string(shadowStats.passes) +
-                        ", draws: " + std::to_string(shadowStats.draws);
-    m_text.draw(status.substr(0, 160), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});
+    m_text.draw(app.m_status.substr(0, 160), 20, bottom + 76, 10,{0.42f, 0.54f, 0.64f, 1});
     if (app.m_shaderMenuOpen && !app.performanceVisible()){
         drawShaderMenu(app, bottom);
     }

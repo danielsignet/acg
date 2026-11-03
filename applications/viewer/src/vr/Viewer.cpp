@@ -83,8 +83,10 @@ bool Viewer::parseOptions(int argc, char** argv){
             m_performance = true;
         } else if (option == "--benchmark-hud"){
             m_benchmarkHud = true;
+        } else if (option == "--vsync"){
+            m_vsync = true;
         } else if (option == "--no-vsync"){
-            m_noVsync = true;
+            m_vsync = false;
         } else if (option == "--no-menus"){
             m_noMenus = true;
         } else if (option == "--no-hud"){
@@ -145,7 +147,7 @@ bool Viewer::parseOptions(int argc, char** argv){
                          "[--buffer lit|positions|normals|albedo|specular|depth|"
                          "ambient|emissive|plane|ao] [--bloom] [--dof] "
                          "[--no-buffer-previews] [--performance] [--forward] [--no-ao] "
-                         "[--no-menus] [--no-hud] [--no-bump] [--no-parallax] [--no-fur] [--no-particles] [--size width height] [--no-vsync] [--cpu-skinning] [--benchmark "
+                         "[--no-menus] [--no-hud] [--no-bump] [--no-parallax] [--no-fur] [--no-particles] [--size width height] [--vsync|--no-vsync] [--cpu-skinning] [--benchmark "
                          "output.csv] [--no-shadow-cache] [--no-scene-cache] "
                          "[--aa off|fxaa|msaa] "
                          "[--reflections off|environment|cubemaps] "
@@ -186,12 +188,13 @@ void Viewer::initialize(){
     if (!gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress))){
         throw std::runtime_error("OpenGL loading failed");
     }
-    glfwSwapInterval(m_hidden || m_noVsync ? 0 : 1);
+    const bool vsync = m_vsync && !m_hidden;
+    glfwSwapInterval(vsync ? 1 : 0);
     std::cout << "OpenGL: " << glGetString(GL_VERSION) << "\nRenderer: " << glGetString(GL_RENDERER)
               << "\nGLSL: " << glGetString(GL_SHADING_LANGUAGE_VERSION)
               << "\nAssets: " << m_root.string() << '\n';
     m_application = std::make_unique<Application>(m_window, m_root, m_scene, m_dotFile);
-    m_application->m_vsync = !m_hidden && !m_noVsync;
+    m_application->m_vsync = vsync;
     glfwSetWindowUserPointer(m_window, m_application.get());
     glfwSetKeyCallback(m_window, [](GLFWwindow* window, int key, int, int action, int){
         if (action == GLFW_PRESS){

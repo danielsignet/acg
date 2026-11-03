@@ -650,7 +650,8 @@ private:
         check(points, "Keys 1-5 identify the four colored lights and daylight");
         check(vr::Controls::find(GLFW_KEY_L)->action == Action::Flashlight,
               "L toggles the flashlight independently of F's culling inspection");
-        check(vr::Controls::getBindings().size() == 31 &&
+        check(vr::Controls::getBindings().size() == 32 &&
+                  vr::Controls::find(GLFW_KEY_X)->action == Action::Crosshair &&
                   vr::Controls::find(GLFW_KEY_F12)->action == Action::SkyParticles &&
                   vr::Controls::find(GLFW_KEY_F11)->action == Action::FurRendering &&
                   vr::Controls::find(GLFW_KEY_T)->action == Action::PointOrbit &&

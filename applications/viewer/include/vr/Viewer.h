@@ -47,7 +47,7 @@ private:
     bool m_noFur = false;
     bool m_noParticles = false;
     int m_startWidth=1280,m_startHeight=800;
-    bool m_noVsync = false;
+    bool m_vsync = false;
     bool m_cpuSkinning = false;
     bool m_noShadowCache = false, m_noSceneCache = false;
     bool m_lodDemoCallback = false;

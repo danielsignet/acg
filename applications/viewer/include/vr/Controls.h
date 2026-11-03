@@ -31,6 +31,7 @@ public:
         DebugBounds,
         Roof,
         Hud,
+        Crosshair,
         Performance,
         ResetAverages,
         Renderer,
@@ -113,7 +114,7 @@ public:
     }
 
     // Returns the immutable command table used by input handling and tests.
-    static const std::array<Binding, 31>& getBindings(){
+    static const std::array<Binding, 32>& getBindings(){
         return m_bindings;
     }
 
@@ -171,7 +172,7 @@ private:
          {Action::CookTorranceShader, ShadingMode::CookTorrance, BufferView::Lit, GLFW_KEY_K,
           "K  Cook-Torrance"}}};
 
-    inline static constexpr std::array<Binding, 31> m_bindings{
+    inline static constexpr std::array<Binding, 32> m_bindings{
         {{Action::Renderer, GLFW_KEY_F2, "F2", "Forward / deferred"},
          {Action::Antialiasing, GLFW_KEY_F3, "F3", "Anti-aliasing"},
          {Action::Subdivision, GLFW_KEY_F4, "F4", "Subdivision"},
@@ -184,6 +185,7 @@ private:
          {Action::FurRendering, GLFW_KEY_F11, "F11", "Fur shells"},
          {Action::SkyParticles, GLFW_KEY_F12, "F12", "Star particles"},
          {Action::Hud, GLFW_KEY_TAB, "Tab", "Menus"},
+         {Action::Crosshair, GLFW_KEY_X, "X", "Crosshair"},
          {Action::AmbientOcclusion, GLFW_KEY_O, "O", "Ambient occlusion"},
          {Action::Performance, GLFW_KEY_F1, "F1", "Performance"},
          {Action::Exit, GLFW_KEY_ESCAPE, "Esc", "Exit"},

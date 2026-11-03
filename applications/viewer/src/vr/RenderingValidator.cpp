@@ -50,6 +50,7 @@ void RenderingValidator::run(){
     validateShadows();
     validateControls();
     validateModelTargeting();
+    validateTargetingToggle();
     validateFlashlight();
     validateLighting();
     validateAlphaTest();
@@ -94,6 +95,12 @@ void RenderingValidator::validateOverlayResize(){
         app.overlay();
         require(FramebufferImage::capture(x, y, 24, 24).hash() == reference.hash(),
                 "A stale auxiliary viewport cannot move the resized crosshair");
+        app.handleKey(GLFW_KEY_X);
+        glClear(GL_COLOR_BUFFER_BIT);
+        app.overlay();
+        require(FramebufferImage::capture(x, y, 24, 24).hash() == blank.hash(),
+                "X removes the crosshair from the framebuffer");
+        app.handleKey(GLFW_KEY_X);
     }
     app.m_target = target;
     app.m_showHud = hud;
@@ -562,6 +569,70 @@ void RenderingValidator::validateModelTargeting(){
     require(floorFocus && *floorFocus > 0 && *floorFocus < farDistance,
             "An unselectable floor provides a geometric DoF focus without becoming selectable");
     camera->setView(originalView);
+}
+
+// Checks that hidden crosshairs skip picking and preserve the last focus distance.
+void RenderingValidator::validateTargetingToggle(){
+    auto& app = m_application;
+    const auto camera = app.m_scene->getCamera();
+    const auto view = camera->getView();
+    camera->setLookAt({-3.6f, 2.6f, 1.5f},{-4.8f, 2.4f, 0});
+    app.render();
+    require(app.m_target && app.m_target->instance->getName() == "monkey",
+            "Targeting is active before hiding the crosshair");
+    auto* target = app.m_target->instance;
+    const bool subdivided = target->getSubdivided();
+    const auto focus = app.m_deferred->getFocusDistance();
+    const auto queries = app.m_picker.getQueryCount();
+    app.handleKey(GLFW_KEY_X);
+    require(!app.m_target && !app.targetingEnabled(),
+            "Hiding the crosshair immediately clears the selected object");
+    app.handleKey(GLFW_KEY_F4);
+    clickTargetAction(0);
+    require(target->getSubdivided() == subdivided,
+            "A hidden crosshair cannot subdivide a stale selection by key or click");
+    app.m_profiler.setEnabled(true);
+    for (const bool deferred :{true, false}){
+        if (app.m_deferredEnabled != deferred) app.execute(Controls::Action::Renderer);
+        camera->setLookAt({30, 4, 10},{30, 0, 9.9f});
+        app.m_picker.invalidate();
+        app.m_profiler.beginFrame(0.02);
+        app.render();
+        app.m_profiler.endFrame();
+        require(!app.m_target && app.m_picker.getQueryCount() == queries &&
+                    app.m_deferred->getFocusDistance() == focus &&
+                    app.m_profiler.summarize().latestCpu[
+                        static_cast<std::size_t>(FrameProfiler::Stage::Picking)] == 0,
+                "Hidden targeting skips ray queries and profiling in both render paths, with focus held");
+    }
+    app.execute(Controls::Action::Renderer);
+    app.handleKey(GLFW_KEY_X);
+    camera->setLookAt({-3.6f, 2.6f, 1.5f},{-4.8f, 2.4f, 0});
+    app.render();
+    require(app.m_target && app.m_target->instance == target &&
+                app.m_picker.getQueryCount() > queries,
+            "Showing the crosshair resumes a fresh ray query at the current view");
+    const auto resumedQueries = app.m_picker.getQueryCount();
+    const auto resumedFocus = app.m_deferred->getFocusDistance();
+    app.m_showHud = false;
+    app.m_picker.invalidate();
+    camera->setLookAt({30, 4, 10},{30, 0, 9.9f});
+    app.render();
+    require(!app.m_target && app.m_picker.getQueryCount() == resumedQueries &&
+                app.m_deferred->getFocusDistance() == resumedFocus,
+            "Disabling the HUD also skips invisible targeting with performance inspection open");
+    app.m_showHud = true;
+    app.m_profiler.setEnabled(false);
+    app.handleKey(GLFW_KEY_X);
+    app.reload();
+    app.render();
+    require(!app.targetingEnabled() && !app.m_target &&
+                app.m_picker.getQueryCount() == resumedQueries &&
+                app.m_deferred->getFocusDistance() == resumedFocus,
+            "Reload preserves hidden targeting and the fixed focus without a ray query");
+    app.handleKey(GLFW_KEY_X);
+    app.m_scene->getCamera()->setView(view);
+    app.render();
 }
 
 // Checks performance controls, counters and overlay isolation from the scene.

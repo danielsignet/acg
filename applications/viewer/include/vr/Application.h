@@ -108,6 +108,8 @@ private:
 
     // Draws the application HUD after rendering the 3D scene.
     void overlay();
+    // Couples the visible crosshair to object selection and automatic focusing.
+    bool targetingEnabled() const{ return m_showHud && m_crosshairEnabled; }
     bool performanceVisible() const{ return m_profiler.getEnabled() && !m_benchmarkHud; }
     bool m_benchmarkHud = false;
 
@@ -196,7 +198,8 @@ private:
     bool m_roofEnabled = true;
     bool m_showHud = true;
     bool m_showMenus = true;
-    bool m_vsync = true;
+    bool m_crosshairEnabled = true;
+    bool m_vsync = false;
     bool m_houseView = false;
     bool m_portalCulling = true;
     bool m_transparentWalls = true;

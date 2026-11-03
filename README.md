@@ -47,13 +47,14 @@ Move the complete installation folder, including its resource directories and DL
 | F1 / F2 / F3 | Performance view / forward or deferred / Off, FXAA or MSAA 4x |
 | F4 | Toggle subdivision for the targeted model |
 | F5 / F6 | Reflection mode / normal and height bump mapping |
-| F7 / F8 / F9 | VSync / deferred light culling / parallax mapping |
+| F7 / F8 / F9 | VSync (off at startup) / deferred light culling / parallax mapping |
 | F11 / F12 | Fur / star particles |
 | P | Pause or resume the targeted basketball or doughnut |
 | F | Freeze scene animation and culling camera |
 | C / J / L | Culling / shadows / flashlight |
 | O / B / V | Ambient occlusion / bloom / depth of field |
 | Z / G / Tab | Shader menu / buffer previews / hide menus |
+| X | Toggle crosshair and targeting; keep focus fixed while hidden |
 | 1-5 / T | Toggle lights / pause light orbit |
 | Arrows / Page Up,Down | Move the light ring |
 | Shader menu: 1 / N / 2 / H / K | Phong / plain Phong / Toon / Blinn-Phong / Cook-Torrance |
